@@ -1,0 +1,22 @@
+{
+  "name": "Kandy Cabs Driver Portal",
+  "short_name": "Kandy Driver",
+  "description": "Operational Dispatch & Meter Management App for Kandy Cabs Chauffeurs in Mangaluru.",
+  "start_url": "/driver/dashboard",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#E02B1D",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/images/kandy-cabs-logo.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/images/kandy-cabs-logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
