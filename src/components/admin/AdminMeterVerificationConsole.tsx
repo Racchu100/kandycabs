@@ -25,9 +25,50 @@ export interface AdminMeterVerificationConsoleProps {
   initialBookingId?: string;
 }
 
+const generateGeotaggedOdometerSvg = (
+  km: number,
+  type: 'PICKUP' | 'DROPOFF',
+  locationStr: string,
+  driverName: string = 'Suresh Gowda',
+  vehicleReg: string = 'KA 19 C 4829'
+) => {
+  const isPickup = type === 'PICKUP';
+  const headerBg = isPickup ? '%231D4ED8' : '%23059669';
+  const headerTitle = isPickup ? 'PICKUP ODOMETER EVIDENCE' : 'DROPOFF ODOMETER EVIDENCE';
+  const pillBg = isPickup ? '%23DBEAFE' : '%23D1FAE5';
+  const pillColor = isPickup ? '%231E40AF' : '%23065F46';
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+    <rect width="800" height="500" fill="%230F172A"/>
+    <!-- Dashboard Dial Outer Ring -->
+    <circle cx="400" cy="220" r="140" fill="none" stroke="%23334155" stroke-width="12"/>
+    <circle cx="400" cy="220" r="130" fill="%231E293B" stroke="%23475569" stroke-width="4"/>
+    <!-- Speedometer Needle -->
+    <line x1="400" y1="220" x2="${isPickup ? '340' : '460'}" y2="140" stroke="%23EF4444" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="400" cy="220" r="16" fill="%23DC2626"/>
+    <!-- Digital Odometer Box -->
+    <rect x="260" y="270" width="280" height="60" rx="8" fill="%23020617" stroke="%2338BDF8" stroke-width="2"/>
+    <text x="400" y="312" font-family="monospace, sans-serif" font-size="32" font-weight="bold" fill="%2338BDF8" text-anchor="middle" letter-spacing="4">${km.toLocaleString('en-IN')} KM</text>
+    <!-- Header Banner -->
+    <rect x="0" y="0" width="800" height="50" fill="${headerBg}"/>
+    <text x="20" y="32" font-family="sans-serif" font-size="18" font-weight="bold" fill="%23FFFFFF">📸 ${headerTitle}</text>
+    <text x="780" y="32" font-family="sans-serif" font-size="14" font-weight="bold" fill="%23FFFFFF" text-anchor="end">${vehicleReg}</text>
+    <!-- Driver Info Pill -->
+    <rect x="20" y="65" width="400" height="32" rx="6" fill="${pillBg}"/>
+    <text x="35" y="86" font-family="sans-serif" font-size="13" font-weight="bold" fill="${pillColor}">👨‍✈️ Driver: ${driverName} (${vehicleReg})</text>
+    <!-- Bottom Geotag Location Banner -->
+    <rect x="0" y="420" width="800" height="80" fill="%230F172A" opacity="0.95"/>
+    <rect x="0" y="420" width="800" height="2" fill="%2338BDF8"/>
+    <text x="20" y="450" font-family="sans-serif" font-size="14" font-weight="bold" fill="%2338BDF8">📍 GPS Geotagged Location Stamp:</text>
+    <text x="20" y="480" font-family="sans-serif" font-size="12" fill="%23E2E8F0">${locationStr}</text>
+  </svg>`;
+
+  return `data:image/svg+xml;utf8,${svg}`;
+};
+
 export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConsoleProps> = ({ initialBookingId }) => {
   const [bookings, setBookings] = useState<AdminBookingOverview[]>([]);
-  const [selectedBookingId, setSelectedBookingId] = useState<string>(initialBookingId || 'KC-88429');
+  const [selectedBookingId, setSelectedBookingId] = useState<string>(initialBookingId || '');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
@@ -39,8 +80,6 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
   const [showOverrideModal, setShowOverrideModal] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [pickupCopied, setPickupCopied] = useState(false);
-  const [dropoffCopied, setDropoffCopied] = useState(false);
 
   // Modal Lightbox state for inspecting evidence images
   const [modalImage, setModalImage] = useState<{
@@ -53,13 +92,54 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
   } | null>(null);
   const [modalCopied, setModalCopied] = useState(false);
 
-  const refreshBookings = () => {
-    const all = getAdminBookings();
+  const refreshBookings = async () => {
+    let all = getAdminBookings();
+
+    try {
+      const res = await fetch('/api/admin/bookings', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          const map = new Map<string, AdminBookingOverview>();
+          for (const b of all) {
+            map.set(b.bookingReference || b.id, b);
+          }
+          for (const b of data.data) {
+            const key = b.bookingReference || b.id;
+            const existing = map.get(key);
+            if (existing) {
+              map.set(key, { ...existing, ...b });
+            } else {
+              map.set(key, b);
+            }
+          }
+          all = Array.from(map.values());
+        }
+      }
+    } catch (e) {
+      console.error('Error refreshing meter verification bookings:', e);
+    }
+
+    // Sort bookings: Completed & Active trips with Odometer evidence FIRST, then recency
+    all.sort((a, b) => {
+      const hasMeterA = Boolean(a.initialMeterKm || a.finalMeterKm || a.initialMeterImage || a.finalMeterImage || a.status === 'COMPLETED' || a.status === 'TRIP_STARTED');
+      const hasMeterB = Boolean(b.initialMeterKm || b.finalMeterKm || b.initialMeterImage || b.finalMeterImage || b.status === 'COMPLETED' || b.status === 'TRIP_STARTED');
+      if (hasMeterA && !hasMeterB) return -1;
+      if (!hasMeterA && hasMeterB) return 1;
+
+      const timeA = new Date(a.createdAt || a.tripCompletedAt || a.tripStartedAt || 0).getTime();
+      const timeB = new Date(b.createdAt || b.tripCompletedAt || b.tripStartedAt || 0).getTime();
+      return timeB - timeA;
+    });
+
     setBookings(all);
 
-    // If selected booking is not set or not found, select first or default
-    if (all.length > 0 && !all.some((b) => b.id === selectedBookingId || b.bookingReference === selectedBookingId)) {
-      setSelectedBookingId(all[0].bookingReference || all[0].id);
+    if (all.length > 0) {
+      if (initialBookingId && all.some((b) => b.id === initialBookingId || b.bookingReference === initialBookingId)) {
+        setSelectedBookingId(initialBookingId);
+      } else if (!selectedBookingId || !all.some((b) => b.id === selectedBookingId || b.bookingReference === selectedBookingId)) {
+        setSelectedBookingId(all[0].bookingReference || all[0].id);
+      }
     }
   };
 
@@ -84,6 +164,27 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
     (b) => b.bookingReference === selectedBookingId || b.id === selectedBookingId
   );
 
+  const pKm = selectedBooking ? (selectedBooking.initialMeterKm || selectedBooking.startMeterReading || 12450) : 12450;
+  const dKm = selectedBooking ? (selectedBooking.finalMeterKm || 12510) : 12510;
+  const driverName = selectedBooking?.assignedDriverName || 'Suresh Gowda';
+  const vehicleReg = selectedBooking?.assignedVehicleReg || 'KA 19 C 4829';
+
+  const defaultPickupImg = generateGeotaggedOdometerSvg(
+    pKm,
+    'PICKUP',
+    selectedBooking?.pickupAddress || 'Mangaluru Central Railway Station, Mangaluru • Lat: 12.8702, Lng: 74.8430',
+    driverName,
+    vehicleReg
+  );
+
+  const defaultDropoffImg = generateGeotaggedOdometerSvg(
+    dKm,
+    'DROPOFF',
+    selectedBooking?.dropAddress || 'Udupi Sri Krishna Matha, Udupi • Lat: 13.3409, Lng: 74.7421',
+    driverName,
+    vehicleReg
+  );
+
   // Construct Pickup Evidence object
   const pickupEvidence: MeterEvidence = selectedBooking
     ? {
@@ -96,18 +197,14 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
         latitude: (selectedBooking as any).initialMeterLat || 12.8702,
         longitude: (selectedBooking as any).initialMeterLng || 74.843,
         accuracyMeters: 4.0,
-        odometerReadingKm: selectedBooking.initialMeterKm || selectedBooking.startMeterReading || 12450,
-        imageUrl:
-          selectedBooking.initialMeterImage ||
-          'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-        thumbnailUrl:
-          selectedBooking.initialMeterImage ||
-          'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=200&q=80',
+        odometerReadingKm: pKm,
+        imageUrl: selectedBooking.initialMeterImage || defaultPickupImg,
+        thumbnailUrl: selectedBooking.initialMeterImage || defaultPickupImg,
         capturedAt: selectedBooking.tripStartedAt || selectedBooking.createdAt || new Date().toISOString(),
       }
     : {
         id: 'ev_pickup_101',
-        bookingId: 'KC-88429',
+        bookingId: 'KC-37027',
         driverId: 'driver_suresh',
         driverName: 'Suresh Gowda',
         vehicleReg: 'KA 19 C 4829',
@@ -116,8 +213,8 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
         longitude: 74.843,
         accuracyMeters: 4.0,
         odometerReadingKm: 12450,
-        imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=200&q=80',
+        imageUrl: defaultPickupImg,
+        thumbnailUrl: defaultPickupImg,
         capturedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
       };
 
@@ -133,18 +230,14 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
         latitude: (selectedBooking as any).finalMeterLat || 13.3409,
         longitude: (selectedBooking as any).finalMeterLng || 74.7421,
         accuracyMeters: 4.5,
-        odometerReadingKm: selectedBooking.finalMeterKm || 12510,
-        imageUrl:
-          selectedBooking.finalMeterImage ||
-          'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-        thumbnailUrl:
-          selectedBooking.finalMeterImage ||
-          'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=200&q=80',
+        odometerReadingKm: dKm,
+        imageUrl: selectedBooking.finalMeterImage || defaultDropoffImg,
+        thumbnailUrl: selectedBooking.finalMeterImage || defaultDropoffImg,
         capturedAt: selectedBooking.tripCompletedAt || selectedBooking.createdAt || new Date().toISOString(),
       }
     : {
         id: 'ev_dropoff_102',
-        bookingId: 'KC-88429',
+        bookingId: 'KC-37027',
         driverId: 'driver_suresh',
         driverName: 'Suresh Gowda',
         vehicleReg: 'KA 19 C 4829',
@@ -153,8 +246,8 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
         longitude: 74.7421,
         accuracyMeters: 4.5,
         odometerReadingKm: 12510,
-        imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=200&q=80',
+        imageUrl: defaultDropoffImg,
+        thumbnailUrl: defaultDropoffImg,
         capturedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       };
 
@@ -415,8 +508,8 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
                 {bookings.map((b) => {
                   const pKm = b.initialMeterKm || b.startMeterReading || 12450;
                   const dKm = b.finalMeterKm || 12510;
-                  const pImg = b.initialMeterImage || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
-                  const dImg = b.finalMeterImage || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
+                  const pImg = b.initialMeterImage || generateGeotaggedOdometerSvg(pKm, 'PICKUP', b.pickupAddress || 'Mangaluru', b.assignedDriverName || 'Suresh Gowda', b.assignedVehicleReg || 'KA 19 C 4829');
+                  const dImg = b.finalMeterImage || generateGeotaggedOdometerSvg(dKm, 'DROPOFF', b.dropAddress || 'Udupi', b.assignedDriverName || 'Suresh Gowda', b.assignedVehicleReg || 'KA 19 C 4829');
                   const isSelected = (b.bookingReference || b.id) === selectedBookingId;
 
                   return (
