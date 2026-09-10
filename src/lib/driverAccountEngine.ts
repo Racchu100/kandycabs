@@ -275,7 +275,62 @@ export function setDriverPassword(
 }
 
 /**
- * Verify Driver Password on Login
+ * Verify Driver Credentials for OTP-only login
+ * Strictly checks existence, verification status, and active account state
+ */
+export function verifyDriverOtpLogin(
+  mobile: string
+): { success: boolean; driver?: DriverAccountRecord; error?: string; statusReason?: 'NOT_FOUND' | 'PENDING' | 'REJECTED' | 'DEACTIVATED' } {
+  const cleanMobile = mobile.trim().replace(/\D/g, '');
+  if (!cleanMobile || cleanMobile.length < 10) {
+    return {
+      success: false,
+      statusReason: 'NOT_FOUND',
+      error: 'Please enter a valid 10-digit registered driver mobile number.',
+    };
+  }
+
+  const driver = getDriverByPhoneOrUsername(mobile);
+  if (!driver) {
+    return {
+      success: false,
+      statusReason: 'NOT_FOUND',
+      error: 'No driver account found with this Mobile Number in Admin Panel. Access denied. Please contact KANDY CABS.',
+    };
+  }
+
+  if (driver.verificationStatus === 'PENDING_VERIFICATION') {
+    return {
+      success: false,
+      driver,
+      statusReason: 'PENDING',
+      error: 'Your driver application is still under verification.',
+    };
+  }
+
+  if (driver.verificationStatus === 'REJECTED') {
+    return {
+      success: false,
+      driver,
+      statusReason: 'REJECTED',
+      error: 'Your driver application was rejected. Please contact KANDY CABS.',
+    };
+  }
+
+  if (driver.status === 'DEACTIVATED' || driver.status === 'SUSPENDED') {
+    return {
+      success: false,
+      driver,
+      statusReason: 'DEACTIVATED',
+      error: 'Your driver account has been deactivated. Please contact KANDY CABS.',
+    };
+  }
+
+  return { success: true, driver };
+}
+
+/**
+ * Verify Driver Password on Login (Legacy / Fallback)
  */
 export function verifyDriverCredentials(
   identifier: string,
@@ -293,7 +348,19 @@ export function verifyDriverCredentials(
   );
 
   if (!driver) {
-    return { success: false, error: 'No driver account found with this Mobile Number or Username.' };
+    return { success: false, error: 'No driver account found with this Mobile Number in Admin Panel. Access denied. Please contact KANDY CABS.' };
+  }
+
+  if (driver.verificationStatus === 'PENDING_VERIFICATION') {
+    return { success: false, error: 'Your driver application is still under verification.' };
+  }
+
+  if (driver.verificationStatus === 'REJECTED') {
+    return { success: false, error: 'Your driver application was rejected. Please contact KANDY CABS.' };
+  }
+
+  if (driver.status === 'DEACTIVATED' || driver.status === 'SUSPENDED') {
+    return { success: false, error: 'Your driver account has been deactivated. Please contact KANDY CABS.' };
   }
 
   if (driver.password !== inputPass.trim()) {

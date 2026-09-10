@@ -6,17 +6,27 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { KandyCabsLogo } from '@/components/ui/KandyCabsLogo';
 import { requestMobileOtp, verifyMobileOtp } from '@/lib/otpAuth';
-import { getDriverByPhoneOrUsername } from '@/lib/driverAccountEngine';
-import { verifyAdminCredentials, isAdminPhoneOrIdentifier } from '@/lib/adminEngine';
+import {
+  getCustomerByMobile,
+  registerCustomerProfile,
+  updateCustomerLastLogin,
+  normalizeMobileNumber,
+} from '@/lib/customerAccountEngine';
 
 export const CustomerLoginForm: React.FC = () => {
   const router = useRouter();
 
-  // Mobile & OTP Login State
+  // Login Flow Step: 'MOBILE' | 'OTP' | 'PROFILE_NAME'
+  const [step, setStep] = useState<'MOBILE' | 'OTP' | 'PROFILE_NAME'>('MOBILE');
+
+  // Input State
   const [mobileInput, setMobileInput] = useState('');
   const [otpInput, setOtpInput] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [fullNameInput, setFullNameInput] = useState('');
   const [cooldown, setCooldown] = useState(0);
+
+  // Verified Temp User Token & Session
+  const [verifiedToken, setVerifiedToken] = useState<string | null>(null);
 
   // UI Feedback State
   const [isLoading, setIsLoading] = useState(false);
@@ -31,10 +41,9 @@ export const CustomerLoginForm: React.FC = () => {
       const draft = sessionStorage.getItem('kandy_cabs_draft');
       if (draft) return '/booking';
     }
-    return '/';
+    return '/account';
   };
 
-  // Cooldown countdown timer & Booking Redirect Check
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -59,11 +68,12 @@ export const CustomerLoginForm: React.FC = () => {
     setInfoMsg(null);
   };
 
-  // Request SMS / WhatsApp OTP
-  const handleRequestOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!mobileInput || mobileInput.trim().length < 3) {
-      setErrorMsg('Please enter a valid Mobile Number.');
+  // Step 1: Request OTP
+  const handleSendOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanDigits = normalizeMobileNumber(mobileInput);
+    if (!cleanDigits || cleanDigits.length < 10) {
+      setErrorMsg('Please enter a valid 10-digit Indian mobile number.');
       return;
     }
 
@@ -74,221 +84,152 @@ export const CustomerLoginForm: React.FC = () => {
       const res = await fetch('/api/auth/otp/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile: mobileInput.trim() }),
+        body: JSON.stringify({ mobile: cleanDigits }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         if (data.cooldownRemainingSec) setCooldown(data.cooldownRemainingSec);
-        throw new Error(data.error || 'Failed to request OTP');
+        throw new Error(data.error || 'Failed to send OTP');
       }
 
-      setInfoMsg(data.message || `✓ 4-digit OTP sent successfully to ${mobileInput.trim()}. (Test OTP: 4829)`);
-      setOtpSent(true);
+      setInfoMsg(data.message || `✓ 4-digit OTP sent successfully to +91 ${cleanDigits}.`);
+      setStep('OTP');
       setCooldown(30);
     } catch (err: any) {
-      // Fallback request via client function
-      const clientRes = requestMobileOtp(mobileInput.trim());
+      const clientRes = requestMobileOtp(cleanDigits);
       if (clientRes.success) {
         setInfoMsg(clientRes.message);
-        setOtpSent(true);
+        setStep('OTP');
         setCooldown(30);
       } else {
-        setErrorMsg(err.message || clientRes.message || 'OTP request failed');
+        setErrorMsg(err.message || clientRes.message || 'OTP request failed.');
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Helper to handle driver session & redirect (dual driver portal + customer booking capability)
-  const setDriverSessionAndRedirect = (driver: any) => {
-    const token = `driver_token_${Date.now()}`;
-    const driverUser = {
-      ...driver,
-      role: 'DRIVER',
-      canBookRides: true,
-      canManageDriver: true,
-    };
-
-    localStorage.setItem('kc_driver_token', token);
-    localStorage.setItem('kc_driver_user', JSON.stringify(driverUser));
-    localStorage.setItem('kc_token', token);
-    localStorage.setItem('kc_user', JSON.stringify(driverUser));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('auth_change'));
-    }
-
-    const targetPath = getPostLoginRedirectPath();
-    if (targetPath && targetPath !== '/') {
-      router.push(targetPath);
-    } else {
-      router.push('/driver/dashboard');
-    }
-  };
-
-  // Helper function to verify OTP across Server API & Client engine
-  const verifyOtpWithServerOrClient = async (mobile: string, otp: string): Promise<boolean> => {
-    const cleanOtp = otp.trim();
-    if (cleanOtp === '4829' || cleanOtp === '0000' || cleanOtp === '1234') {
-      return true;
-    }
-
-    try {
-      const res = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile: mobile.trim(), otp: cleanOtp }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        return true;
-      }
-    } catch {}
-
-    const clientVerify = verifyMobileOtp(mobile.trim(), cleanOtp);
-    return clientVerify.success;
-  };
-
-  // Verify OTP & Sign In (100% OTP Only)
-  const handleVerifyOtpAndLogin = async (e: React.FormEvent) => {
+  // Step 2: Verify OTP
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mobileInput || mobileInput.trim().length < 3) {
-      setErrorMsg('Please enter a valid Mobile Number.');
-      return;
-    }
+    const cleanDigits = normalizeMobileNumber(mobileInput);
+    const cleanOtp = otpInput.trim();
 
-    if (!otpInput || otpInput.trim().length < 4) {
-      setErrorMsg('Please enter the 4-digit OTP code received via SMS.');
+    if (!cleanOtp || cleanOtp.length < 4) {
+      setErrorMsg('Please enter the 4-digit OTP code sent to your mobile.');
       return;
     }
 
     setIsLoading(true);
     clearFeedback();
 
-    const cleanMobile = mobileInput.trim();
-    const cleanOtp = otpInput.trim();
-
     try {
-      // 0. Check if identifier is Admin (9481086058 or kandycabs)
-      if (isAdminPhoneOrIdentifier(cleanMobile)) {
-        const otpValid = await verifyOtpWithServerOrClient(cleanMobile, cleanOtp);
-        if (!otpValid) {
-          throw new Error('Invalid OTP code. Please enter valid OTP (e.g., test OTP: 4829).');
-        }
+      let isVerified = false;
+      let token = '';
+      let isNew = false;
+      let existingCustomer = getCustomerByMobile(cleanDigits);
 
-        const adminFound = verifyAdminCredentials(cleanMobile, cleanOtp);
-        const token = `admin_token_${Date.now()}`;
-        const adminUser = {
-          id: adminFound.admin?.id || 'admin_9481086058',
-          name: 'Super Admin (9481086058)',
-          fullName: 'Super Admin (9481086058)',
-          username: '9481086058',
-          phone: '9481086058',
-          role: 'ADMIN',
-          canBookRides: true,
-          canManageAdmin: true,
-        };
-        localStorage.setItem('kc_admin_token', token);
-        localStorage.setItem('kc_admin_user', JSON.stringify(adminUser));
-        localStorage.setItem('kc_token', token);
-        localStorage.setItem('kc_user', JSON.stringify(adminUser));
-        if (typeof window !== 'undefined') window.dispatchEvent(new Event('auth_change'));
+      // Call API or Fallback Engine
+      const res = await fetch('/api/auth/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: cleanDigits, otp: cleanOtp }),
+      });
 
-        const targetPath = getPostLoginRedirectPath();
-        if (targetPath && targetPath !== '/') {
-          router.push(targetPath);
-        } else {
-          router.push('/admin/dashboard');
-        }
-        return;
-      }
-
-      // 1. Check if identifier is Driver
-      const driverFound = getDriverByPhoneOrUsername(cleanMobile);
-      if (driverFound) {
-        const otpValid = await verifyOtpWithServerOrClient(cleanMobile, cleanOtp);
-        if (!otpValid) {
-          throw new Error('Invalid OTP code. Please enter valid OTP (e.g., test OTP: 4829).');
-        }
-        setDriverSessionAndRedirect(driverFound);
-        return;
-      }
-
-      // 2. Verify OTP via API or client engine for Customer
-      let verifySuccess = false;
-      let userData: any = null;
-      let userToken = '';
-
-      if (cleanOtp === '4829' || cleanOtp === '0000' || cleanOtp === '1234') {
-        verifySuccess = true;
-        const cleanDigits = cleanMobile.replace(/\D/g, '');
-        const suffix = cleanDigits.length >= 4 ? cleanDigits.slice(-4) : '9999';
-        const mockCustomerId = `cust_${suffix}`;
-        const mockUserId = `user_${suffix}`;
-        userToken = `otp_token_${Date.now()}`;
-        userData = {
-          id: mockUserId,
-          customerId: mockCustomerId,
-          phone: cleanMobile,
-          fullName: '',
-          role: 'CUSTOMER',
-        };
+      const data = await res.json();
+      if (res.ok && data.success) {
+        isVerified = true;
+        token = data.token;
+        isNew = data.isNewCustomer;
       } else {
-        try {
-          const res = await fetch('/api/auth/otp/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mobile: cleanMobile, otp: cleanOtp }),
+        const clientVerify = verifyMobileOtp(cleanDigits, cleanOtp);
+        if (clientVerify.success) {
+          isVerified = true;
+          token = clientVerify.token || `token_${Date.now()}`;
+          isNew = !existingCustomer || !existingCustomer.fullName;
+        } else {
+          throw new Error(data.error || clientVerify.error || 'Invalid 4-digit OTP code.');
+        }
+      }
+
+      if (isVerified) {
+        setVerifiedToken(token);
+        // Check if returning customer with profile
+        if (existingCustomer && existingCustomer.fullName && existingCustomer.fullName.trim() !== '') {
+          // Returning customer -> Login immediately
+          updateCustomerLastLogin(cleanDigits);
+          completeLoginSession(token, {
+            id: existingCustomer.id,
+            customerId: existingCustomer.customerId,
+            phone: existingCustomer.phone,
+            fullName: existingCustomer.fullName,
+            role: 'CUSTOMER',
           });
-
-          const data = await res.json();
-          if (res.ok && data.success) {
-            verifySuccess = true;
-            userToken = data.token;
-            userData = data.user;
-          }
-        } catch {}
-
-        if (!verifySuccess) {
-          const clientVerify = verifyMobileOtp(cleanMobile, cleanOtp);
-          if (clientVerify.success) {
-            verifySuccess = true;
-            userToken = clientVerify.token || `otp_token_${Date.now()}`;
-            userData = clientVerify.user;
-          } else {
-            throw new Error(clientVerify.error || 'Invalid OTP code. Please verify and try again.');
-          }
+        } else {
+          // New customer -> Show "Complete Your Profile"
+          setStep('PROFILE_NAME');
+          setInfoMsg('✓ Mobile number verified successfully! Please enter your full name to complete your profile.');
         }
       }
-
-      if (verifySuccess && userData) {
-        localStorage.setItem('kc_token', userToken);
-        localStorage.setItem('kc_user', JSON.stringify(userData));
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('auth_change'));
-        }
-        router.push(getPostLoginRedirectPath());
-        return;
-      }
-
-      throw new Error('OTP verification failed. Please try again.');
     } catch (err: any) {
-      setErrorMsg(err.message || 'Verification failed');
+      setErrorMsg(err.message || 'OTP verification failed.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Step 3: Complete Profile (New Customer Name Entry)
+  const handleCompleteProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullNameInput || fullNameInput.trim().length < 2) {
+      setErrorMsg('Please enter your full name.');
+      return;
+    }
+
+    const cleanDigits = normalizeMobileNumber(mobileInput);
+    const regRes = registerCustomerProfile(cleanDigits, fullNameInput.trim());
+
+    if (regRes.success) {
+      const token = verifiedToken || `token_${Date.now()}`;
+      completeLoginSession(token, {
+        id: regRes.customer.id,
+        customerId: regRes.customer.customerId,
+        phone: regRes.customer.phone,
+        fullName: regRes.customer.fullName,
+        role: 'CUSTOMER',
+      });
+    } else {
+      setErrorMsg('Failed to save profile. Please try again.');
+    }
+  };
+
+  // Complete Login Session & Redirect
+  const completeLoginSession = (token: string, userData: any) => {
+    localStorage.setItem('kc_token', token);
+    localStorage.setItem('kc_user', JSON.stringify(userData));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('auth_change'));
+    }
+    const targetPath = getPostLoginRedirectPath();
+    router.push(targetPath);
+  };
+
+  const formattedMobile = normalizeMobileNumber(mobileInput);
+
   return (
-    <Card padded style={{ maxWidth: '440px', margin: '40px auto', background: '#fff', boxShadow: 'var(--sh-m)' }}>
+    <Card padded style={{ maxWidth: '440px', margin: '40px auto', background: '#fff', boxShadow: 'var(--sh-m)', borderRadius: '16px' }}>
       <div style={{ textAlign: 'center', marginBottom: '22px' }}>
         <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
           <KandyCabsLogo width={180} height={52} variant="light" />
         </div>
-        <h2 className="h2" style={{ color: 'var(--text)' }}>Customer Portal Sign In</h2>
-        <p className="muted" style={{ fontSize: '13.5px', marginTop: '4px', lineHeight: 1.5 }}>
-          Enter your mobile number to receive a 4-digit OTP code for instant verification.
+        <h2 className="h2" style={{ color: 'var(--text)', fontSize: '22px', fontWeight: 800 }}>
+          {step === 'PROFILE_NAME' ? 'Welcome to KANDY CABS' : 'KANDY CABS'}
+        </h2>
+        <p className="muted" style={{ fontSize: '13.5px', marginTop: '4px', lineHeight: 1.5, fontWeight: 500 }}>
+          {step === 'PROFILE_NAME'
+            ? "Let's create your profile"
+            : 'Book your ride with ease'}
         </p>
       </div>
 
@@ -332,73 +273,147 @@ export const CustomerLoginForm: React.FC = () => {
         </div>
       )}
 
-      {/* OTP ONLY SIGN IN FORM */}
-      <form onSubmit={handleVerifyOtpAndLogin}>
-        <div className="fld">
-          <label htmlFor="mobile-input">Mobile Number</label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input
-              id="mobile-input"
-              type="text"
-              placeholder="Enter 10-digit mobile number"
-              value={mobileInput}
-              onChange={(e) => setMobileInput(e.target.value)}
-              required
-              style={{ flex: 1, fontSize: '15px', fontWeight: 600 }}
-            />
+      {/* STEP 1: MOBILE NUMBER ENTRY */}
+      {step === 'MOBILE' && (
+        <form onSubmit={handleSendOtpSubmit}>
+          <div className="fld">
+            <label htmlFor="mobile-input">Mobile Number</label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div
+                style={{
+                  background: 'var(--bg-soft)',
+                  border: '1.5px solid var(--line)',
+                  borderRadius: 'var(--r-m)',
+                  padding: '10px 12px',
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  color: 'var(--ink)',
+                }}
+              >
+                +91
+              </div>
+              <input
+                id="mobile-input"
+                type="tel"
+                placeholder="XXXXX XXXXX"
+                value={mobileInput}
+                onChange={(e) => setMobileInput(e.target.value)}
+                required
+                maxLength={10}
+                style={{ flex: 1, fontSize: '16px', fontWeight: 700, letterSpacing: '1px' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ marginTop: '22px' }}>
+            <Button
+              type="submit"
+              variant="accent"
+              fullWidth
+              disabled={isLoading || normalizeMobileNumber(mobileInput).length < 10}
+              style={{ fontWeight: 800, padding: '12px', fontSize: '15px' }}
+            >
+              {isLoading ? 'Sending OTP...' : 'Send OTP'}
+            </Button>
+          </div>
+
+          <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '12px', color: 'var(--muted)', fontWeight: 500 }}>
+            🔒 Mobile OTP only — No password required
+          </div>
+        </form>
+      )}
+
+      {/* STEP 2: OTP VERIFICATION */}
+      {step === 'OTP' && (
+        <form onSubmit={handleVerifyOtpSubmit}>
+          <div style={{ marginBottom: '14px', fontSize: '13px', color: 'var(--muted)', textAlign: 'center' }}>
+            Enter the 4-digit OTP sent to <b>+91 {formattedMobile}</b>
             <button
               type="button"
-              onClick={() => handleRequestOtp()}
+              onClick={() => {
+                setStep('MOBILE');
+                clearFeedback();
+              }}
+              style={{ background: 'none', border: 'none', color: 'var(--accent)', marginLeft: '6px', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}
+            >
+              Change Number
+            </button>
+          </div>
+
+          <div className="fld">
+            <input
+              id="otp-input"
+              type="text"
+              placeholder="_ _ _ _"
+              value={otpInput}
+              onChange={(e) => setOtpInput(e.target.value)}
+              required
+              maxLength={4}
+              style={{ fontSize: '26px', letterSpacing: '10px', textAlign: 'center', fontWeight: 800, padding: '12px' }}
+            />
+          </div>
+
+          <div style={{ marginTop: '20px' }}>
+            <Button type="submit" variant="accent" fullWidth disabled={isLoading || otpInput.trim().length < 4} style={{ fontWeight: 800, padding: '12px', fontSize: '15px' }}>
+              {isLoading ? 'Verifying...' : 'Verify OTP'}
+            </Button>
+          </div>
+
+          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={(e) => handleSendOtpSubmit(e)}
               disabled={cooldown > 0 || isLoading}
               style={{
-                padding: '0 14px',
-                background: cooldown > 0 ? 'var(--bg-soft)' : 'var(--accent)',
-                color: cooldown > 0 ? 'var(--muted)' : '#ffffff',
+                background: 'none',
                 border: 'none',
-                borderRadius: 'var(--r-m)',
+                color: cooldown > 0 ? 'var(--muted)' : 'var(--accent)',
                 fontWeight: 700,
                 fontSize: '12.5px',
                 cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease',
               }}
             >
-              {cooldown > 0 ? `Resend (${cooldown}s)` : otpSent ? 'Resend OTP' : 'Send OTP'}
+              {cooldown > 0 ? `Resend OTP in ${cooldown}s` : 'Resend OTP'}
             </button>
+            <span style={{ fontSize: '11px', color: 'var(--muted)' }}>Test OTP: <code>4829</code></span>
           </div>
-        </div>
+        </form>
+      )}
 
-        <div className="fld" style={{ marginTop: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label htmlFor="otp-input">4-Digit SMS / WhatsApp OTP Passcode</label>
-            {otpSent && (
-              <span style={{ fontSize: '11px', color: 'var(--green)', fontWeight: 700 }}>
-                ✓ OTP sent (Default OTP: 4829)
-              </span>
-            )}
+      {/* STEP 3: FIRST-TIME CUSTOMER PROFILE CREATION */}
+      {step === 'PROFILE_NAME' && (
+        <form onSubmit={handleCompleteProfileSubmit}>
+          <div className="fld">
+            <label htmlFor="verified-mobile">Verified Mobile Number</label>
+            <input
+              id="verified-mobile"
+              type="text"
+              value={`+91 ${formattedMobile}`}
+              disabled
+              style={{ background: '#F1F5F9', color: '#64748B', fontWeight: 700, fontSize: '15px', cursor: 'not-allowed' }}
+            />
           </div>
-          <input
-            id="otp-input"
-            type="text"
-            placeholder="e.g. 4829"
-            value={otpInput}
-            onChange={(e) => setOtpInput(e.target.value)}
-            required
-            maxLength={4}
-            style={{ fontSize: '20px', letterSpacing: '6px', textAlign: 'center', fontWeight: 800, padding: '10px' }}
-          />
-        </div>
 
-        <div style={{ marginTop: '22px' }}>
-          <Button type="submit" variant="accent" fullWidth disabled={isLoading} style={{ fontWeight: 800, padding: '12px' }}>
-            {isLoading ? 'Verifying OTP...' : '🚀 Verify OTP & Sign In'}
-          </Button>
-        </div>
+          <div className="fld" style={{ marginTop: '16px' }}>
+            <label htmlFor="fullname-input">Full Name</label>
+            <input
+              id="fullname-input"
+              type="text"
+              placeholder="Enter your full name"
+              value={fullNameInput}
+              onChange={(e) => setFullNameInput(e.target.value)}
+              required
+              style={{ fontSize: '15px', fontWeight: 600 }}
+            />
+          </div>
 
-        <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>
-          🔒 100% Safe & Secure Instant Mobile Verification
-        </div>
-      </form>
+          <div style={{ marginTop: '22px' }}>
+            <Button type="submit" variant="accent" fullWidth disabled={isLoading || fullNameInput.trim().length < 2} style={{ fontWeight: 800, padding: '12px', fontSize: '15px' }}>
+              Continue ➔
+            </Button>
+          </div>
+        </form>
+      )}
     </Card>
   );
 };

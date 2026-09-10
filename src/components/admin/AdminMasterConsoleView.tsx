@@ -150,33 +150,59 @@ export const AdminMasterConsoleView: React.FC = () => {
     };
   }, []);
 
-  const handleAdminAuthSubmit = (e: React.FormEvent) => {
+  const handleAdminAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminAuthError(null);
 
-    const res = verifyAdminCredentials(adminUserInput, adminPassInput);
-    if (!res.success || !res.admin) {
-      setAdminAuthError(res.error || 'Invalid admin username or password.');
-      return;
+    try {
+      const res = await fetch('/api/auth/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: adminUserInput, password: adminPassInput }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAdminAuthError(data.error || 'Invalid admin username or password.');
+        return;
+      }
+
+      const token = data.token;
+      const adminData = data.user;
+
+      localStorage.setItem('kc_admin_token', token);
+      localStorage.setItem('kc_admin_user', JSON.stringify(adminData));
+      localStorage.setItem('kc_token', token);
+      localStorage.setItem('kc_user', JSON.stringify(adminData));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth_change'));
+      }
+
+      setIsAdminAuthenticated(true);
+    } catch {
+      const res = verifyAdminCredentials(adminUserInput, adminPassInput);
+      if (res.success && res.admin) {
+        const token = `admin_token_${Date.now()}`;
+        const adminData = {
+          id: res.admin.id,
+          name: res.admin.name,
+          username: res.admin.username,
+          role: 'ADMIN',
+        };
+
+        localStorage.setItem('kc_admin_token', token);
+        localStorage.setItem('kc_admin_user', JSON.stringify(adminData));
+        localStorage.setItem('kc_token', token);
+        localStorage.setItem('kc_user', JSON.stringify(adminData));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('auth_change'));
+        }
+
+        setIsAdminAuthenticated(true);
+      } else {
+        setAdminAuthError('Invalid admin username or password.');
+      }
     }
-
-    const token = `admin_token_${Date.now()}`;
-    const adminData = {
-      id: res.admin.id,
-      name: res.admin.name,
-      username: res.admin.username,
-      role: 'ADMIN',
-    };
-
-    localStorage.setItem('kc_admin_token', token);
-    localStorage.setItem('kc_admin_user', JSON.stringify(adminData));
-    localStorage.setItem('kc_token', token);
-    localStorage.setItem('kc_user', JSON.stringify(adminData));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('auth_change'));
-    }
-
-    setIsAdminAuthenticated(true);
   };
 
   const handleLockConsole = () => {
@@ -1042,12 +1068,12 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
               <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
                 <KandyCabsLogo width={180} height={52} variant="light" />
               </div>
-              <span className="pill orange" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Restricted Command System
+              <span className="pill orange" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800 }}>
+                KANDY CABS ADMIN
               </span>
-              <h2 className="h2" style={{ marginTop: '8px' }}>Admin Console Login</h2>
+              <h2 className="h2" style={{ marginTop: '8px', fontSize: '22px', fontWeight: 800 }}>Fleet Operations Console</h2>
               <p className="muted" style={{ fontSize: '13px', marginTop: '4px' }}>
-                Enter admin credentials to unlock the Master Operations Console.
+                Enter secure admin credentials to access the Fleet Operations Console.
               </p>
             </div>
 
@@ -1069,7 +1095,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
 
             <form onSubmit={handleAdminAuthSubmit}>
               <div className="fld">
-                <label htmlFor="admin-user-input">Admin Username</label>
+                <label htmlFor="admin-user-input">Username</label>
                 <input
                   id="admin-user-input"
                   type="text"
@@ -1077,11 +1103,12 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                   value={adminUserInput}
                   onChange={(e) => setAdminUserInput(e.target.value)}
                   required
+                  style={{ fontSize: '15px', fontWeight: 600 }}
                 />
               </div>
 
               <div className="fld" style={{ marginTop: '14px' }}>
-                <label htmlFor="admin-pass-input">Admin Password</label>
+                <label htmlFor="admin-pass-input">Password</label>
                 <input
                   id="admin-pass-input"
                   type="password"
@@ -1089,17 +1116,17 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                   value={adminPassInput}
                   onChange={(e) => setAdminPassInput(e.target.value)}
                   required
+                  style={{ fontSize: '15px', fontWeight: 600 }}
                 />
               </div>
 
-              <div style={{ marginTop: '12px', background: 'var(--accent-soft)', padding: '10px 12px', borderRadius: '8px', fontSize: '12px', color: 'var(--accent)' }}>
-                💡 <b>Admin Passcode Credentials:</b><br />
-                Username: <code>kandycabs</code> · Password: <code>kandycabs123</code>
+              <div style={{ marginTop: '12px', background: 'var(--accent-soft)', padding: '10px 12px', borderRadius: '8px', fontSize: '12px', color: 'var(--accent)', fontWeight: 500 }}>
+                💡 <b>Development Credentials:</b> Username: <code>kandycabs</code> · Password: <code>kandycabs123</code>
               </div>
 
               <div style={{ marginTop: '22px' }}>
-                <Button type="submit" variant="accent" fullWidth>
-                  🔓 Unlock Admin Master Console
+                <Button type="submit" variant="accent" fullWidth style={{ fontWeight: 800, padding: '12px', fontSize: '15px' }}>
+                  🔒 Secure Login
                 </Button>
               </div>
             </form>
@@ -1570,7 +1597,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                       <th style={{ padding: '8px' }}>Mobile / Username</th>
                       <th style={{ padding: '8px' }}>Vehicle Reg</th>
                       <th style={{ padding: '8px' }}>License No</th>
-                      <th style={{ padding: '8px' }}>Password</th>
+                      <th style={{ padding: '8px' }}>Auth Method</th>
                       <th style={{ padding: '8px' }}>Verification Status</th>
                       <th style={{ padding: '8px' }}>Actions</th>
                     </tr>
@@ -1588,19 +1615,9 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                         <td style={{ padding: '8px', fontWeight: 600 }}>{d.vehicleRegistration}</td>
                         <td style={{ padding: '8px', fontSize: '11.5px', color: 'var(--muted)' }}>{d.licenseNumber}</td>
                         <td style={{ padding: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <code style={{ background: 'var(--bg-soft)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, fontSize: '13px' }}>
-                              {showPasswordMap[d.id] ? d.password : '••••••••'}
-                            </code>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleShowPassword(d.id)}
-                              title={showPasswordMap[d.id] ? 'Hide Password' : 'Show Password'}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}
-                            >
-                              {showPasswordMap[d.id] ? '🙈' : '👁️'}
-                            </button>
-                          </div>
+                          <span className="pill blue" style={{ fontSize: '11px', fontWeight: 800 }}>
+                            📱 Mobile OTP
+                          </span>
                         </td>
                         <td style={{ padding: '8px' }}>
                           {d.verificationStatus === 'APPROVED' ? (
