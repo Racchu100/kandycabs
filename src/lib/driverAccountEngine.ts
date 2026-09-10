@@ -174,57 +174,59 @@ function saveDriverAccounts(list: DriverAccountRecord[]) {
  */
 export function getAllDriverAccounts(): DriverAccountRecord[] {
   const deletedIds = getDeletedDriverIds();
-  const isDeleted = (d: DriverAccountRecord) => {
-    const cleanP = (d.phone || '').replace(/\D/g, '').slice(-10);
-    return deletedIds.includes(d.id) || (cleanP && deletedIds.includes(cleanP));
-  };
 
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('kc_driver_accounts');
-      if (stored) {
-        let parsed: DriverAccountRecord[] = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          let modified = false;
+      let parsed: DriverAccountRecord[] = stored ? JSON.parse(stored) : [];
+      if (!Array.isArray(parsed)) parsed = [];
 
-          // Remove any entries that were marked as deleted
-          const initialLen = parsed.length;
-          parsed = parsed.filter((d) => !isDeleted(d));
-          if (parsed.length !== initialLen) modified = true;
+      let modified = false;
 
-          // Ensure all registered drivers default to APPROVED verification status
-          parsed.forEach((d) => {
-            if (!d.verificationStatus || d.verificationStatus === 'PENDING_VERIFICATION') {
-              d.verificationStatus = 'APPROVED';
-              modified = true;
-            }
-          });
+      // Filter out explicitly deleted drivers by ID or phone
+      const initialLen = parsed.length;
+      parsed = parsed.filter((d) => {
+        const cleanP = (d.phone || '').replace(/\D/g, '').slice(-10);
+        return !deletedIds.includes(d.id) && (!cleanP || !deletedIds.includes(cleanP));
+      });
+      if (parsed.length !== initialLen) modified = true;
 
-          // Merge seed drivers if missing from local storage AND not deleted
-          driverStore.forEach((seed) => {
-            if (!isDeleted(seed)) {
-              const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
-              const exists = parsed.some(
-                (p) => p.id === seed.id || (cleanSeedP && p.phone.replace(/\D/g, '').slice(-10) === cleanSeedP)
-              );
-              if (!exists) {
-                parsed.push(seed);
-                modified = true;
-              }
-            }
-          });
-          if (modified) {
-            localStorage.setItem('kc_driver_accounts', JSON.stringify(parsed));
+      // Merge seed drivers from driverStore if not present in parsed
+      driverStore.forEach((seed) => {
+        const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
+        const isSeedDeleted = deletedIds.includes(seed.id) || (cleanSeedP && deletedIds.includes(cleanSeedP));
+        if (!isSeedDeleted) {
+          const exists = parsed.some(
+            (p) => p.id === seed.id || (cleanSeedP && p.phone.replace(/\D/g, '').slice(-10) === cleanSeedP)
+          );
+          if (!exists) {
+            parsed.push(seed);
+            modified = true;
           }
-          return parsed;
         }
+      });
+
+      // Ensure all drivers default to APPROVED status if missing verificationStatus
+      parsed.forEach((d) => {
+        if (!d.verificationStatus || d.verificationStatus === 'PENDING_VERIFICATION') {
+          d.verificationStatus = 'APPROVED';
+          modified = true;
+        }
+      });
+
+      // Fallback: If localStorage was missing seed drivers like akshath, populate with driverStore
+      if (parsed.length === 0) {
+        parsed = [...driverStore];
+        modified = true;
       }
-      const initialSeedFiltered = driverStore.filter((d) => !isDeleted(d));
-      localStorage.setItem('kc_driver_accounts', JSON.stringify(initialSeedFiltered));
-      return initialSeedFiltered;
+
+      if (modified) {
+        localStorage.setItem('kc_driver_accounts', JSON.stringify(parsed));
+      }
+      return parsed;
     } catch {}
   }
-  return driverStore.filter((d) => !isDeleted(d));
+  return [...driverStore];
 }
 
 /**
