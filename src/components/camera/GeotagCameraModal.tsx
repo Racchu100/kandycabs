@@ -2,15 +2,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
+import { compressAndConvertToWebP } from '@/lib/supabaseStorage';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onCapture: (imageDataUrl: string, locationMeta?: { lat: number; lng: number; address: string }) => void;
+  onCapture: (imageDataUrl: string, locationMeta?: { lat: number; lng: number; address: string }, cloudUrl?: string) => void;
   title?: string;
   driverName?: string;
   vehicleReg?: string;
   defaultAddress?: string;
+  driverId?: string;
+  vehicleId?: string;
+  bookingId?: string;
+  category?: 'exterior' | 'interior' | 'odometer' | 'receipt';
 }
 
 export const GeotagCameraModal: React.FC<Props> = ({
@@ -21,6 +26,10 @@ export const GeotagCameraModal: React.FC<Props> = ({
   driverName = 'Suresh Gowda',
   vehicleReg = 'KA 19 C 4829',
   defaultAddress = 'Mangaluru Central Railway Station, Mangaluru',
+  driverId = 'driver_suresh',
+  vehicleId = 'ka19c4829',
+  bookingId,
+  category = 'odometer',
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -28,6 +37,11 @@ export const GeotagCameraModal: React.FC<Props> = ({
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
   const [showCameraRequiredPopup, setShowCameraRequiredPopup] = useState<boolean>(false);
+
+  // Cloud Upload State
+  const [isUploadingToCloud, setIsUploadingToCloud] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [lastRawDataUrl, setLastRawDataUrl] = useState<string | null>(null);
 
   // GPS State
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
@@ -330,6 +344,56 @@ export const GeotagCameraModal: React.FC<Props> = ({
     );
   };
 
+  const processAndUploadToCloud = async (rawCanvasDataUrl: string) => {
+    setIsUploadingToCloud(true);
+    setUploadError(null);
+    setLastRawDataUrl(rawCanvasDataUrl);
+
+    try {
+      // 1. Client-Side WebP Compression & Resizing (1200x900, 0.82 quality)
+      const compressed = await compressAndConvertToWebP(rawCanvasDataUrl, 1200, 900, 0.82);
+
+      // 2. Upload to Supabase Storage bucket `cab-photos` via /api/cab-photos/upload
+      const res = await fetch('/api/cab-photos/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          driverId,
+          vehicleId,
+          category,
+          fileName: `${bookingId || 'photo'}_${category || 'cab'}`,
+          imageDataUrl: compressed.dataUrl,
+          bookingId,
+          captureType: category === 'odometer' ? 'PICKUP_METER' : 'EXTERIOR',
+          latitude: gpsCoords?.lat || 12.9141,
+          longitude: gpsCoords?.lng || 74.8560,
+          accuracyMeters: gpsCoords?.accuracy || 4.5,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to upload photo to Supabase Storage');
+      }
+
+      setIsUploadingToCloud(false);
+      onCapture(
+        data.publicUrl || compressed.dataUrl,
+        {
+          lat: gpsCoords?.lat || 12.9141,
+          lng: gpsCoords?.lng || 74.8560,
+          address: locationAddress,
+        },
+        data.publicUrl
+      );
+      stopCamera();
+      onClose();
+    } catch (err: any) {
+      setIsUploadingToCloud(false);
+      setUploadError(err.message || 'Supabase Storage upload failed. Please check network connection and click Retry.');
+    }
+  };
+
   const handleCapturePhoto = () => {
     if (!isCameraActive) {
       setShowCameraRequiredPopup(true);
@@ -363,13 +427,7 @@ export const GeotagCameraModal: React.FC<Props> = ({
     drawLocationWatermarkBanner(ctx, width, height);
 
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    onCapture(dataUrl, {
-      lat: gpsCoords.lat,
-      lng: gpsCoords.lng,
-      address: locationAddress,
-    });
-    stopCamera();
-    onClose();
+    processAndUploadToCloud(dataUrl);
   };
 
   // Fallback file input upload with location watermarking
@@ -398,13 +456,7 @@ export const GeotagCameraModal: React.FC<Props> = ({
           ctx.drawImage(img, 0, 0, width, height);
           drawLocationWatermarkBanner(ctx, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-          onCapture(dataUrl, {
-            lat: gpsCoords.lat,
-            lng: gpsCoords.lng,
-            address: locationAddress,
-          });
-          stopCamera();
-          onClose();
+          processAndUploadToCloud(dataUrl);
         }
       };
       img.src = evt.target?.result as string;
@@ -492,6 +544,84 @@ export const GeotagCameraModal: React.FC<Props> = ({
 
         {/* Viewfinder Container */}
         <div style={{ position: 'relative', width: '100%', height: '480px', background: '#000', overflow: 'hidden' }}>
+          {/* Cloud Storage Upload Loading Overlay */}
+          {isUploadingToCloud && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(15, 23, 42, 0.95)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 20,
+                color: '#fff',
+                padding: '20px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>☁️</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: '#38BDF8', marginBottom: '4px' }}>
+                Uploading Cab Photo to Supabase Cloud Storage...
+              </div>
+              <div style={{ fontSize: '12px', color: '#94A3B8', maxWidth: '380px' }}>
+                Compressing to WebP & saving to bucket <b>cab-photos</b> at path:<br />
+                <code style={{ fontSize: '11px', color: '#A7F3D0', wordBreak: 'break-all' }}>
+                  driver/{driverId}/vehicle/{vehicleId}/{category}/{bookingId || 'photo'}.webp
+                </code>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Failure Retry Overlay */}
+          {uploadError && !isUploadingToCloud && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '12px',
+                left: '12px',
+                right: '12px',
+                background: '#FEF2F2',
+                border: '1.5px solid #F87171',
+                borderRadius: '8px',
+                padding: '12px 14px',
+                zIndex: 20,
+                color: '#991B1B',
+                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '13px' }}>⚠️ Supabase Cloud Storage Upload Failed</div>
+                <div style={{ fontSize: '11.5px', marginTop: '2px' }}>{uploadError}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => lastRawDataUrl && processAndUploadToCloud(lastRawDataUrl)}
+                style={{
+                  background: '#DC2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '8px 14px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                🔄 Retry Cloud Upload
+              </button>
+            </div>
+          )}
+
           <video
             ref={videoRef}
             autoPlay

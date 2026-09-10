@@ -1930,11 +1930,16 @@ export const DriverDashboardView: React.FC = () => {
           driverName={driverUser?.fullName || 'Suresh Gowda'}
           vehicleReg={driverUser?.vehicleRegistration || 'KA 19 C 4829'}
           defaultAddress={cameraModalConfig.defaultAddress}
-          onCapture={(imageDataUrl) => {
+          driverId={driverUser?.id || 'driver_suresh'}
+          vehicleId={driverUser?.vehicleRegistration ? driverUser.vehicleRegistration.replace(/\s+/g, '').toLowerCase() : 'ka19c4829'}
+          bookingId={cameraModalConfig.bookingId}
+          category={cameraModalConfig.type === 'TOLL_RECEIPT' ? 'receipt' : 'odometer'}
+          onCapture={(imageDataUrl, _meta, cloudUrl) => {
+            const finalPhotoUrl = cloudUrl || imageDataUrl;
             const bId = cameraModalConfig.bookingId;
             if (cameraModalConfig.type === 'PICKUP_METER') {
               setMeterImages((prev) => {
-                const next = { ...prev, [bId]: imageDataUrl };
+                const next = { ...prev, [bId]: finalPhotoUrl };
                 try {
                   localStorage.setItem('kc_driver_meter_images', JSON.stringify(next));
                 } catch {}
@@ -1942,14 +1947,14 @@ export const DriverDashboardView: React.FC = () => {
               });
             } else if (cameraModalConfig.type === 'DROPOFF_METER') {
               setEndMeterImages((prev) => {
-                const next = { ...prev, [bId]: imageDataUrl };
+                const next = { ...prev, [bId]: finalPhotoUrl };
                 try {
                   localStorage.setItem('kc_driver_end_meter_images', JSON.stringify(next));
                 } catch {}
                 return next;
               });
             } else if (cameraModalConfig.type === 'TOLL_RECEIPT') {
-              setTollReceiptImages((prev) => ({ ...prev, [bId]: imageDataUrl }));
+              setTollReceiptImages((prev) => ({ ...prev, [bId]: finalPhotoUrl }));
             }
           }}
         />
