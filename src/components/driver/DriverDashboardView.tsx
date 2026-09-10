@@ -254,8 +254,8 @@ export const DriverDashboardView: React.FC = () => {
     }
   };
 
-  // Sync assigned customer bookings from Persistent Storage & Admin Engine
-  const loadDriverTrips = () => {
+  // Sync assigned customer bookings from Persistent Storage & Supabase DB
+  const loadDriverTrips = async () => {
     let currentDriver: any = null;
 
     if (typeof window !== 'undefined') {
@@ -285,17 +285,54 @@ export const DriverDashboardView: React.FC = () => {
       } catch {}
     }
 
-    const targetDriverName = currentDriver?.fullName || 'Suresh Gowda';
-    const targetDriverPhone = currentDriver?.phone || '9900887777';
+    if (!currentDriver) {
+      currentDriver = {
+        id: 'driver_suresh',
+        fullName: 'Suresh Gowda',
+        phone: '9900887777',
+        username: 'suresh',
+        vehicleRegistration: 'KA 19 C 4829',
+      };
+      setDriverUser(currentDriver);
+    }
 
-    const liveDriver = getDriverByPhoneOrUsername(currentDriver?.id || targetDriverPhone || targetDriverName);
+    const targetDriverName = (currentDriver?.fullName || 'Suresh Gowda').toLowerCase().trim();
+    const targetDriverPhoneDigits = (currentDriver?.phone || '9900887777').replace(/\D/g, '').slice(-10);
+    const targetDriverId = currentDriver?.id || '';
+
+    const liveDriver = getDriverByPhoneOrUsername(currentDriver?.id || currentDriver?.phone || currentDriver?.fullName);
     if (liveDriver) {
       setIsOnline(liveDriver.status === 'ACTIVE' || liveDriver.status === 'ON_DUTY');
     }
 
+    // 1. Load from local cache first for fast initial display
+    let adminBookings = getAdminBookings();
+
+    // 2. Fetch live data from Supabase DB API
+    try {
+      const res = await fetch('/api/admin/bookings', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          const map = new Map<string, AdminBookingOverview>();
+          for (const b of adminBookings) {
+            map.set(b.bookingReference || b.id, b);
+          }
+          for (const b of data.data) {
+            map.set(b.bookingReference || b.id, b);
+          }
+          adminBookings = Array.from(map.values());
+          try {
+            localStorage.setItem('kc_all_admin_bookings', JSON.stringify(adminBookings));
+          } catch {}
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching live driver bookings from DB:', e);
+    }
+
     const urlBookingId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('bookingId') : null;
 
-    const adminBookings = getAdminBookings();
     const matched = adminBookings.filter((b) => {
       const isUrlMatch = Boolean(urlBookingId && urlBookingId !== 'all' && (b.id === urlBookingId || b.bookingReference === urlBookingId));
       if (isUrlMatch) return true;
@@ -305,12 +342,22 @@ export const DriverDashboardView: React.FC = () => {
         return false;
       }
 
-      if (b.assignedDriverName || b.driverPhone) {
-        const nameMatch = Boolean(b.assignedDriverName && b.assignedDriverName.toLowerCase().trim() === targetDriverName.toLowerCase().trim());
-        const phoneMatch = Boolean(b.driverPhone && b.driverPhone.trim() === targetDriverPhone.trim());
-        return nameMatch || phoneMatch;
-      }
-      return false;
+      const bDriverName = (b.assignedDriverName || '').toLowerCase().trim();
+      const bDriverPhoneDigits = (b.driverPhone || '').replace(/\D/g, '').slice(-10);
+      const bDriverId = b.assignedDriverId || '';
+
+      const nameMatch = Boolean(
+        bDriverName &&
+          (bDriverName === targetDriverName ||
+            bDriverName.includes(targetDriverName) ||
+            targetDriverName.includes(bDriverName))
+      );
+      const phoneMatch = Boolean(targetDriverPhoneDigits && bDriverPhoneDigits && bDriverPhoneDigits === targetDriverPhoneDigits);
+      const idMatch = Boolean(
+        targetDriverId && (bDriverId === targetDriverId || bDriverId === `driver_${targetDriverPhoneDigits}`)
+      );
+
+      return nameMatch || phoneMatch || idMatch;
     });
 
     const cancelledTrip = matched.find((b) => b.status === 'CANCELLED');
@@ -377,7 +424,13 @@ export const DriverDashboardView: React.FC = () => {
       window.addEventListener('storage', handleSync);
       window.addEventListener('new_booking_created', handleSync);
     }
+
+    const intervalId = setInterval(() => {
+      loadDriverTrips();
+    }, 4000);
+
     return () => {
+      clearInterval(intervalId);
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', handleSync);
         window.removeEventListener('new_booking_created', handleSync);
