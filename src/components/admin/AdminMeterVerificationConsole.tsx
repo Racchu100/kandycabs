@@ -108,7 +108,14 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
             const key = b.bookingReference || b.id;
             const existing = map.get(key);
             if (existing) {
-              map.set(key, { ...existing, ...b });
+              map.set(key, {
+                ...existing,
+                ...b,
+                initialMeterImage: b.initialMeterImage || existing.initialMeterImage,
+                finalMeterImage: b.finalMeterImage || existing.finalMeterImage,
+                initialMeterKm: b.initialMeterKm ?? existing.initialMeterKm,
+                finalMeterKm: b.finalMeterKm ?? existing.finalMeterKm,
+              });
             } else {
               map.set(key, b);
             }
@@ -159,6 +166,18 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
     };
   }, []);
 
+  // Read driver camera captures directly from local storage if available
+  let driverMeterImages: Record<string, string> = {};
+  let driverEndMeterImages: Record<string, string> = {};
+  if (typeof window !== 'undefined') {
+    try {
+      const storedStart = localStorage.getItem('kc_driver_meter_images');
+      if (storedStart) driverMeterImages = JSON.parse(storedStart);
+      const storedEnd = localStorage.getItem('kc_driver_end_meter_images');
+      if (storedEnd) driverEndMeterImages = JSON.parse(storedEnd);
+    } catch {}
+  }
+
   // Find currently selected booking
   const selectedBooking = bookings.find(
     (b) => b.bookingReference === selectedBookingId || b.id === selectedBookingId
@@ -185,6 +204,16 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
     vehicleReg
   );
 
+  const actualPickupImage =
+    selectedBooking?.initialMeterImage ||
+    (selectedBooking ? (driverMeterImages[selectedBooking.id] || driverMeterImages[selectedBooking.bookingReference]) : undefined) ||
+    defaultPickupImg;
+
+  const actualDropoffImage =
+    selectedBooking?.finalMeterImage ||
+    (selectedBooking ? (driverEndMeterImages[selectedBooking.id] || driverEndMeterImages[selectedBooking.bookingReference]) : undefined) ||
+    defaultDropoffImg;
+
   // Construct Pickup Evidence object
   const pickupEvidence: MeterEvidence = selectedBooking
     ? {
@@ -198,8 +227,8 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
         longitude: (selectedBooking as any).initialMeterLng || 74.843,
         accuracyMeters: 4.0,
         odometerReadingKm: pKm,
-        imageUrl: selectedBooking.initialMeterImage || defaultPickupImg,
-        thumbnailUrl: selectedBooking.initialMeterImage || defaultPickupImg,
+        imageUrl: actualPickupImage,
+        thumbnailUrl: actualPickupImage,
         capturedAt: selectedBooking.tripStartedAt || selectedBooking.createdAt || new Date().toISOString(),
       }
     : {
@@ -231,8 +260,8 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
         longitude: (selectedBooking as any).finalMeterLng || 74.7421,
         accuracyMeters: 4.5,
         odometerReadingKm: dKm,
-        imageUrl: selectedBooking.finalMeterImage || defaultDropoffImg,
-        thumbnailUrl: selectedBooking.finalMeterImage || defaultDropoffImg,
+        imageUrl: actualDropoffImage,
+        thumbnailUrl: actualDropoffImage,
         capturedAt: selectedBooking.tripCompletedAt || selectedBooking.createdAt || new Date().toISOString(),
       }
     : {
@@ -508,8 +537,10 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
                 {bookings.map((b) => {
                   const pKm = b.initialMeterKm || b.startMeterReading || 12450;
                   const dKm = b.finalMeterKm || 12510;
-                  const pImg = b.initialMeterImage || generateGeotaggedOdometerSvg(pKm, 'PICKUP', b.pickupAddress || 'Mangaluru', b.assignedDriverName || 'Suresh Gowda', b.assignedVehicleReg || 'KA 19 C 4829');
-                  const dImg = b.finalMeterImage || generateGeotaggedOdometerSvg(dKm, 'DROPOFF', b.dropAddress || 'Udupi', b.assignedDriverName || 'Suresh Gowda', b.assignedVehicleReg || 'KA 19 C 4829');
+                  const capturedPickup = b.initialMeterImage || driverMeterImages[b.id] || driverMeterImages[b.bookingReference];
+                  const capturedDropoff = b.finalMeterImage || driverEndMeterImages[b.id] || driverEndMeterImages[b.bookingReference];
+                  const pImg = capturedPickup || generateGeotaggedOdometerSvg(pKm, 'PICKUP', b.pickupAddress || 'Mangaluru', b.assignedDriverName || 'Suresh Gowda', b.assignedVehicleReg || 'KA 19 C 4829');
+                  const dImg = capturedDropoff || generateGeotaggedOdometerSvg(dKm, 'DROPOFF', b.dropAddress || 'Udupi', b.assignedDriverName || 'Suresh Gowda', b.assignedVehicleReg || 'KA 19 C 4829');
                   const isSelected = (b.bookingReference || b.id) === selectedBookingId;
 
                   return (

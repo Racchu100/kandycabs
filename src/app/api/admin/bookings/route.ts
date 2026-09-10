@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Booking reference, customer name, and phone are required.' }, { status: 400 });
     }
 
-    const payload = {
+    const payload: any = {
       bookingReference: bookingReference.toString().trim(),
       customerName: customerName.toString().trim(),
       customerPhone: customerPhone.toString().trim(),
@@ -68,6 +68,16 @@ export async function POST(req: Request) {
       advancePaid: Number(advancePaid) || 0,
       remainingFare: Number(remainingFare) || 0,
     };
+
+    if (body.initialMeterKm !== undefined && body.initialMeterKm !== null) payload.initialMeterKm = Number(body.initialMeterKm);
+    if (body.finalMeterKm !== undefined && body.finalMeterKm !== null) payload.finalMeterKm = Number(body.finalMeterKm);
+    if (body.initialMeterImage) payload.initialMeterImage = body.initialMeterImage.toString();
+    if (body.finalMeterImage) payload.finalMeterImage = body.finalMeterImage.toString();
+    if (body.startMeterReading !== undefined && body.startMeterReading !== null) payload.startMeterReading = Number(body.startMeterReading);
+    if (body.tollCharges !== undefined && body.tollCharges !== null) payload.tollCharges = Number(body.tollCharges);
+    if (body.tollReceiptImage) payload.tollReceiptImage = body.tollReceiptImage.toString();
+    if (body.tripStartedAt) payload.tripStartedAt = body.tripStartedAt.toString();
+    if (body.tripCompletedAt) payload.tripCompletedAt = body.tripCompletedAt.toString();
 
     const booking = await prisma.adminBooking.upsert({
       where: { bookingReference: payload.bookingReference },

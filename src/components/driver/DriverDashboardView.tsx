@@ -1933,9 +1933,21 @@ export const DriverDashboardView: React.FC = () => {
           onCapture={(imageDataUrl) => {
             const bId = cameraModalConfig.bookingId;
             if (cameraModalConfig.type === 'PICKUP_METER') {
-              setMeterImages((prev) => ({ ...prev, [bId]: imageDataUrl }));
+              setMeterImages((prev) => {
+                const next = { ...prev, [bId]: imageDataUrl };
+                try {
+                  localStorage.setItem('kc_driver_meter_images', JSON.stringify(next));
+                } catch {}
+                return next;
+              });
             } else if (cameraModalConfig.type === 'DROPOFF_METER') {
-              setEndMeterImages((prev) => ({ ...prev, [bId]: imageDataUrl }));
+              setEndMeterImages((prev) => {
+                const next = { ...prev, [bId]: imageDataUrl };
+                try {
+                  localStorage.setItem('kc_driver_end_meter_images', JSON.stringify(next));
+                } catch {}
+                return next;
+              });
             } else if (cameraModalConfig.type === 'TOLL_RECEIPT') {
               setTollReceiptImages((prev) => ({ ...prev, [bId]: imageDataUrl }));
             }
