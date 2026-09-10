@@ -445,6 +445,17 @@ export function recordDriverApproval(
       window.dispatchEvent(new CustomEvent('new_booking_created', { detail: booking }));
       localStorage.setItem('kc_booking_sync', JSON.stringify({ booking, timestamp: Date.now() }));
       window.dispatchEvent(new Event('storage'));
+      fetch('/api/admin/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingReference: booking.bookingReference,
+          updates: {
+            status: 'DRIVER_APPROVED',
+            driverApprovalStatus: 'APPROVED',
+          },
+        }),
+      }).catch(() => {});
     } catch {}
   }
 
@@ -492,6 +503,17 @@ export function recordDriverDecline(
       window.dispatchEvent(new CustomEvent('new_booking_created', { detail: booking }));
       localStorage.setItem('kc_booking_sync', JSON.stringify({ booking, timestamp: Date.now() }));
       window.dispatchEvent(new Event('storage'));
+      fetch('/api/admin/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingReference: booking.bookingReference,
+          updates: {
+            status: 'DRIVER_DECLINED',
+            driverApprovalStatus: 'DECLINED',
+          },
+        }),
+      }).catch(() => {});
     } catch {}
   }
 

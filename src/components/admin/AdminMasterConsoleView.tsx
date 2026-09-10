@@ -2499,15 +2499,42 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                         </td>
                         <td style={{ padding: '10px' }}>
                           {b.status === 'CANCELLED' ? (
-                            <div style={{ background: '#FEE2E2', color: '#991B1B', padding: '6px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 800 }}>
+                            <div style={{ background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', padding: '8px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 800 }}>
                               🔴 Booking Cancelled by Admin
                             </div>
                           ) : b.assignedDriverName ? (
                             <div
                               style={{
-                                background: b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED' ? '#FEF2F2' : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' ? '#ECFDF5' : '#EFF6FF',
-                                color: b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED' ? '#991B1B' : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' ? '#065F46' : '#1E40AF',
-                                border: b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED' ? '1.5px solid #EF4444' : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' ? '1px solid #A7F3D0' : '1px solid #93C5FD',
+                                background:
+                                  b.status === 'COMPLETED' || (b.finalMeterKm && b.finalMeterKm > 0)
+                                    ? '#ECFDF5'
+                                    : b.status === 'TRIP_STARTED'
+                                    ? '#FFFBEB'
+                                    : b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED'
+                                    ? '#FEF2F2'
+                                    : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' || b.status === 'DRIVER_ASSIGNED'
+                                    ? '#ECFDF5'
+                                    : '#EFF6FF',
+                                color:
+                                  b.status === 'COMPLETED' || (b.finalMeterKm && b.finalMeterKm > 0)
+                                    ? '#065F46'
+                                    : b.status === 'TRIP_STARTED'
+                                    ? '#92400E'
+                                    : b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED'
+                                    ? '#991B1B'
+                                    : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' || b.status === 'DRIVER_ASSIGNED'
+                                    ? '#065F46'
+                                    : '#1E40AF',
+                                border:
+                                  b.status === 'COMPLETED' || (b.finalMeterKm && b.finalMeterKm > 0)
+                                    ? '1.5px solid #10B981'
+                                    : b.status === 'TRIP_STARTED'
+                                    ? '1.5px solid #FCD34D'
+                                    : b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED'
+                                    ? '1.5px solid #EF4444'
+                                    : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' || b.status === 'DRIVER_ASSIGNED'
+                                    ? '1.5px solid #10B981'
+                                    : '1.5px solid #93C5FD',
                                 padding: '8px 10px',
                                 borderRadius: '6px',
                                 fontSize: '11.5px',
@@ -2515,17 +2542,25 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                               }}
                             >
                               <div style={{ marginBottom: '6px' }}>
-                                {b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED' ? (
-                                  <span style={{ fontSize: '11px', background: '#DC2626', color: '#ffffff', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, display: 'inline-block' }}>
-                                    ⚠️ Driver Declined Job — Needs Re-Dispatch!
+                                {b.status === 'COMPLETED' || (b.finalMeterKm && b.finalMeterKm > 0) ? (
+                                  <span style={{ fontSize: '11px', background: '#059669', color: '#ffffff', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, display: 'inline-block' }}>
+                                    🏁 Trip Completed & Verified
                                   </span>
-                                ) : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' ? (
+                                ) : b.status === 'TRIP_STARTED' ? (
+                                  <span style={{ fontSize: '11px', background: '#D97706', color: '#ffffff', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, display: 'inline-block' }}>
+                                    🚖 On Trip (Active Ride)
+                                  </span>
+                                ) : b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED' ? (
+                                  <span style={{ fontSize: '11px', background: '#DC2626', color: '#ffffff', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, display: 'inline-block' }}>
+                                    🔴 Declined by Driver — Re-Dispatch Required!
+                                  </span>
+                                ) : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' || b.status === 'DRIVER_ASSIGNED' ? (
                                   <span style={{ fontSize: '11px', background: '#10B981', color: '#ffffff', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, display: 'inline-block' }}>
-                                    ✅ Driver Approved (Accepted)
+                                    ✅ Accepted by Driver
                                   </span>
                                 ) : (
                                   <span style={{ fontSize: '11px', background: '#2563EB', color: '#ffffff', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, display: 'inline-block' }}>
-                                    ⏳ Sent to Driver — Pending Swipe Approval
+                                    ⌛ Sent to Driver — Pending Approval
                                   </span>
                                 )}
                               </div>
@@ -2535,23 +2570,36 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                               <div style={{ fontSize: '10.5px', marginTop: '2px' }}>
                                 🚗 Car: {b.vehicleModel || b.assignedVehicleReg} [{b.assignedVehicleReg}]
                               </div>
-                              {b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED' ? (
-                                <div style={{ fontSize: '10px', color: '#7F1D1D', marginTop: '4px', fontWeight: 800, background: '#FEE2E2', padding: '4px 6px', borderRadius: '4px', border: '1px solid #FCA5A5' }}>
-                                  ⚠️ Driver declined this job. Select another driver on left & click Re-Dispatch!
+                              {b.status === 'COMPLETED' || (b.finalMeterKm && b.finalMeterKm > 0) ? (
+                                <div style={{ fontSize: '9.5px', color: '#047857', marginTop: '4px', fontWeight: 700 }}>
+                                  ✓ Trip completed. Final meter & route evidence audited.
                                 </div>
-                              ) : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' ? (
+                              ) : b.status === 'TRIP_STARTED' ? (
+                                <div style={{ fontSize: '9.5px', color: '#B45309', marginTop: '4px', fontWeight: 700 }}>
+                                  ⚡ Customer OTP verified. Driver actively executing trip en route.
+                                </div>
+                              ) : b.driverApprovalStatus === 'DECLINED' || b.status === 'DRIVER_DECLINED' ? (
+                                <div style={{ fontSize: '10px', color: '#7F1D1D', marginTop: '4px', fontWeight: 800, background: '#FEE2E2', padding: '4px 6px', borderRadius: '4px', border: '1px solid #FCA5A5' }}>
+                                  ⚠️ Driver declined job. Select another driver on left & click Re-Dispatch!
+                                </div>
+                              ) : b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' || b.status === 'DRIVER_ASSIGNED' ? (
                                 <div style={{ fontSize: '9.5px', color: '#059669', marginTop: '4px', fontWeight: 700 }}>
                                   ✓ Driver approved & accepted trip on driver dashboard!
                                 </div>
                               ) : (
                                 <div style={{ fontSize: '9.5px', color: '#1D4ED8', marginTop: '4px', fontStyle: 'italic', fontWeight: 600 }}>
-                                  💡 Sent to driver portal — Awaiting driver swipe approval (Swipe Right to Approve, Swipe Left to Decline).
+                                  💡 Sent to driver portal — Awaiting driver swipe approval.
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <div style={{ background: '#FEF3C7', color: '#92400E', padding: '6px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 600 }}>
-                              🆕 Pending Driver Assignment
+                            <div style={{ background: '#F3F4F6', border: '1px solid #D1D5DB', color: '#4B5563', padding: '8px 10px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, textAlign: 'center' }}>
+                              <span style={{ fontSize: '11px', background: '#6B7280', color: '#ffffff', padding: '3px 8px', borderRadius: '4px', fontWeight: 800, display: 'inline-block', marginBottom: '4px' }}>
+                                ⌛ Unassigned — Awaiting Dispatch
+                              </span>
+                              <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '2px' }}>
+                                Assign driver on left column & click "Dispatch to Driver"
+                              </div>
                             </div>
                           )}
 
