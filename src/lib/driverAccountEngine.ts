@@ -21,7 +21,7 @@ export interface DriverAccountRecord {
   fullName: string;
   phone: string;
   username: string;
-  password: string;
+  password?: string;
   vehicleRegistration: string;
   vehicleModel?: string;
   licenseNumber: string;

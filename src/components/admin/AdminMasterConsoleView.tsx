@@ -845,8 +845,8 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
 
   const handleAddDriverSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDriverName || !newDriverPhone || !newDriverPasswordForm || !newDriverVehicleReg) {
-      setDriverMsg('⚠️ Please fill in Driver Name, Phone, Password, and Vehicle Registration.');
+    if (!newDriverName || !newDriverPhone || !newDriverVehicleReg) {
+      setDriverMsg('⚠️ Please fill in Driver Name, Phone, and Vehicle Registration.');
       return;
     }
 
@@ -855,7 +855,6 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
         fullName: newDriverName,
         phone: newDriverPhone,
         username: newDriverUsername || newDriverName.toLowerCase().replace(/\s+/g, ''),
-        password: newDriverPasswordForm,
         vehicleRegistration: newDriverVehicleReg,
         licenseNumber: newDriverLicenseNo || `KA19-${Date.now().toString().slice(-6)}`,
         vendorAgencyName: newDriverVendorAgency || 'Sri Durga Travels & Cab Service',
@@ -927,7 +926,6 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
         fullName: editDriverName,
         phone: editDriverPhone,
         username: editDriverUsername,
-        password: editDriverPassword,
         vehicleRegistration: editDriverVehicleReg,
         vehicleModel: editDriverVehicleModel,
         licenseNumber: editDriverLicenseNo,
@@ -1399,16 +1397,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                       onChange={(e) => setNewDriverUsername(e.target.value)}
                     />
                   </div>
-                  <div className="fld">
-                    <label style={{ color: '#065F46', fontSize: '12px' }}>Login Password</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. praveen2026"
-                      value={newDriverPasswordForm}
-                      onChange={(e) => setNewDriverPasswordForm(e.target.value)}
-                      required
-                    />
-                  </div>
+
                   <div className="fld">
                     <label style={{ color: '#065F46', fontSize: '12px' }}>Vehicle Registration Number</label>
                     <input
@@ -1523,16 +1512,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                       onChange={(e) => setEditDriverUsername(e.target.value)}
                     />
                   </div>
-                  <div className="fld">
-                    <label style={{ color: '#15803D', fontSize: '12px' }}>Login Password</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. praveen2026"
-                      value={editDriverPassword}
-                      onChange={(e) => setEditDriverPassword(e.target.value)}
-                      required
-                    />
-                  </div>
+
                   <div className="fld">
                     <label style={{ color: '#15803D', fontSize: '12px' }}>Vehicle Registration Number</label>
                     <input
