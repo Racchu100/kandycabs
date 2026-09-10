@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { recordAuditLog } from '@/lib/adminEngine';
 import { sendNotification } from '@/lib/notificationEngine';
-import { getDriverPartnerRequests, DriverJoinRequestRecord } from '@/lib/driverAccountEngine';
+import { getDriverPartnerRequests, getAllDriverAccounts, DriverJoinRequestRecord } from '@/lib/driverAccountEngine';
 
 export const DriverJoinRequestForm: React.FC = () => {
   const [name, setName] = useState('');
@@ -31,6 +31,38 @@ export const DriverJoinRequestForm: React.FC = () => {
     if (!cleanPhone || cleanPhone.length < 10) {
       setErrorMsg('Please enter a valid 10-digit Mobile Number.');
       return;
+    }
+
+    // Check if driver is already a registered driver partner
+    const registeredDrivers = getAllDriverAccounts();
+    const isAlreadyPartner = registeredDrivers.some((d) => {
+      const dPhone = (d.phone || '').replace(/\D/g, '').slice(-10);
+      const dName = (d.fullName || '').toLowerCase().trim();
+      const phoneMatch = cleanPhone.length >= 10 && dPhone.length >= 10 && cleanPhone.slice(-10) === dPhone;
+      const nameMatch = cleanName.toLowerCase() === dName;
+      return phoneMatch || nameMatch;
+    });
+
+    if (isAlreadyPartner) {
+      setErrorMsg(`You are already a registered Driver Partner with Kandy Cabs! (Mobile: ${cleanPhone}). Please login to your chauffeur portal or contact support.`);
+      return;
+    }
+
+    // Check if an application was already submitted
+    const existingRequests = getDriverPartnerRequests();
+    const existingReq = existingRequests.find((r) => {
+      const rPhone = (r.phone || '').replace(/\D/g, '').slice(-10);
+      return cleanPhone.length >= 10 && rPhone.length >= 10 && cleanPhone.slice(-10) === rPhone;
+    });
+
+    if (existingReq) {
+      if (existingReq.status === 'ONBOARDED') {
+        setErrorMsg(`You are already an onboarded Driver Partner with Kandy Cabs! Please login to your chauffeur account.`);
+        return;
+      } else {
+        setErrorMsg(`You have already submitted a driver partner application! Our team is reviewing it and will contact you at 📱 ${cleanPhone}.`);
+        return;
+      }
     }
 
     setIsLoading(true);
