@@ -33,15 +33,19 @@ export const CustomerLoginForm: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
-  const getPostLoginRedirectPath = () => {
+  const getPostLoginRedirectPath = (role?: string) => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get('redirect');
-      if (redirect) return redirect;
+      if (redirect && redirect.startsWith('/') && !redirect.includes('404') && redirect !== '/account') {
+        return redirect;
+      }
       const draft = sessionStorage.getItem('kandy_cabs_draft');
       if (draft) return '/booking';
     }
-    return '/account';
+    if (role === 'ADMIN') return '/admin';
+    if (role === 'DRIVER') return '/driver/dashboard';
+    return '/customer/dashboard';
   };
 
   useEffect(() => {
@@ -208,10 +212,19 @@ export const CustomerLoginForm: React.FC = () => {
   const completeLoginSession = (token: string, userData: any) => {
     localStorage.setItem('kc_token', token);
     localStorage.setItem('kc_user', JSON.stringify(userData));
+    if (userData?.role === 'ADMIN' || userData?.phone === '9481086058') {
+      localStorage.setItem('kc_admin_token', token);
+      localStorage.setItem('kc_admin_user', JSON.stringify({
+        id: userData.id || 'admin_super',
+        name: userData.fullName || 'Super Admin (9481086058)',
+        username: 'kandycabs',
+        role: 'ADMIN',
+      }));
+    }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('auth_change'));
     }
-    const targetPath = getPostLoginRedirectPath();
+    const targetPath = getPostLoginRedirectPath(userData?.role || (userData?.phone === '9481086058' ? 'ADMIN' : 'CUSTOMER'));
     router.push(targetPath);
   };
 

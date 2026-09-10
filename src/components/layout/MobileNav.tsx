@@ -46,7 +46,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             {user.role === 'ADMIN' ? (
               <>
                 <Link
-                  href="/admin/dashboard"
+                  href="/admin"
                   onClick={onClose}
                   style={{ padding: '12px 16px', borderRadius: '10px', background: '#FEF3C7', fontSize: '15px', fontWeight: 700, color: '#92400E' }}
                 >

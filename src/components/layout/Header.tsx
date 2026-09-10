@@ -144,7 +144,7 @@ export const Header: React.FC = () => {
                 {user.role === 'ADMIN' ? (
                   <>
                     <Link
-                      href="/admin/dashboard"
+                      href="/admin"
                       className="btn btn-g"
                       style={{ fontSize: '13px', padding: '8px 12px', borderRadius: '8px', fontWeight: 700, background: '#FEF3C7', color: '#92400E' }}
                     >
