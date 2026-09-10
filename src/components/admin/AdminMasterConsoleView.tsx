@@ -36,6 +36,7 @@ import {
   setDriverDutyStatus,
   getDriverPartnerRequests,
   updateDriverPartnerRequestStatus,
+  updateDriverVerificationStatus,
   DriverAccountRecord,
   DriverJoinRequestRecord,
 } from '@/lib/driverAccountEngine';
@@ -236,6 +237,10 @@ export const AdminMasterConsoleView: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState(getAuditLogs());
   const [settings, setSettings] = useState(getSystemSettings());
   const [couponSystemActive, setCouponSystemActive] = useState(getCouponSystemEnabled());
+
+  // Driver Verification Inspection Drawer State
+  const [selectedInspectionDriver, setSelectedInspectionDriver] = useState<DriverAccountRecord | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState<string>('');
 
   // Vendor Partner Registration State
   const [showAddVendorModal, setShowAddVendorModal] = useState(false);
@@ -1538,6 +1543,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                       <th style={{ padding: '8px' }}>Vehicle Reg</th>
                       <th style={{ padding: '8px' }}>License No</th>
                       <th style={{ padding: '8px' }}>Password</th>
+                      <th style={{ padding: '8px' }}>Verification Status</th>
                       <th style={{ padding: '8px' }}>Actions</th>
                     </tr>
                   </thead>
@@ -1569,7 +1575,32 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                           </div>
                         </td>
                         <td style={{ padding: '8px' }}>
+                          {d.verificationStatus === 'APPROVED' ? (
+                            <span className="pill green" style={{ fontSize: '11px', fontWeight: 800 }}>
+                              ✅ Approved
+                            </span>
+                          ) : d.verificationStatus === 'REJECTED' ? (
+                            <span className="pill red" style={{ fontSize: '11px', fontWeight: 800 }}>
+                              ❌ Rejected
+                            </span>
+                          ) : (
+                            <span className="pill yellow" style={{ fontSize: '11px', fontWeight: 800 }}>
+                              ⏳ Pending Review
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '8px' }}>
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setSelectedInspectionDriver(d);
+                                setRejectionReasonInput('');
+                              }}
+                              style={{ fontSize: '11px', padding: '4px 8px', background: '#8B5CF6', borderColor: '#8B5CF6', color: '#fff', fontWeight: 700 }}
+                            >
+                              🔍 Inspect Docs & Photos
+                            </Button>
                             <Button
                               type="button"
                               onClick={() => handleOpenEditDriver(d)}
@@ -1612,6 +1643,185 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                 </table>
               </div>
             </Card>
+            {/* Driver Verification & Document Inspection Modal */}
+            {selectedInspectionDriver && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  zIndex: 9999,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '16px',
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
+                <div
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: '12px',
+                    maxWidth: '850px',
+                    width: '100%',
+                    maxHeight: '90vh',
+                    overflowY: 'auto',
+                    padding: '24px',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1.5px solid #E2E8F0', paddingBottom: '12px' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>
+                        🛡️ Driver & Vehicle Credentials Inspection
+                      </h3>
+                      <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748B' }}>
+                        Driver: <b>{selectedInspectionDriver.fullName}</b> (📱 {selectedInspectionDriver.phone}) · Vehicle: <b>{selectedInspectionDriver.vehicleRegistration}</b>
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInspectionDriver(null)}
+                      style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: 800, fontSize: '14px' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Verification Status Banner */}
+                  <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
+                      Current Account Status:
+                    </span>
+                    {selectedInspectionDriver.verificationStatus === 'APPROVED' ? (
+                      <span className="pill green" style={{ fontSize: '12px', fontWeight: 800 }}>
+                        ✅ APPROVED & VERIFIED
+                      </span>
+                    ) : selectedInspectionDriver.verificationStatus === 'REJECTED' ? (
+                      <span className="pill red" style={{ fontSize: '12px', fontWeight: 800 }}>
+                        ❌ VERIFICATION DECLINED
+                      </span>
+                    ) : (
+                      <span className="pill yellow" style={{ fontSize: '12px', fontWeight: 800 }}>
+                        ⏳ PENDING ADMIN APPROVAL
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Section 1: Commercial Documents (3) */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h4 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 800, color: '#1E293B' }}>
+                      📄 Commercial Documents (3 Items)
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+                      {[
+                        { title: 'Commercial DL', url: selectedInspectionDriver.documents?.licenseUrl },
+                        { title: 'Vehicle RC', url: selectedInspectionDriver.documents?.rcUrl },
+                        { title: 'Vehicle Insurance', url: selectedInspectionDriver.documents?.insuranceUrl },
+                      ].map((doc, idx) => (
+                        <div key={idx} style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '10px', background: '#FAFAFA' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>{doc.title}</div>
+                          {doc.url ? (
+                            <div>
+                              <img src={doc.url} alt={doc.title} style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #CBD5E1', marginBottom: '6px' }} />
+                              <a href={doc.url} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#2563EB', fontWeight: 700, textDecoration: 'none' }}>
+                                🔗 Open Full Supabase URL
+                              </a>
+                            </div>
+                          ) : (
+                            <div style={{ height: '110px', background: '#F1F5F9', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#94A3B8' }}>
+                              Not Uploaded Yet
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Section 2: Permanent Vehicle Photos (5) */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h4 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: 800, color: '#1E293B' }}>
+                      🚗 Permanent Vehicle Exterior & Interior Photos (5 Positions)
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                      {[
+                        { title: 'Front', url: selectedInspectionDriver.vehiclePhotos?.frontUrl },
+                        { title: 'Left Side', url: selectedInspectionDriver.vehiclePhotos?.leftUrl },
+                        { title: 'Right Side', url: selectedInspectionDriver.vehiclePhotos?.rightUrl },
+                        { title: 'Back / Rear', url: selectedInspectionDriver.vehiclePhotos?.backUrl },
+                        { title: 'Cabin Interior', url: selectedInspectionDriver.vehiclePhotos?.interiorUrl },
+                      ].map((item, idx) => (
+                        <div key={idx} style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '8px', background: '#FAFAFA' }}>
+                          <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>{item.title}</div>
+                          {item.url ? (
+                            <div>
+                              <img src={item.url} alt={item.title} style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #CBD5E1', marginBottom: '4px' }} />
+                              <a href={item.url} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: '#2563EB', fontWeight: 700, textDecoration: 'none' }}>
+                                🔗 View URL
+                              </a>
+                            </div>
+                          ) : (
+                            <div style={{ height: '80px', background: '#F1F5F9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10.5px', color: '#94A3B8' }}>
+                              Pending
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Section 3: Rejection Reason Input (If Rejecting) */}
+                  <div style={{ marginBottom: '20px', background: '#FFFBEB', padding: '12px', borderRadius: '8px', border: '1px solid #FCD34D' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#92400E', marginBottom: '4px' }}>
+                      Feedback / Rejection Reason (Required only if declining verification)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Driving Licence image is blurred or expired. Please re-upload clear front photo."
+                      value={rejectionReasonInput}
+                      onChange={(e) => setRejectionReasonInput(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', fontSize: '12.5px', borderRadius: '6px', border: '1px solid #F59E0B' }}
+                    />
+                  </div>
+
+                  {/* Section 4: Approval / Rejection Action Controls */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1.5px solid #E2E8F0', paddingTop: '16px' }}>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const res = updateDriverVerificationStatus(selectedInspectionDriver.id, 'REJECTED', rejectionReasonInput || 'Documents or vehicle photos require correction.');
+                        if (res.success) {
+                          setDrivers(getAllDriverAccounts());
+                          setDriverMsg(`❌ Driver ${selectedInspectionDriver.fullName} verification rejected with reason: "${rejectionReasonInput || 'Correction required'}"`);
+                          setSelectedInspectionDriver(null);
+                        }
+                      }}
+                      style={{ background: '#DC2626', color: '#fff', fontWeight: 800, padding: '10px 18px', borderRadius: '6px' }}
+                    >
+                      ❌ Reject Verification
+                    </Button>
+
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const res = updateDriverVerificationStatus(selectedInspectionDriver.id, 'APPROVED');
+                        if (res.success) {
+                          setDrivers(getAllDriverAccounts());
+                          setDriverMsg(`✅ Driver ${selectedInspectionDriver.fullName} verification APPROVED! Chauffeur can now view & accept trip assignments.`);
+                          setSelectedInspectionDriver(null);
+                        }
+                      }}
+                      style={{ background: '#059669', color: '#fff', fontWeight: 800, padding: '10px 22px', borderRadius: '6px' }}
+                    >
+                      ✅ Approve Driver Account & Grant Access
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

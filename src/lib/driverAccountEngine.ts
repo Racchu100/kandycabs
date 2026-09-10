@@ -1,5 +1,21 @@
 import { recordAuditLog } from '@/lib/adminEngine';
 
+export type DriverVerificationStatus = 'PENDING_VERIFICATION' | 'APPROVED' | 'REJECTED';
+
+export interface DriverDocumentRecord {
+  licenseUrl?: string;
+  rcUrl?: string;
+  insuranceUrl?: string;
+}
+
+export interface VehiclePhotoRecord {
+  frontUrl?: string;
+  leftUrl?: string;
+  rightUrl?: string;
+  backUrl?: string;
+  interiorUrl?: string;
+}
+
 export interface DriverAccountRecord {
   id: string;
   fullName: string;
@@ -12,6 +28,10 @@ export interface DriverAccountRecord {
   vendorAgencyName: string;
   vendorId?: string;
   status?: string;
+  verificationStatus?: DriverVerificationStatus;
+  documents?: DriverDocumentRecord;
+  vehiclePhotos?: VehiclePhotoRecord;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +49,19 @@ const driverStore: DriverAccountRecord[] = [
     licenseNumber: 'KA19-2021-00892',
     vendorAgencyName: 'Sri Durga Travels & Cab Service',
     vendorId: 'vnd_durga',
+    verificationStatus: 'APPROVED',
+    documents: {
+      licenseUrl: 'https://xgpfxtpwyavtgvycwrqu.supabase.co/storage/v1/object/public/cab-photos/driver/driver_suresh/documents/license.webp',
+      rcUrl: 'https://xgpfxtpwyavtgvycwrqu.supabase.co/storage/v1/object/public/cab-photos/driver/driver_suresh/documents/rc.webp',
+      insuranceUrl: 'https://xgpfxtpwyavtgvycwrqu.supabase.co/storage/v1/object/public/cab-photos/driver/driver_suresh/documents/insurance.webp',
+    },
+    vehiclePhotos: {
+      frontUrl: 'https://xgpfxtpwyavtgvycwrqu.supabase.co/storage/v1/object/public/cab-photos/driver/driver_suresh/vehicle/ka19c4829/exterior/front.webp',
+      leftUrl: 'https://xgpfxtpwyavtgvycwrqu.supabase.co/storage/v1/object/public/cab-photos/driver/driver_suresh/vehicle/ka19c4829/exterior/left.webp',
+      rightUrl: 'https://xgpfxtpwyavtgvycwrqu.supabase.co/storage/v1/object/public/cab-photos/driver/driver_suresh/vehicle/ka19c4829/exterior/right.webp',
+      backUrl: 'https://xgpfxtpwyavtgvycwrqu.supabase.co/storage/v1/object/public/cab-photos/driver/driver_suresh/vehicle/ka19c4829/exterior/back.webp',
+      interiorUrl: 'https://xgpfxtpwyavtgvycwrqu.supabase.co/storage/v1/object/public/cab-photos/driver/driver_suresh/vehicle/ka19c4829/interior/front.webp',
+    },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -43,6 +76,7 @@ const driverStore: DriverAccountRecord[] = [
     licenseNumber: 'KA19-2019-00412',
     vendorAgencyName: 'Kudla Wheels Travel Desk',
     vendorId: 'vnd_kudla',
+    verificationStatus: 'APPROVED',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -57,6 +91,7 @@ const driverStore: DriverAccountRecord[] = [
     licenseNumber: 'KA19-2020-00781',
     vendorAgencyName: 'Coastal Mookambika Cabs',
     vendorId: 'vnd_mookambika',
+    verificationStatus: 'APPROVED',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -189,6 +224,7 @@ export function addDriverAccount(
     ...account,
     id,
     vendorAgencyName: account.vendorAgencyName || 'Sri Durga Travels & Cab Service',
+    verificationStatus: account.verificationStatus || 'PENDING_VERIFICATION',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -414,3 +450,82 @@ export function updateDriverPartnerRequestStatus(
   }
   return current;
 }
+
+/**
+ * Update Driver Verification Documents & Vehicle Photos
+ */
+export function updateDriverVerificationData(
+  driverId: string,
+  documents: Partial<DriverDocumentRecord>,
+  vehiclePhotos: Partial<VehiclePhotoRecord>
+): { success: boolean; driver?: DriverAccountRecord; error?: string } {
+  const allDrivers = getAllDriverAccounts();
+  const driver = allDrivers.find((d) => d.id === driverId || d.phone === driverId);
+  if (!driver) {
+    return { success: false, error: 'Driver account not found.' };
+  }
+
+  driver.documents = {
+    ...(driver.documents || {}),
+    ...documents,
+  };
+  driver.vehiclePhotos = {
+    ...(driver.vehiclePhotos || {}),
+    ...vehiclePhotos,
+  };
+  driver.updatedAt = new Date().toISOString();
+
+  // If driver was previously rejected or unset, transition to PENDING_VERIFICATION on new doc submission
+  if (!driver.verificationStatus || driver.verificationStatus === 'REJECTED') {
+    driver.verificationStatus = 'PENDING_VERIFICATION';
+  }
+
+  saveDriverAccounts(allDrivers);
+
+  recordAuditLog({
+    adminId: 'system_driver',
+    adminName: driver.fullName,
+    action: 'UPDATE_DRIVER_VERIFICATION_DOCS',
+    targetType: 'DRIVER',
+    targetId: driver.id,
+    details: `Driver ${driver.fullName} uploaded onboarding documents & vehicle photos. Verification state: ${driver.verificationStatus}`,
+  });
+
+  return { success: true, driver };
+}
+
+/**
+ * Update Driver Verification Status (Admin Approval / Rejection)
+ */
+export function updateDriverVerificationStatus(
+  driverId: string,
+  status: DriverVerificationStatus,
+  rejectionReason?: string,
+  adminName: string = 'Super Admin'
+): { success: boolean; driver?: DriverAccountRecord; error?: string } {
+  const allDrivers = getAllDriverAccounts();
+  const driver = allDrivers.find((d) => d.id === driverId || d.phone === driverId);
+  if (!driver) {
+    return { success: false, error: 'Driver account not found.' };
+  }
+
+  driver.verificationStatus = status;
+  if (rejectionReason) {
+    driver.rejectionReason = rejectionReason;
+  }
+  driver.updatedAt = new Date().toISOString();
+
+  saveDriverAccounts(allDrivers);
+
+  recordAuditLog({
+    adminId: 'admin_super',
+    adminName,
+    action: status === 'APPROVED' ? 'APPROVE_DRIVER' : 'REJECT_DRIVER',
+    targetType: 'DRIVER',
+    targetId: driver.id,
+    details: `Admin ${adminName} set verification status to ${status} for driver ${driver.fullName} (${driver.phone})`,
+  });
+
+  return { success: true, driver };
+}
+

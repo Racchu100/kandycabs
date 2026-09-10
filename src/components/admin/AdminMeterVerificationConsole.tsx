@@ -169,12 +169,15 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
   // Read driver camera captures directly from local storage if available
   let driverMeterImages: Record<string, string> = {};
   let driverEndMeterImages: Record<string, string> = {};
+  let driverTripInteriorImages: Record<string, string> = {};
   if (typeof window !== 'undefined') {
     try {
       const storedStart = localStorage.getItem('kc_driver_meter_images');
       if (storedStart) driverMeterImages = JSON.parse(storedStart);
       const storedEnd = localStorage.getItem('kc_driver_end_meter_images');
       if (storedEnd) driverEndMeterImages = JSON.parse(storedEnd);
+      const storedInterior = localStorage.getItem('kc_driver_trip_interior_images');
+      if (storedInterior) driverTripInteriorImages = JSON.parse(storedInterior);
     } catch {}
   }
 
@@ -497,6 +500,50 @@ export const AdminMeterVerificationConsole: React.FC<AdminMeterVerificationConso
               Dropoff: {dropoffEvidence.odometerReadingKm} KM
             </div>
           </div>
+
+          {/* Pre-Trip Cabin Interior Photo Card */}
+          {(() => {
+            const tripInteriorPhoto =
+              (selectedBooking as any)?.startTripInteriorImage ||
+              (selectedBooking ? (driverTripInteriorImages[selectedBooking.id] || driverTripInteriorImages[selectedBooking.bookingReference]) : undefined);
+            if (!tripInteriorPhoto) return null;
+            return (
+              <div
+                onClick={() =>
+                  setModalImage({
+                    url: tripInteriorPhoto,
+                    title: 'Pre-Trip Cabin Interior Photo',
+                    bookingRef: selectedBooking?.bookingReference || '',
+                    km: pKm,
+                    lat: pickupEvidence.latitude,
+                    lng: pickupEvidence.longitude,
+                  })
+                }
+                style={{
+                  cursor: 'pointer',
+                  background: '#FFFFFF',
+                  padding: '8px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #A855F7',
+                  width: '160px',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
+                  transition: 'transform 0.15s ease',
+                }}
+                title="Click to view full screen pre-trip cabin interior photo"
+              >
+                <div style={{ borderRadius: '6px', overflow: 'hidden', height: '95px', marginBottom: '8px' }}>
+                  <img
+                    src={tripInteriorPhoto}
+                    alt="Pre-Trip Cabin Interior"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#7E22CE', textAlign: 'center' }}>
+                  🚗 Cabin Interior
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Calculated Distance Summary Pill */}
           <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '12px 18px', borderRadius: '10px', flex: '1 1 220px', minWidth: '200px' }}>

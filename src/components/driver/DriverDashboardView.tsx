@@ -10,6 +10,7 @@ import { DriverGpsTracker } from '@/components/driver/DriverGpsTracker';
 import { CustomerInvoiceModal } from '@/components/invoice/CustomerInvoiceModal';
 import { OnlinePaymentModal } from '@/components/payments/OnlinePaymentModal';
 import { GeotagCameraModal } from '@/components/camera/GeotagCameraModal';
+import { DriverOnboardingView } from '@/components/driver/DriverOnboardingView';
 import {
   acceptTripAtomic,
   startTripWithOtp,
@@ -202,7 +203,7 @@ export const DriverDashboardView: React.FC = () => {
   const [cameraModalConfig, setCameraModalConfig] = useState<{
     isOpen: boolean;
     bookingId: string;
-    type: 'PICKUP_METER' | 'DROPOFF_METER' | 'TOLL_RECEIPT';
+    type: 'PICKUP_METER' | 'DROPOFF_METER' | 'TOLL_RECEIPT' | 'TRIP_INTERIOR';
     title: string;
     defaultAddress: string;
   }>({
@@ -213,7 +214,7 @@ export const DriverDashboardView: React.FC = () => {
     defaultAddress: '',
   });
 
-  // Per-booking OTP & Odometer & Toll Form State
+  // Per-booking OTP & Odometer & Toll & Trip Interior Photo Form State
   const [otpInputs, setOtpInputs] = useState<Record<string, string>>({});
   const [meterInputs, setMeterInputs] = useState<Record<string, string>>({});
   const [meterImages, setMeterImages] = useState<Record<string, string>>({});
@@ -222,6 +223,15 @@ export const DriverDashboardView: React.FC = () => {
   const [tollAmountInputs, setTollAmountInputs] = useState<Record<string, string>>({});
   const [tollReceiptImages, setTollReceiptImages] = useState<Record<string, string>>({});
   const [sendWhatsappCheck, setSendWhatsappCheck] = useState<Record<string, boolean>>({});
+  const [tripInteriorImages, setTripInteriorImages] = useState<Record<string, string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('kc_driver_trip_interior_images');
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return {};
+  });
 
   // Active Trip State Management (Tolerates network loss & refresh)
   const [activeTrip, setActiveTrip] = useState<DriverTripRecord | null>(null);
@@ -838,6 +848,18 @@ export const DriverDashboardView: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {/* DRIVER ONBOARDING & VERIFICATION GATE */}
+        {driverUser && driverUser.verificationStatus && driverUser.verificationStatus !== 'APPROVED' ? (
+          <DriverOnboardingView
+            driver={driverUser}
+            onVerificationSubmitted={(updated) => {
+              setDriverUser(updated);
+              loadDriverTrips();
+            }}
+          />
+        ) : (
+          <>
 
         {/* GPS Location Services Warning Banner */}
         {gpsPermissionState === 'DENIED' && (
@@ -1572,6 +1594,61 @@ export const DriverDashboardView: React.FC = () => {
                     <h4 className="h4" style={{ color: '#92400E', marginTop: 0, marginBottom: '8px' }}>
                       🔑 Step 1: Customer OTP & Pickup Meter Odometer Capture
                     </h4>
+
+                    {/* Pre-Trip Vehicle Interior Photo Gate */}
+                    {!(tripInteriorImages[activeTrip.id] || (activeTrip as any).startTripInteriorImage) ? (
+                      <div style={{ background: '#EFF6FF', border: '2px solid #3B82F6', padding: '14px', borderRadius: '8px', marginBottom: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '20px' }}>🚗</span>
+                          <h5 style={{ color: '#1E40AF', margin: 0, fontSize: '14px', fontWeight: 800 }}>
+                            Mandatory Pre-Trip Vehicle Interior Photo Required
+                          </h5>
+                        </div>
+                        <p style={{ fontSize: '12px', color: '#1E3A8A', marginBottom: '12px', lineHeight: 1.4 }}>
+                          Before starting this trip, capture a new trip-specific interior cabin photo of vehicle <b>{(activeTrip as any).assignedVehicleReg || driverUser?.vehicleRegistration}</b>. Saved to Supabase Storage path: <code>trip-photos/{activeTrip.id}/interior_start.webp</code>.
+                        </p>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setCameraModalConfig({
+                              isOpen: true,
+                              bookingId: activeTrip.id,
+                              type: 'TRIP_INTERIOR',
+                              title: `📷 Pre-Trip Vehicle Interior Photo — ${activeTrip.bookingReference}`,
+                              defaultAddress: activeTrip.pickupAddress || 'Pickup Location',
+                            });
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '10px 14px',
+                            background: '#2563EB',
+                            borderColor: '#2563EB',
+                            color: '#ffffff',
+                            fontWeight: 800,
+                            fontSize: '12.5px',
+                          }}
+                        >
+                          📷 Open Camera: Take Trip-Specific Interior Photo Before Trip
+                        </Button>
+                      </div>
+                    ) : (
+                      <div style={{ background: '#F0FDF4', border: '1px solid #10B981', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <img
+                          src={tripInteriorImages[activeTrip.id] || (activeTrip as any).startTripInteriorImage}
+                          alt="Trip Interior Preview"
+                          style={{ width: '75px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #059669' }}
+                        />
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 800, color: '#065F46' }}>
+                            ✓ Trip-Specific Cabin Interior Photo Confirmed!
+                          </div>
+                          <div style={{ fontSize: '10.5px', color: '#047857' }}>
+                            Saved to Cloud Storage: <code>trip-photos/{activeTrip.id}/interior_start.webp</code>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <p style={{ fontSize: '12px', color: '#B45309', marginBottom: '12px' }}>
                       Ask rider for their 4-digit OTP code and record initial vehicle Odometer reading before starting trip.
                     </p>
@@ -1650,7 +1727,16 @@ export const DriverDashboardView: React.FC = () => {
                     </div>
 
                     <div style={{ marginTop: '12px' }}>
-                      <Button type="submit" variant="accent" fullWidth style={{ fontWeight: 800 }}>
+                      <Button
+                        type="submit"
+                        variant="accent"
+                        fullWidth
+                        disabled={!(tripInteriorImages[activeTrip.id] || (activeTrip as any).startTripInteriorImage)}
+                        style={{
+                          fontWeight: 800,
+                          opacity: !(tripInteriorImages[activeTrip.id] || (activeTrip as any).startTripInteriorImage) ? 0.6 : 1,
+                        }}
+                      >
                         Verify OTP & Start Trip 🚀
                       </Button>
                     </div>
@@ -1933,7 +2019,13 @@ export const DriverDashboardView: React.FC = () => {
           driverId={driverUser?.id || 'driver_suresh'}
           vehicleId={driverUser?.vehicleRegistration ? driverUser.vehicleRegistration.replace(/\s+/g, '').toLowerCase() : 'ka19c4829'}
           bookingId={cameraModalConfig.bookingId}
-          category={cameraModalConfig.type === 'TOLL_RECEIPT' ? 'receipt' : 'odometer'}
+          category={
+            cameraModalConfig.type === 'TOLL_RECEIPT'
+              ? 'receipt'
+              : cameraModalConfig.type === 'TRIP_INTERIOR'
+              ? 'interior'
+              : 'odometer'
+          }
           onCapture={(imageDataUrl, _meta, cloudUrl) => {
             const finalPhotoUrl: string = imageDataUrl || cloudUrl || '';
             const bId = cameraModalConfig.bookingId;
@@ -1955,9 +2047,19 @@ export const DriverDashboardView: React.FC = () => {
               });
             } else if (cameraModalConfig.type === 'TOLL_RECEIPT') {
               setTollReceiptImages((prev) => ({ ...prev, [bId]: finalPhotoUrl }));
+            } else if (cameraModalConfig.type === 'TRIP_INTERIOR') {
+              setTripInteriorImages((prev) => {
+                const next: Record<string, string> = { ...prev, [bId]: finalPhotoUrl };
+                try {
+                  localStorage.setItem('kc_driver_trip_interior_images', JSON.stringify(next));
+                } catch {}
+                return next;
+              });
             }
           }}
         />
+        </>
+        )}
       </Container>
     </section>
   );
