@@ -31,6 +31,63 @@ export const AdminLiveTrackingMap: React.FC = () => {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>('driver_suresh');
   const [isLoading, setIsLoading] = useState(true);
   const [copiedCoords, setCopiedCoords] = useState(false);
+  const [leafletLoaded, setLeafletLoaded] = useState(false);
+
+  const mapContainerRef = React.useRef<HTMLDivElement>(null);
+  const mapInstanceRef = React.useRef<any>(null);
+  const markersMapRef = React.useRef<Map<string, any>>(new Map());
+
+  // Dynamically inject Leaflet CSS & JS
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+
+    if (!(window as any).L) {
+      if (!document.getElementById('leaflet-js')) {
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => setLeafletLoaded(true);
+        document.body.appendChild(script);
+      }
+    } else {
+      setLeafletLoaded(true);
+    }
+  }, []);
+
+  const fetchLiveDrivers = async () => {
+    let loaded: DriverGpsPoint[] = [];
+    try {
+      const token = localStorage.getItem('kc_admin_token') || 'mock_admin_token';
+      const res = await fetch('/api/gps/track', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.drivers && Array.isArray(data.drivers) && data.drivers.length > 0) {
+          loaded = data.drivers;
+        }
+      }
+    } catch {}
+
+    if (!loaded || loaded.length === 0) {
+      try {
+        loaded = getAdminDriverLocations();
+      } catch {}
+    }
+
+    if (loaded && loaded.length > 0) {
+      setDrivers(loaded);
+    }
+    setIsLoading(false);
+  };
 
   useEffect(() => {
     fetchLiveDrivers();
@@ -56,32 +113,74 @@ export const AdminLiveTrackingMap: React.FC = () => {
     };
   }, []);
 
-  const fetchLiveDrivers = async () => {
-    let loaded: DriverGpsPoint[] = [];
-    try {
-      const token = localStorage.getItem('kc_admin_token') || 'mock_admin_token';
-      const res = await fetch('/api/gps/track', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.drivers && Array.isArray(data.drivers) && data.drivers.length > 0) {
-        loaded = data.drivers;
-      }
-    } catch {}
-
-    if (!loaded || loaded.length === 0) {
-      try {
-        loaded = getAdminDriverLocations();
-      } catch {}
-    }
-
-    if (loaded && loaded.length > 0) {
-      setDrivers(loaded);
-    }
-    setIsLoading(false);
-  };
-
   const selectedDriver = drivers.find((d) => d.driverId === selectedDriverId) || drivers[0];
+
+  // Initialize and update Leaflet Map
+  useEffect(() => {
+    if (!leafletLoaded || typeof window === 'undefined' || !(window as any).L || !mapContainerRef.current) return;
+
+    const L = (window as any).L;
+
+    if (!mapInstanceRef.current) {
+      const initialLat = selectedDriver ? selectedDriver.latitude : 12.9141;
+      const initialLng = selectedDriver ? selectedDriver.longitude : 74.8560;
+
+      const map = L.map(mapContainerRef.current, {
+        center: [initialLat, initialLng],
+        zoom: 13,
+        zoomControl: true,
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors | Kandy Cabs Fleet Control',
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+    }
+
+    const map = mapInstanceRef.current;
+
+    // Update markers for all drivers smoothly
+    drivers.forEach((d) => {
+      const isSelected = selectedDriverId === d.driverId;
+      const pinColor = d.isStale ? '#DC2626' : d.speedKmh > 0 ? '#10B981' : '#F59E0B';
+      const iconSymbol = d.isStale ? '🔴' : d.speedKmh > 0 ? '🚖' : '🅿️';
+
+      const iconHtml = `
+        <div style="position: relative; text-align: center; transform: translate(-50%, -50%); cursor: pointer;">
+          <div style="background: ${pinColor}; color: #ffffff; border: 2px solid #ffffff; padding: 4px 10px; border-radius: 14px; font-size: 11px; font-weight: 800; white-space: nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.35); display: inline-flex; align-items: center; gap: 4px;">
+            <span>${iconSymbol}</span>
+            <span>${d.driverName.split(' ')[0]}</span>
+            <span style="background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 8px; font-size: 10px;">${d.speedKmh} km/h</span>
+          </div>
+          <div style="width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 9px solid ${pinColor}; margin: -2px auto 0;"></div>
+        </div>
+      `;
+
+      const customIcon = L.divIcon({
+        html: iconHtml,
+        className: 'custom-driver-pin',
+        iconSize: [140, 45],
+        iconAnchor: [70, 45],
+      });
+
+      let marker = markersMapRef.current.get(d.driverId);
+      if (!marker) {
+        marker = L.marker([d.latitude, d.longitude], { icon: customIcon }).addTo(map);
+        marker.on('click', () => setSelectedDriverId(d.driverId));
+        markersMapRef.current.set(d.driverId, marker);
+      } else {
+        marker.setLatLng([d.latitude, d.longitude]);
+        marker.setIcon(customIcon);
+      }
+    });
+
+    // Pan map to selected driver
+    if (selectedDriver) {
+      map.panTo([selectedDriver.latitude, selectedDriver.longitude], { animate: true, duration: 0.8 });
+    }
+  }, [leafletLoaded, drivers, selectedDriverId]);
 
   const handleCopyCoords = () => {
     if (!selectedDriver) return;
@@ -91,7 +190,6 @@ export const AdminLiveTrackingMap: React.FC = () => {
     setTimeout(() => setCopiedCoords(false), 2000);
   };
 
-  // Compute OpenStreetMap bounding box around driver's position
   const bboxPadding = 0.012;
   const mapEmbedUrl = selectedDriver
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${(selectedDriver.longitude - bboxPadding).toFixed(6)},${(selectedDriver.latitude - bboxPadding).toFixed(6)},${(selectedDriver.longitude + bboxPadding).toFixed(6)},${(selectedDriver.latitude + bboxPadding).toFixed(6)}&layer=mapnik&marker=${selectedDriver.latitude.toFixed(6)},${selectedDriver.longitude.toFixed(6)}`
@@ -144,15 +242,15 @@ export const AdminLiveTrackingMap: React.FC = () => {
                 <span style={{ fontWeight: 800, fontSize: '13px', color: 'var(--ink)' }}>{d.driverName}</span>
                 <span
                   style={{
-                    background: d.isStale ? '#FEE2E2' : 'var(--green-soft)',
-                    color: d.isStale ? '#991B1B' : 'var(--green)',
+                    background: d.isStale ? '#FEE2E2' : d.speedKmh > 0 ? '#DCFCE7' : '#FEF3C7',
+                    color: d.isStale ? '#991B1B' : d.speedKmh > 0 ? '#15803D' : '#92400E',
                     fontSize: '10px',
                     fontWeight: 800,
                     padding: '2px 6px',
                     borderRadius: '4px',
                   }}
                 >
-                  {d.isStale ? '🔴 STALE (>30s)' : '🟢 LIVE MOVING'}
+                  {d.isStale ? '🔴 STALE (>30s)' : d.speedKmh > 0 ? '🟢 LIVE MOVING' : '🟡 IDLE (0 KM/H)'}
                 </span>
               </div>
 
@@ -169,7 +267,7 @@ export const AdminLiveTrackingMap: React.FC = () => {
                 <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700 }}>
                   State: {d.tripState}
                 </span>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#0284C7' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: d.speedKmh > 0 ? '#0284C7' : '#64748B' }}>
                   ⚡ {d.speedKmh} KM/H
                 </span>
               </div>
@@ -184,8 +282,8 @@ export const AdminLiveTrackingMap: React.FC = () => {
             <div style={{ background: '#0F172A', color: '#fff', padding: '14px 18px', borderRadius: 'var(--r-m)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ background: selectedDriver.isStale ? '#EF4444' : '#10B981', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>
-                    {selectedDriver.isStale ? 'TELEMETRY PAUSED' : '🟢 LIVE TELEMETRY STREAM'}
+                  <span style={{ background: selectedDriver.isStale ? '#EF4444' : selectedDriver.speedKmh > 0 ? '#10B981' : '#F59E0B', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>
+                    {selectedDriver.isStale ? '🔴 TELEMETRY PAUSED' : selectedDriver.speedKmh > 0 ? '🟢 LIVE TELEMETRY STREAM' : '🟡 STATIONARY ENGINE IDLE'}
                   </span>
                   <span style={{ fontSize: '12px', color: '#94A3B8' }}>
                     Updated: {new Date(selectedDriver.lastUpdated).toLocaleTimeString()}
@@ -225,10 +323,19 @@ export const AdminLiveTrackingMap: React.FC = () => {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ background: '#DCFCE7', border: '1px solid #86EFAC', color: '#15803D', padding: '4px 12px', borderRadius: '20px', fontSize: '12.5px', fontWeight: 800 }}>
-                  ⚡ Speed: {selectedDriver.speedKmh} KM/H
+                  ⚡ Speedometer: {selectedDriver.speedKmh} KM/H
                 </span>
-                <span style={{ background: '#0284C7', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 800 }}>
-                  🟢 LIVE MOVING
+                <span
+                  style={{
+                    background: selectedDriver.isStale ? '#EF4444' : selectedDriver.speedKmh > 0 ? '#0284C7' : '#D97706',
+                    color: '#fff',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                  }}
+                >
+                  {selectedDriver.isStale ? '🔴 STALE (>30s)' : selectedDriver.speedKmh > 0 ? '🟢 LIVE MOVING' : '🟡 IDLE (0 KM/H)'}
                 </span>
               </div>
             </div>
@@ -278,17 +385,21 @@ export const AdminLiveTrackingMap: React.FC = () => {
               </Button>
             </div>
 
-            {/* Interactive OpenStreetMap Pin iFrame with Live Motion Marker Key */}
-            <div style={{ border: '2px solid var(--line)', borderRadius: 'var(--r-m)', overflow: 'hidden', height: '360px', position: 'relative', background: '#e5e3df' }}>
-              <iframe
-                key={`${selectedDriver.driverId}-${selectedDriver.latitude.toFixed(5)}-${selectedDriver.longitude.toFixed(5)}`}
-                title={`Live Map for ${selectedDriver.driverName}`}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                src={mapEmbedUrl}
-                loading="lazy"
-              />
+            {/* Interactive Leaflet Pin Canvas Container with Fallback iFrame */}
+            <div style={{ border: '2px solid var(--line)', borderRadius: 'var(--r-m)', overflow: 'hidden', height: '380px', position: 'relative', background: '#e5e3df' }}>
+              <div ref={mapContainerRef} style={{ width: '100%', height: '100%', minHeight: '380px' }} />
+
+              {!leafletLoaded && (
+                <iframe
+                  key={`${selectedDriver.driverId}-${selectedDriver.latitude.toFixed(5)}-${selectedDriver.longitude.toFixed(5)}`}
+                  title={`Live Map for ${selectedDriver.driverName}`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0, position: 'absolute', top: 0, left: 0 }}
+                  src={mapEmbedUrl}
+                  loading="lazy"
+                />
+              )}
             </div>
 
             {/* Bottom GPS Metadata Telemetry Strip */}
@@ -308,8 +419,8 @@ export const AdminLiveTrackingMap: React.FC = () => {
                 </div>
                 <div>
                   <span style={{ color: 'var(--muted)', display: 'block', fontSize: '11px' }}>Signal Status</span>
-                  <b style={{ fontSize: '13px', color: selectedDriver.isStale ? '#DC2626' : '#16A34A' }}>
-                    {selectedDriver.isStale ? '🔴 Telemetry Stale (>30s)' : '🟢 Active 3s Ping'}
+                  <b style={{ fontSize: '13px', color: selectedDriver.isStale ? '#DC2626' : selectedDriver.speedKmh > 0 ? '#16A34A' : '#D97706' }}>
+                    {selectedDriver.isStale ? '🔴 Telemetry Stale (>30s)' : selectedDriver.speedKmh > 0 ? '🟢 Active Moving (3s Ping)' : '🟡 Idle Stationary (3s Ping)'}
                   </b>
                 </div>
               </div>

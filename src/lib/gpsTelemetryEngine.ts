@@ -187,78 +187,119 @@ export function recordDriverTelemetry(
 }
 
 import { getAdminBookings } from '@/lib/adminEngine';
+import { getAllDriverAccounts } from '@/lib/driverAccountEngine';
 
 /**
  * Get All Driver Locations for Admin Live Tracking Console
- * Calculates stale indicators dynamically, syncs active trips, and simulates smooth movement
+ * Dynamically syncs all driver accounts, active trips, live speedometer speeds, and stale indicators
  */
 export function getAdminDriverLocations(): DriverGpsPoint[] {
   const now = Date.now();
-
-  // Dynamically sync any active TRIP_STARTED bookings from Admin Engine
+  let allDrivers: any[] = [];
   try {
-    const activeBookings = getAdminBookings().filter((b) => b.status === 'TRIP_STARTED');
-    activeBookings.forEach((b) => {
-      const driverId = b.assignedDriverId || (b.driverPhone ? `driver_${b.driverPhone.replace(/\D/g, '')}` : 'driver_suresh');
-      const driverName = b.assignedDriverName || 'Suresh Gowda';
-      const vehicleRegistration = b.assignedVehicleReg || 'KA 19 C 4829';
+    allDrivers = getAllDriverAccounts();
+  } catch {}
+
+  let allBookings: any[] = [];
+  try {
+    allBookings = getAdminBookings();
+  } catch {}
+
+  if (allDrivers.length > 0) {
+    allDrivers.forEach((driver) => {
+      const driverId = driver.id || `driver_${driver.phone.replace(/\D/g, '')}`;
+      const driverName = driver.fullName || 'Chauffeur';
+      const vehicleRegistration = driver.vehicleRegistration || 'KA 19 C 4829';
+
+      const activeBooking = allBookings.find(
+        (b) =>
+          b.status !== 'COMPLETED' &&
+          b.status !== 'CANCELLED' &&
+          (
+            (b.assignedDriverId && (b.assignedDriverId === driverId || b.assignedDriverId === driver.phone)) ||
+            (b.assignedDriverName && (b.assignedDriverName.toLowerCase().includes(driverName.toLowerCase().split(' ')[0])))
+          )
+      );
+
       const existing = liveDriverLocationStore.get(driverId);
 
-      const destCoords = ((b as any).dropLat && (b as any).dropLng)
-        ? { lat: (b as any).dropLat, lng: (b as any).dropLng }
-        : resolveLocationCoordinates(b.dropAddress);
+      let defaultLat = 12.9141; // Mangaluru
+      let defaultLng = 74.8560;
+      if (driverId.includes('suresh')) {
+        defaultLat = 13.0827; // Surathkal / NH-66
+        defaultLng = 74.7954;
+      } else if (driverId.includes('ramesh')) {
+        defaultLat = 12.9141; // Railway Station
+        defaultLng = 74.8560;
+      } else if (driverId.includes('ganesh')) {
+        defaultLat = 12.8702; // Pumpwell Junction
+        defaultLng = 74.8430;
+      }
 
-      // Smooth en-route motion step towards dropoff destination
-      let currentLat = existing ? existing.latitude : 13.0827;
-      let currentLng = existing ? existing.longitude : 74.7954;
-      let currentSpeed = existing ? existing.speedKmh : 52;
-      let currentHeading = existing ? existing.headingDegrees : 350;
+      let currentLat = existing ? existing.latitude : defaultLat;
+      let currentLng = existing ? existing.longitude : defaultLng;
+      let currentSpeed = existing ? existing.speedKmh : 0;
+      let currentHeading = existing ? existing.headingDegrees : 0;
+      let tripState = activeBooking ? activeBooking.status : (existing ? existing.tripState : 'AVAILABLE');
+      let bookingRef = activeBooking ? (activeBooking.bookingReference || activeBooking.id) : (existing ? existing.bookingReference : undefined);
+      let pickupAddr = activeBooking ? activeBooking.pickupAddress : (existing ? existing.pickupAddress : 'Mangaluru');
+      let dropAddr = activeBooking ? activeBooking.dropAddress : (existing ? existing.dropAddress : 'Udupi Sri Krishna Matha');
 
-      // Simulate forward movement vector towards destination if trip is active
-      const dLat = destCoords.lat - currentLat;
-      const dLng = destCoords.lng - currentLng;
-      const distToDest = Math.sqrt(dLat * dLat + dLng * dLng);
+      const destCoords = resolveLocationCoordinates(dropAddr);
 
-      if (distToDest > 0.002) {
-        // Move latitude & longitude by small step (~0.0004° per tick, ~50km/h)
-        const stepSize = 0.0004;
-        currentLat += (dLat / distToDest) * stepSize;
-        currentLng += (dLng / distToDest) * stepSize;
+      if (activeBooking && activeBooking.status === 'TRIP_STARTED') {
+        tripState = 'TRIP_STARTED';
+        const dLat = destCoords.lat - currentLat;
+        const dLng = destCoords.lng - currentLng;
+        const distToDest = Math.sqrt(dLat * dLat + dLng * dLng);
 
-        // Calculate heading angle
-        currentHeading = Math.round((Math.atan2(dLng, dLat) * 180 / Math.PI + 360) % 360);
-        // Realistic speed variation (45 to 62 km/h)
-        currentSpeed = Math.round(48 + Math.sin(now / 5000) * 8);
+        if (distToDest > 0.002) {
+          const stepSize = 0.0004;
+          currentLat += (dLat / distToDest) * stepSize;
+          currentLng += (dLng / distToDest) * stepSize;
+          currentHeading = Math.round((Math.atan2(dLng, dLat) * 180 / Math.PI + 360) % 360);
+          currentSpeed = Math.round(48 + Math.sin(now / 4000) * 12);
+        } else {
+          currentSpeed = 0;
+        }
+      } else if (activeBooking && (activeBooking.status === 'DRIVER_APPROVED' || activeBooking.status === 'DRIVER_ASSIGNED')) {
+        tripState = 'DRIVER_ASSIGNED';
+        currentSpeed = existing && existing.speedKmh > 0 ? existing.speedKmh : 12;
       } else {
-        currentSpeed = 0; // Arrived at destination
+        tripState = 'AVAILABLE';
+        currentSpeed = existing ? existing.speedKmh : 0;
       }
 
       const remainingDistanceKm = calculateHaversineDistanceKm(currentLat, currentLng, destCoords.lat, destCoords.lng);
       const effectiveSpeed = currentSpeed > 0 ? currentSpeed : 45;
       const etaMinutes = Math.max(1, Math.round((remainingDistanceKm / effectiveSpeed) * 60));
 
+      const updatedTime = (activeBooking && activeBooking.status === 'TRIP_STARTED')
+        ? new Date().toISOString()
+        : (existing ? existing.lastUpdated : (driverId.includes('ganesh') ? new Date(now - 45000).toISOString() : new Date().toISOString()));
+
       liveDriverLocationStore.set(driverId, {
         driverId,
         driverName,
         vehicleRegistration,
-        bookingReference: b.bookingReference || b.id,
-        tripState: 'TRIP_STARTED',
+        bookingReference: bookingRef,
+        tripState,
         latitude: currentLat,
         longitude: currentLng,
-        accuracyMeters: 4.2,
+        accuracyMeters: existing ? existing.accuracyMeters : 4.5,
         speedKmh: currentSpeed,
         headingDegrees: currentHeading,
         isStale: false,
-        lastUpdated: new Date().toISOString(),
-        pickupAddress: b.pickupAddress || 'Mangaluru Central',
-        dropAddress: b.dropAddress || 'Udupi Sri Krishna Matha',
+        lastUpdated: updatedTime,
+        pickupAddress: pickupAddr,
+        dropAddress: dropAddr,
         destinationLat: destCoords.lat,
         destinationLng: destCoords.lng,
         remainingDistanceKm,
         etaMinutes,
       });
     });
-  } catch {}
+  }
 
   const points = Array.from(liveDriverLocationStore.values());
 
