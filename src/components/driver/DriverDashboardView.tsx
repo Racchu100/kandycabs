@@ -390,6 +390,77 @@ export const DriverDashboardView: React.FC = () => {
       setNoticeIdToShow(null);
     }
 
+    // Sort matched assigned bookings so recent & action-required admin dispatches ALWAYS appear AT THE VERY TOP
+    matched.sort((a, b) => {
+      const getPriority = (item: AdminBookingOverview) => {
+        // Priority 0: New trip assignment pending driver approval (action required - top of portal)
+        if (
+          (item.driverApprovalStatus === 'PENDING' ||
+            item.status === 'DISPATCHED_PENDING_DRIVER_APPROVAL' ||
+            item.status === 'VENDOR_DISPATCHED') &&
+          item.status !== 'CANCELLED' &&
+          item.status !== 'COMPLETED'
+        ) {
+          return 0;
+        }
+
+        // Priority 1: Active accepted / in-progress trip
+        if (item.status === 'DRIVER_APPROVED' || item.status === 'DRIVER_ASSIGNED' || item.status === 'TRIP_STARTED') {
+          return 1;
+        }
+
+        // Priority 2: Other non-completed, non-cancelled trips
+        if (item.status !== 'COMPLETED' && item.status !== 'CANCELLED') {
+          return 2;
+        }
+
+        // Priority 3: Completed or Cancelled trips (placed at bottom)
+        return 3;
+      };
+
+      const priorityA = getPriority(a);
+      const priorityB = getPriority(b);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      // Within the same priority tier, sort by recency (newest createdAt or latest timestamp/reference first)
+      const getRecency = (item: AdminBookingOverview) => {
+        if (item.createdAt) {
+          const t = new Date(item.createdAt).getTime();
+          if (!isNaN(t) && t > 0) return t;
+        }
+        if (item.tripStartedAt) {
+          const t = new Date(item.tripStartedAt).getTime();
+          if (!isNaN(t) && t > 0) return t;
+        }
+        if (item.driverApprovedAt) {
+          const t = new Date(item.driverApprovedAt).getTime();
+          if (!isNaN(t) && t > 0) return t;
+        }
+        // Fallback to numeric digits in booking reference or id
+        const numMatch = (item.bookingReference || item.id || '').match(/\d+/g);
+        if (numMatch) {
+          const parsed = parseInt(numMatch.join(''), 10);
+          if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+        return 0;
+      };
+
+      const recencyA = getRecency(a);
+      const recencyB = getRecency(b);
+
+      if (recencyA !== recencyB) {
+        return recencyB - recencyA; // Descending: newest first
+      }
+
+      return (b.bookingReference || b.id || '').localeCompare(a.bookingReference || a.id || '', undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+    });
+
     setAssignedBookings(matched);
   };
 
