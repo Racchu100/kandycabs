@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { MobileNav } from './MobileNav';
 import { KandyCabsLogo } from '@/components/ui/KandyCabsLogo';
-import { getDriverByPhoneOrUsername } from '@/lib/driverAccountEngine';
+import { getDriverByPhoneOrUsername, addDriverAccount } from '@/lib/driverAccountEngine';
 
 export interface NavItem {
   id: string;
@@ -55,7 +55,7 @@ export const Header: React.FC = () => {
           }
         } else if (custUser) {
           const parsed = JSON.parse(custUser);
-          const matchedDriver = parsed.phone ? getDriverByPhoneOrUsername(parsed.phone) : null;
+          let matchedDriver = parsed.phone ? getDriverByPhoneOrUsername(parsed.phone) : null;
           if (parsed.role === 'ADMIN' || parsed.phone === '9481086058' || (parsed.name && parsed.name.includes('9481086058'))) {
             setUser({ name: parsed.name || 'Super Admin (9481086058)', role: 'ADMIN' });
           } else if (matchedDriver) {
@@ -63,6 +63,23 @@ export const Header: React.FC = () => {
           } else {
             const displayName = (parsed.fullName && parsed.fullName !== 'Customer Rider') ? parsed.fullName : 'My Account';
             setUser({ name: displayName, role: 'CUSTOMER' });
+
+            // Asynchronous API fallback for registered driver detection
+            if (parsed.phone) {
+              const cleanDigits = String(parsed.phone).replace(/\D/g, '');
+              if (cleanDigits.length >= 10) {
+                fetch(`/api/admin/drivers?phone=${cleanDigits}`)
+                  .then((res) => res.json())
+                  .then((data) => {
+                    if (data.success && data.driver) {
+                      addDriverAccount(data.driver);
+                      localStorage.setItem('kc_driver_user', JSON.stringify(data.driver));
+                      setUser({ name: data.driver.fullName || displayName, role: 'DRIVER' });
+                    }
+                  })
+                  .catch(() => {});
+              }
+            }
           }
         } else {
           setUser(null);

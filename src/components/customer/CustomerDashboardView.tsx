@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { CustomerInvoiceModal } from '@/components/invoice/CustomerInvoiceModal';
 import { getAdminBookings, AdminBookingOverview } from '@/lib/adminEngine';
-import { getDriverByPhoneOrUsername } from '@/lib/driverAccountEngine';
+import { getDriverByPhoneOrUsername, addDriverAccount } from '@/lib/driverAccountEngine';
 
 export const CustomerDashboardView: React.FC = () => {
   const router = useRouter();
@@ -15,6 +15,7 @@ export const CustomerDashboardView: React.FC = () => {
   const [user, setUser] = useState<any | null>(null);
   const [liveBookingsList, setLiveBookingsList] = useState<any[]>([]);
   const [invoiceBooking, setInvoiceBooking] = useState<any | null>(null);
+  const [registeredDriver, setRegisteredDriver] = useState<any | null>(null);
 
   const loadCustomerBookings = () => {
     let currentUser: any = null;
@@ -154,6 +155,27 @@ export const CustomerDashboardView: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!user?.phone) return;
+    const local = getDriverByPhoneOrUsername(user.phone);
+    if (local) {
+      setRegisteredDriver(local);
+    } else {
+      const cleanDigits = String(user.phone).replace(/\D/g, '');
+      if (cleanDigits.length >= 10) {
+        fetch(`/api/admin/drivers?phone=${cleanDigits}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && data.driver) {
+              addDriverAccount(data.driver);
+              setRegisteredDriver(data.driver);
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [user?.phone]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -209,8 +231,8 @@ export const CustomerDashboardView: React.FC = () => {
 
         {/* Registered Driver Banner */}
         {(() => {
-          const registeredDriver = user?.phone ? getDriverByPhoneOrUsername(user.phone) : null;
-          if (!registeredDriver) return null;
+          const activeDriver = registeredDriver || (user?.phone ? getDriverByPhoneOrUsername(user.phone) : null);
+          if (!activeDriver) return null;
           return (
             <div
               style={{
@@ -232,10 +254,10 @@ export const CustomerDashboardView: React.FC = () => {
                 <span style={{ fontSize: '32px' }}>👨‍✈️</span>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '15px', color: '#FDE047' }}>
-                    Registered Driver Account — {registeredDriver.fullName} ({registeredDriver.vehicleRegistration || 'Active Driver'})
+                    Registered Driver Account — {activeDriver.fullName} ({activeDriver.vehicleRegistration || 'Active Driver'})
                   </div>
                   <div style={{ fontSize: '13px', color: '#E0E7FF', marginTop: '2px' }}>
-                    Mobile <b>+91 {registeredDriver.phone}</b> is registered as an active driver. Tap below to view your driver dashboard and start assigned tasks.
+                    Mobile <b>+91 {activeDriver.phone}</b> is registered as an active driver. Tap below to view your driver dashboard and start assigned tasks.
                   </div>
                 </div>
               </div>
