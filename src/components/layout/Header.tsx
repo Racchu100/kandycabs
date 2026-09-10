@@ -44,14 +44,22 @@ export const Header: React.FC = () => {
           setUser({ name: parsed.name || 'Super Admin (9481086058)', role: 'ADMIN' });
         } else if (driverUser) {
           const parsed = JSON.parse(driverUser);
-          setUser({ name: parsed.fullName || 'Driver', role: 'DRIVER' });
+          const matchedDriver = getDriverByPhoneOrUsername(parsed.id || parsed.phone || parsed.username || parsed.fullName);
+          if (matchedDriver) {
+            setUser({ name: matchedDriver.fullName || 'Driver', role: 'DRIVER' });
+          } else {
+            // Driver is deleted in Admin Panel! Remove stale session and do not show Driver Dashboard button
+            localStorage.removeItem('kc_driver_user');
+            localStorage.removeItem('kc_driver_token');
+            setUser(null);
+          }
         } else if (custUser) {
           const parsed = JSON.parse(custUser);
           const matchedDriver = parsed.phone ? getDriverByPhoneOrUsername(parsed.phone) : null;
           if (parsed.role === 'ADMIN' || parsed.phone === '9481086058' || (parsed.name && parsed.name.includes('9481086058'))) {
             setUser({ name: parsed.name || 'Super Admin (9481086058)', role: 'ADMIN' });
-          } else if (parsed.role === 'DRIVER' || matchedDriver) {
-            setUser({ name: matchedDriver ? matchedDriver.fullName : (parsed.fullName || 'Driver'), role: 'DRIVER' });
+          } else if (matchedDriver) {
+            setUser({ name: matchedDriver.fullName, role: 'DRIVER' });
           } else {
             const displayName = (parsed.fullName && parsed.fullName !== 'Customer Rider') ? parsed.fullName : 'My Account';
             setUser({ name: displayName, role: 'CUSTOMER' });
@@ -67,9 +75,13 @@ export const Header: React.FC = () => {
     checkAuth();
     window.addEventListener('storage', checkAuth);
     window.addEventListener('auth_change', checkAuth);
+    window.addEventListener('driver_account_deleted', checkAuth);
+    window.addEventListener('driver_account_updated', checkAuth);
     return () => {
       window.removeEventListener('storage', checkAuth);
       window.removeEventListener('auth_change', checkAuth);
+      window.removeEventListener('driver_account_deleted', checkAuth);
+      window.removeEventListener('driver_account_updated', checkAuth);
     };
   }, []);
 
