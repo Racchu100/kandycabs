@@ -1193,7 +1193,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
 
             {/* Incoming Driver Join Requests from Contact Page (Only show un-registered/pending applicants) */}
             {(() => {
-              const allReqs = getDriverPartnerRequests();
+              const allReqs = (driverRequests && driverRequests.length > 0) ? driverRequests : getDriverPartnerRequests();
               const pendingReqs = allReqs.filter((r: any) => {
                 if (r.status === 'ONBOARDED' || r.status === 'REJECTED') return false;
                 const rCleanP = (r.phone || '').replace(/\D/g, '').slice(-10);
