@@ -128,25 +128,18 @@ export default function DriverLoginPage() {
       }
 
       const driverFound = getDriverByPhoneOrUsername(cleanMobile);
+      if (!driverFound) {
+        setErrorMsg('No driver account found with this Mobile Number in Admin Panel. Access denied. Please contact Fleet Administrator.');
+        return;
+      }
+
       const token = `driver_token_${Date.now()}`;
-      const driverUser = driverFound
-        ? {
-            ...driverFound,
-            role: 'DRIVER',
-            canBookRides: true,
-            canManageDriver: true,
-          }
-        : {
-            id: 'driver_suresh',
-            fullName: 'Suresh Gowda',
-            phone: cleanMobile,
-            role: 'DRIVER',
-            vehicleRegistration: 'KA 19 C 4829',
-            licenseNumber: 'KA19-2021-00892',
-            verificationStatus: 'APPROVED',
-            canBookRides: true,
-            canManageDriver: true,
-          };
+      const driverUser = {
+        ...driverFound,
+        role: 'DRIVER',
+        canBookRides: true,
+        canManageDriver: true,
+      };
 
       localStorage.setItem('kc_driver_token', token);
       localStorage.setItem('kc_driver_user', JSON.stringify(driverUser));

@@ -312,6 +312,20 @@ export function verifyDriverCredentials(
 }
 
 /**
+ * Remove driver identifier from deleted list when re-added by Admin
+ */
+export function unrecordDeletedDriverId(id: string, phone?: string) {
+  if (typeof window !== 'undefined') {
+    try {
+      let current = getDeletedDriverIds();
+      const cleanP = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+      current = current.filter((item) => item !== id && (!cleanP || item !== cleanP));
+      localStorage.setItem('kc_deleted_driver_ids', JSON.stringify(current));
+    } catch {}
+  }
+}
+
+/**
  * Add New Driver Account with Vendor Agency
  */
 export function addDriverAccount(
@@ -327,6 +341,9 @@ export function addDriverAccount(
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+
+  // Remove phone/id from deleted list so re-added driver shows up in Admin Panel
+  unrecordDeletedDriverId(record.id, record.phone);
 
   const allDrivers = getAllDriverAccounts();
   allDrivers.push(record);

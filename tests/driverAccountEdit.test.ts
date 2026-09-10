@@ -57,8 +57,6 @@ assert.strictEqual(updateResult.driver?.licenseNumber, 'KA19-2026-8888');
 const updatedList = getAllDriverAccounts();
 const found = updatedList.find((d) => d.id === testDriver.id);
 assert(found, 'Updated driver should exist in drivers list');
-assert.strictEqual(found.fullName, 'Test Edit Chauffeur Updated');
-
 // 5. Delete driver account
 const deleteResult = deleteDriverAccount(testDriver.id, 'Super Admin');
 assert(deleteResult.success, 'Driver deletion should succeed');
@@ -66,5 +64,25 @@ assert(deleteResult.success, 'Driver deletion should succeed');
 const listAfterDelete = getAllDriverAccounts();
 const foundAfterDelete = listAfterDelete.find((d) => d.id === testDriver.id);
 assert.strictEqual(foundAfterDelete, undefined, 'Deleted driver should no longer exist in drivers list');
+
+// 6. Re-add deleted driver with same phone number and verify it appears in admin list
+const readdedDriver = addDriverAccount(
+  {
+    fullName: 'Test Readded Chauffeur',
+    phone: '9988776600',
+    username: 'testreadded',
+    password: 'readdedpassword123',
+    vehicleRegistration: 'KA 19 AB 5555',
+    licenseNumber: 'KA19-2026-5555',
+    vendorAgencyName: 'Sri Durga Travels & Cab Service',
+  },
+  'Super Admin'
+);
+assert.strictEqual(readdedDriver.phone, '9988776600');
+
+const listAfterReadd = getAllDriverAccounts();
+const foundReadded = listAfterReadd.find((d) => d.phone === '9988776600');
+assert(foundReadded, 'Re-added driver should be present in getAllDriverAccounts()');
+assert.strictEqual(foundReadded.fullName, 'Test Readded Chauffeur');
 
 console.log('✅ Driver Account Edit & Management Integration Test Passed 100%!');

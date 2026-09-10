@@ -293,7 +293,15 @@ export const DriverDashboardView: React.FC = () => {
     }
 
     if (!identifierToVerify) {
-      identifierToVerify = 'driver_suresh';
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('kc_driver_user');
+          localStorage.removeItem('kc_driver_token');
+        } catch {}
+      }
+      setDriverUser(null);
+      setIsAccountDeleted(true);
+      return;
     }
 
     const liveDriver = getDriverByPhoneOrUsername(identifierToVerify);
