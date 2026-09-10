@@ -112,3 +112,25 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: false, error: error.message || 'Database error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'ID is required.' }, { status: 400 });
+    }
+
+    try {
+      await prisma.driverApplication.delete({
+        where: { id },
+      });
+    } catch {}
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting driver application:', error);
+    return NextResponse.json({ success: false, error: error.message || 'Database error' }, { status: 500 });
+  }
+}

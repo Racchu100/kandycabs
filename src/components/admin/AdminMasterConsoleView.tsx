@@ -906,6 +906,22 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
     }
   };
 
+  const handleDeleteDriverRequest = async (requestId: string, applicantName: string) => {
+    if (!window.confirm(`Are you sure you want to delete the driver application for '${applicantName}'?`)) return;
+
+    try {
+      await fetch(`/api/driver-applications?id=${encodeURIComponent(requestId)}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      console.error('Failed to delete driver application:', e);
+    }
+
+    updateDriverPartnerRequestStatus(requestId, 'REJECTED');
+    setDriverRequests((prev) => prev.filter((r) => r.id !== requestId));
+    setDriverMsg(`✓ Driver partner application for '${applicantName}' deleted successfully.`);
+  };
+
   const handleAddLocationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLocName || !newLocAddress) return;
@@ -1260,6 +1276,13 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                                 >
                                   ➕ Onboard Driver
                                 </Button>
+                                <Button
+                                  type="button"
+                                  onClick={() => handleDeleteDriverRequest(r.id, r.name)}
+                                  style={{ fontSize: '11px', padding: '4px 8px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5' }}
+                                >
+                                  🗑️ Delete
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -1540,6 +1563,13 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                             </Button>
                             <Button
                               type="button"
+                              onClick={() => handleDeleteDriverSubmit(d.id, d.fullName)}
+                              style={{ fontSize: '11px', padding: '4px 8px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5' }}
+                            >
+                              🗑️ Delete
+                            </Button>
+                            <Button
+                              type="button"
                               onClick={() => {
                                 setSelectedDriverId(d.id);
                                 setNewDriverPassword('');
@@ -1717,6 +1747,13 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                               style={{ fontSize: '11px', padding: '4px 8px' }}
                             >
                               ➕ Onboard Chauffeur
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => handleDeleteDriverRequest(req.id, req.name)}
+                              style={{ fontSize: '11px', padding: '4px 8px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5' }}
+                            >
+                              🗑️ Delete
                             </Button>
                           </div>
                         </td>
