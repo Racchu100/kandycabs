@@ -1,5 +1,5 @@
 import { sendNotification } from '@/lib/notificationEngine';
-import { deleteAllCustomerAccounts } from '@/lib/customerAccountEngine';
+import { registerCustomerProfile, deleteAllCustomerAccounts } from '@/lib/customerAccountEngine';
 import { clearAllDriverTrips } from '@/lib/driverTripManager';
 import { getDriverByPhoneOrUsername } from '@/lib/driverAccountEngine';
 
@@ -247,6 +247,12 @@ export function createCustomerBooking(
   }
 
   persistAdminBookings(allCurrent);
+
+  if (targetBooking.customerPhone && targetBooking.customerName) {
+    try {
+      registerCustomerProfile(targetBooking.customerPhone, targetBooking.customerName);
+    } catch {}
+  }
 
   // Sync to live Supabase DB API
   try {

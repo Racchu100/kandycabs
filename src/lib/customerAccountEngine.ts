@@ -90,7 +90,35 @@ export function getCustomerByMobile(mobile: string): CustomerAccountRecord | und
       lastLoginAt: new Date().toISOString(),
     };
     customerStore.push(found);
-    savePersistedCustomers(customerStore);
+    savePersistedCustomers(getAllCustomerAccounts());
+  }
+
+  if (!found && typeof window !== 'undefined') {
+    try {
+      const storedBookings = localStorage.getItem('kc_all_admin_bookings');
+      if (storedBookings) {
+        const parsed = JSON.parse(storedBookings);
+        if (Array.isArray(parsed)) {
+          const match = parsed.find(
+            (b: any) => normalizeMobileNumber(b.customerPhone || '') === cleanPhone && b.customerName && b.customerName.trim() !== ''
+          );
+          if (match) {
+            found = {
+              id: `user_${cleanPhone}`,
+              customerId: `cust_${cleanPhone}`,
+              fullName: match.customerName.trim(),
+              phone: cleanPhone,
+              status: 'ACTIVE',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              lastLoginAt: new Date().toISOString(),
+            };
+            customerStore.push(found);
+            savePersistedCustomers(getAllCustomerAccounts());
+          }
+        }
+      }
+    } catch {}
   }
 
   return found;

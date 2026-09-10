@@ -159,15 +159,21 @@ export const CustomerLoginForm: React.FC = () => {
 
       if (isVerified) {
         setVerifiedToken(token);
-        // Check if returning customer with profile
-        if (existingCustomer && existingCustomer.fullName && existingCustomer.fullName.trim() !== '') {
-          // Returning customer -> Login immediately
-          updateCustomerLastLogin(cleanDigits);
+        // Check if returning customer with profile from local storage, API user data, or booking history
+        const activeName = (existingCustomer?.fullName || data?.user?.fullName || '').trim();
+
+        if (activeName && activeName.length >= 2) {
+          // Returning customer -> Login immediately without asking for name again!
+          if (!existingCustomer) {
+            registerCustomerProfile(cleanDigits, activeName);
+          } else {
+            updateCustomerLastLogin(cleanDigits);
+          }
           completeLoginSession(token, {
-            id: existingCustomer.id,
-            customerId: existingCustomer.customerId,
-            phone: existingCustomer.phone,
-            fullName: existingCustomer.fullName,
+            id: existingCustomer?.id || data?.user?.id || `user_${cleanDigits}`,
+            customerId: existingCustomer?.customerId || data?.user?.customerId || `cust_${cleanDigits}`,
+            phone: cleanDigits,
+            fullName: activeName,
             role: 'CUSTOMER',
           });
         } else {
