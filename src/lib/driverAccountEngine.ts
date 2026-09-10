@@ -32,6 +32,7 @@ export interface DriverAccountRecord {
   documents?: DriverDocumentRecord;
   vehiclePhotos?: VehiclePhotoRecord;
   rejectionReason?: string;
+  deactivatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -113,9 +114,17 @@ export function getDeletedDriverIds(): string[] {
 }
 
 /**
- * Get all registered drivers for Admin Console
+ * Permanent Unique Driver ID Generator
  */
-export function getAllDriverAccounts(): DriverAccountRecord[] {
+export function getPermanentDriverId(phone: string): string {
+  const cleanP = phone.replace(/\D/g, '').slice(-10);
+  return cleanP ? `driver_${cleanP}` : `driver_${Date.now()}`;
+}
+
+/**
+ * Get all registered drivers for Admin Console (includes active & deactivated)
+ */
+export function getAllDriverAccounts(includeInactive: boolean = false): DriverAccountRecord[] {
   const deletedIds = getDeletedDriverIds();
 
   if (typeof window !== 'undefined') {
@@ -126,105 +135,63 @@ export function getAllDriverAccounts(): DriverAccountRecord[] {
 
       let modified = false;
 
-      // Filter out explicitly deleted drivers by ID, phone, username, or fullName
-      const initialLen = parsed.length;
-      parsed = parsed.filter((d) => {
-        const cleanP = (d.phone || '').replace(/\D/g, '').slice(-10);
-        const dId = (d.id || '').toLowerCase().trim();
-        const dPhone = (d.phone || '').toLowerCase().trim();
-        const dUser = (d.username || '').toLowerCase().trim();
-        const dName = (d.fullName || '').toLowerCase().trim();
-
-        const isDeleted =
-          (dId && deletedIds.includes(dId)) ||
-          (cleanP && deletedIds.includes(cleanP)) ||
-          (dPhone && deletedIds.includes(dPhone)) ||
-          (dUser && deletedIds.includes(dUser)) ||
-          (dName && deletedIds.includes(dName));
-
-        return !isDeleted;
-      });
-      if (parsed.length !== initialLen) modified = true;
-
-      // Merge seed drivers from driverStore if not present in parsed and not deleted
+      // Merge seed drivers from driverStore if not present in parsed
       driverStore.forEach((seed) => {
         const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
         const seedId = seed.id.toLowerCase().trim();
-        const seedPhone = seed.phone.toLowerCase().trim();
-        const seedUser = seed.username.toLowerCase().trim();
-        const seedName = seed.fullName.toLowerCase().trim();
-
-        const isSeedDeleted =
-          deletedIds.includes(seedId) ||
-          (cleanSeedP && deletedIds.includes(cleanSeedP)) ||
-          deletedIds.includes(seedPhone) ||
-          deletedIds.includes(seedUser) ||
-          deletedIds.includes(seedName);
-
-        if (!isSeedDeleted) {
-          const exists = parsed.some(
-            (p) => p.id === seed.id || (cleanSeedP && p.phone.replace(/\D/g, '').slice(-10) === cleanSeedP)
-          );
-          if (!exists) {
-            parsed.push(seed);
-            modified = true;
-          }
+        const exists = parsed.some(
+          (p) => p.id.toLowerCase() === seedId || (cleanSeedP && p.phone.replace(/\D/g, '').slice(-10) === cleanSeedP)
+        );
+        if (!exists) {
+          parsed.push({
+            ...seed,
+            status: seed.status || 'ACTIVE',
+            verificationStatus: seed.verificationStatus || 'APPROVED',
+          });
+          modified = true;
         }
       });
 
-      // Ensure all drivers default to APPROVED status if missing verificationStatus
+      // Ensure all active drivers default to APPROVED status if missing
       parsed.forEach((d) => {
-        if (!d.verificationStatus || d.verificationStatus === 'PENDING_VERIFICATION') {
+        if (!d.status) {
+          d.status = 'ACTIVE';
+          modified = true;
+        }
+        if (!d.verificationStatus) {
           d.verificationStatus = 'APPROVED';
           modified = true;
         }
       });
 
-      // Fallback: If localStorage was empty, populate with non-deleted seed drivers
-      if (parsed.length === 0) {
-        parsed = driverStore.filter((seed) => {
-          const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
-          return (
-            !deletedIds.includes(seed.id.toLowerCase()) &&
-            (!cleanSeedP || !deletedIds.includes(cleanSeedP))
-          );
-        });
-        modified = true;
-      }
-
       if (modified) {
         localStorage.setItem('kc_driver_accounts', JSON.stringify(parsed));
       }
+
+      if (!includeInactive) {
+        return parsed.filter((d) => d.status !== 'DEACTIVATED' && d.status !== 'INACTIVE');
+      }
+
       return parsed;
     } catch {}
   }
-  return driverStore.filter((seed) => {
-    const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
-    return (
-      !deletedIds.includes(seed.id.toLowerCase()) &&
-      (!cleanSeedP || !deletedIds.includes(cleanSeedP))
-    );
-  });
+
+  if (!includeInactive) {
+    return driverStore.filter((seed) => seed.status !== 'DEACTIVATED' && seed.status !== 'INACTIVE');
+  }
+  return driverStore;
 }
 
 /**
  * Find driver account by phone, username or ID
  */
-export function getDriverByPhoneOrUsername(identifier: string): DriverAccountRecord | undefined {
+export function getDriverByPhoneOrUsername(identifier: string, activeOnly: boolean = false): DriverAccountRecord | undefined {
   if (!identifier) return undefined;
   const rawId = identifier.trim().toLowerCase();
   const cleanId = identifier.trim().replace(/\D/g, '');
-  const deletedIds = getDeletedDriverIds();
 
-  if (
-    deletedIds.includes(rawId) ||
-    (cleanId.length >= 10 && deletedIds.includes(cleanId.slice(-10)))
-  ) {
-    return undefined;
-  }
-
-  const allDrivers = getAllDriverAccounts();
-  return allDrivers.find(
+  const allDrivers = getAllDriverAccounts(true);
+  const matched = allDrivers.find(
     (d) =>
       d.id.toLowerCase() === rawId ||
       d.phone.trim() === identifier.trim() ||
@@ -232,6 +199,16 @@ export function getDriverByPhoneOrUsername(identifier: string): DriverAccountRec
       (d.username && d.username.toLowerCase() === rawId) ||
       (d.fullName && d.fullName.toLowerCase() === rawId)
   );
+
+  if (!matched) return undefined;
+
+  if (activeOnly) {
+    if (matched.status === 'DEACTIVATED' || matched.status === 'INACTIVE' || matched.verificationStatus === 'REJECTED') {
+      return undefined;
+    }
+  }
+
+  return matched;
 }
 
 /**
@@ -371,54 +348,97 @@ export function verifyDriverCredentials(
 }
 
 /**
- * Remove driver identifier from deleted list when re-added by Admin
+ * Helper to remove driver identifier from deleted list when re-added/reactivated by Admin
  */
-export function unrecordDeletedDriverId(id: string, phone?: string) {
+export function unrecordDeletedDriverId(id: string, phone?: string, username?: string, fullName?: string) {
   if (typeof window !== 'undefined') {
     try {
       let current = getDeletedDriverIds();
       const cleanP = phone ? phone.replace(/\D/g, '').slice(-10) : '';
-      current = current.filter((item) => item !== id && (!cleanP || item !== cleanP));
+      const cleanU = username ? username.toLowerCase().trim() : '';
+      const cleanN = fullName ? fullName.toLowerCase().trim() : '';
+      const cleanId = id.toLowerCase().trim();
+
+      current = current.filter((item) => {
+        const cleanItem = String(item).toLowerCase().trim();
+        if (cleanItem === cleanId) return false;
+        if (cleanP && cleanItem === cleanP) return false;
+        if (cleanU && cleanItem === cleanU) return false;
+        if (cleanN && cleanItem === cleanN) return false;
+        return true;
+      });
+
       localStorage.setItem('kc_deleted_driver_ids', JSON.stringify(current));
     } catch {}
   }
 }
 
 /**
- * Add New Driver Account with Vendor Agency
+ * Add / Reactivate Driver Account with Vendor Agency
  */
 export function addDriverAccount(
   account: Omit<DriverAccountRecord, 'id' | 'createdAt' | 'updatedAt'>,
   adminName: string = 'Super Admin'
 ): DriverAccountRecord {
-  const id = `driver_${Date.now()}`;
-  const record: DriverAccountRecord = {
-    ...account,
-    id,
-    vendorAgencyName: account.vendorAgencyName || 'Sri Durga Travels & Cab Service',
-    verificationStatus: account.verificationStatus || 'APPROVED',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  const cleanPhone = account.phone.replace(/\D/g, '').slice(-10);
+  const permId = getPermanentDriverId(account.phone);
+  const cleanName = account.fullName.toLowerCase().trim();
 
-  // Remove phone/id from deleted list so re-added driver shows up in Admin Panel
-  unrecordDeletedDriverId(record.id, record.phone);
+  // Clear deletion record if present
+  unrecordDeletedDriverId(permId, account.phone, account.username, account.fullName);
 
-  const allDrivers = getAllDriverAccounts();
-  allDrivers.push(record);
-  driverStore.push(record);
+  const allDrivers = getAllDriverAccounts(true);
+
+  // Check if driver record already exists (e.g. previously deactivated or registered)
+  const existing = allDrivers.find((d) => {
+    const dCleanP = (d.phone || '').replace(/\D/g, '').slice(-10);
+    const dName = (d.fullName || '').toLowerCase().trim();
+    return (
+      d.id === permId ||
+      (cleanPhone && dCleanP && cleanPhone === dCleanP) ||
+      (cleanName && dName && cleanName === dName)
+    );
+  });
+
+  let record: DriverAccountRecord;
+
+  if (existing) {
+    // REACTIVATE existing driver record & preserve all historical trips/data!
+    existing.status = account.status || 'ACTIVE';
+    existing.verificationStatus = account.verificationStatus || 'APPROVED';
+    delete (existing as any).deactivatedAt;
+    existing.fullName = account.fullName || existing.fullName;
+    existing.phone = account.phone || existing.phone;
+    if (account.username) existing.username = account.username;
+    if (account.vehicleRegistration) existing.vehicleRegistration = account.vehicleRegistration;
+    if (account.vehicleModel) existing.vehicleModel = account.vehicleModel;
+    if (account.licenseNumber) existing.licenseNumber = account.licenseNumber;
+    if (account.vendorAgencyName) existing.vendorAgencyName = account.vendorAgencyName;
+    existing.updatedAt = new Date().toISOString();
+    record = existing;
+  } else {
+    // CREATE new driver record with permanent ID
+    record = {
+      ...account,
+      id: permId,
+      status: account.status || 'ACTIVE',
+      verificationStatus: account.verificationStatus || 'APPROVED',
+      vendorAgencyName: account.vendorAgencyName || 'Sri Durga Travels & Cab Service',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    allDrivers.push(record);
+  }
 
   saveDriverAccounts(allDrivers);
 
-  // Auto-mark any matching applicant request as ONBOARDED
+  // Auto-mark matching applicant request as ONBOARDED
   try {
-    const cleanP = record.phone.replace(/\D/g, '').slice(-10);
-    const cleanN = record.fullName.toLowerCase().trim();
     const reqs = getDriverPartnerRequests();
     const match = reqs.find((r) => {
       const rP = (r.phone || '').replace(/\D/g, '').slice(-10);
       const rN = (r.name || '').toLowerCase().trim();
-      return (cleanP && rP && cleanP === rP) || (cleanN && rN && cleanN === rN);
+      return (cleanPhone && rP && cleanPhone === rP) || (cleanName && rN && cleanName === rN);
     });
     if (match) {
       updateDriverPartnerRequestStatus(match.id, 'ONBOARDED');
@@ -430,39 +450,11 @@ export function addDriverAccount(
     adminName,
     action: 'ADD_DRIVER_ACCOUNT',
     targetType: 'DRIVER',
-    targetId: id,
-    details: `Created new driver profile for ${record.fullName} (${record.phone} - Vendor Agency: ${record.vendorAgencyName})`,
+    targetId: record.id,
+    details: `Registered/reactivated driver profile for ${record.fullName} (${record.phone} - Vendor Agency: ${record.vendorAgencyName})`,
   });
 
   return record;
-}
-
-
-/**
- * Helper to record a deleted driver ID/phone/username/name to prevent re-merging or unauthorized access
- */
-function recordDeletedDriverId(id: string, phone?: string, username?: string, fullName?: string) {
-  if (typeof window !== 'undefined') {
-    try {
-      const current = getDeletedDriverIds();
-      const addIfNew = (val?: string) => {
-        if (!val) return;
-        const clean = val.toLowerCase().trim();
-        if (clean && !current.includes(clean)) current.push(clean);
-      };
-
-      addIfNew(id);
-      addIfNew(phone);
-      if (phone) {
-        const cleanP = phone.replace(/\D/g, '').slice(-10);
-        if (cleanP) addIfNew(cleanP);
-      }
-      addIfNew(username);
-      addIfNew(fullName);
-
-      localStorage.setItem('kc_deleted_driver_ids', JSON.stringify(current));
-    } catch {}
-  }
 }
 
 /**
@@ -473,7 +465,7 @@ export function updateDriverAccount(
   updates: Partial<Omit<DriverAccountRecord, 'id' | 'createdAt'>>,
   adminName: string = 'Super Admin'
 ): { success: boolean; driver?: DriverAccountRecord; error?: string } {
-  const allDrivers = getAllDriverAccounts();
+  const allDrivers = getAllDriverAccounts(true);
   const driver = allDrivers.find((d) => d.id === driverId || d.phone === driverId);
   if (!driver) {
     return { success: false, error: 'Driver account not found.' };
@@ -489,14 +481,9 @@ export function updateDriverAccount(
   if (updates.vendorAgencyName) driver.vendorAgencyName = updates.vendorAgencyName.trim();
   if (updates.vendorId) driver.vendorId = updates.vendorId;
   if (updates.status) driver.status = updates.status;
+  if (updates.verificationStatus) driver.verificationStatus = updates.verificationStatus;
 
   driver.updatedAt = new Date().toISOString();
-
-  // Also update in-memory seed store if present
-  const seedDriver = driverStore.find((d) => d.id === driver.id);
-  if (seedDriver) {
-    Object.assign(seedDriver, driver);
-  }
 
   saveDriverAccounts(allDrivers);
 
@@ -532,17 +519,17 @@ export function updateDriverAccount(
 }
 
 /**
- * Delete Driver Account by Admin
+ * Deactivate / Remove Driver Account by Admin (Preserves historical work)
  */
 export function deleteDriverAccount(
   driverId: string,
   adminName: string = 'Super Admin'
 ): { success: boolean; error?: string } {
-  let allDrivers = getAllDriverAccounts();
+  let allDrivers = getAllDriverAccounts(true);
   const searchId = driverId.trim().toLowerCase();
   const cleanSearchPhone = driverId.replace(/\D/g, '').slice(-10);
 
-  const idx = allDrivers.findIndex(
+  const target = allDrivers.find(
     (d) =>
       d.id.toLowerCase() === searchId ||
       d.phone.trim() === driverId.trim() ||
@@ -551,55 +538,49 @@ export function deleteDriverAccount(
       (d.fullName && d.fullName.toLowerCase() === searchId)
   );
 
-  if (idx === -1) {
+  if (!target) {
     return { success: false, error: 'Driver account not found.' };
   }
 
-  const removed = allDrivers.splice(idx, 1)[0];
-
-  // Remove from in-memory seed store
-  const seedIdx = driverStore.findIndex((d) => d.id === removed.id);
-  if (seedIdx !== -1) {
-    driverStore.splice(seedIdx, 1);
-  }
-
-  // Record deleted driver identifiers to prevent re-merging or unauthorized access
-  recordDeletedDriverId(removed.id, removed.phone, removed.username, removed.fullName);
+  // SOFT DEACTIVATION: Keep historical records intact in storage/DB, only set status = DEACTIVATED
+  target.status = 'DEACTIVATED';
+  target.verificationStatus = 'REJECTED';
+  target.deactivatedAt = new Date().toISOString();
+  target.updatedAt = new Date().toISOString();
 
   saveDriverAccounts(allDrivers);
 
-  // Invalidate and clear active driver session if logged in as this deleted driver
+  // Invalidate and clear active driver session if logged in as this driver
   if (typeof window !== 'undefined') {
     try {
       const currentSession = localStorage.getItem('kc_driver_user');
       if (currentSession) {
         const parsed = JSON.parse(currentSession);
         const pCleanP = (parsed.phone || '').replace(/\D/g, '').slice(-10);
-        const rCleanP = (removed.phone || '').replace(/\D/g, '').slice(-10);
+        const rCleanP = (target.phone || '').replace(/\D/g, '').slice(-10);
 
         if (
-          parsed.id === removed.id ||
-          parsed.phone === removed.phone ||
-          (pCleanP && rCleanP && pCleanP === rCleanP) ||
-          (parsed.username && removed.username && parsed.username.toLowerCase() === removed.username.toLowerCase()) ||
-          (parsed.fullName && removed.fullName && parsed.fullName.toLowerCase() === removed.fullName.toLowerCase())
+          parsed.id === target.id ||
+          parsed.phone === target.phone ||
+          (pCleanP && rCleanP && pCleanP === rCleanP)
         ) {
           localStorage.removeItem('kc_driver_user');
           localStorage.removeItem('kc_driver_token');
         }
       }
       window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new CustomEvent('driver_account_deleted', { detail: { id: removed.id, phone: removed.phone, name: removed.fullName } }));
+      window.dispatchEvent(new CustomEvent('driver_account_deleted', { detail: { id: target.id, phone: target.phone, name: target.fullName } }));
+      window.dispatchEvent(new Event('auth_change'));
     } catch {}
   }
 
   recordAuditLog({
     adminId: 'admin_super',
     adminName,
-    action: 'DELETE_DRIVER_ACCOUNT',
+    action: 'DEACTIVATE_DRIVER_ACCOUNT',
     targetType: 'DRIVER',
-    targetId: driverId,
-    details: `Deleted driver account for ${removed.fullName} (${removed.phone})`,
+    targetId: target.id,
+    details: `Deactivated driver account for ${target.fullName} (${target.phone}) - Work history preserved.`,
   });
 
   return { success: true };

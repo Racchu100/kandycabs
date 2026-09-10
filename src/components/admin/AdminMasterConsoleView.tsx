@@ -68,7 +68,7 @@ export const AdminMasterConsoleView: React.FC = () => {
 
   // Real-time synchronization for bookings, drivers, and vendor partners
   useEffect(() => {
-    setDrivers(getAllDriverAccounts());
+    setDrivers(getAllDriverAccounts(true));
 
     const handleBookingSync = (e?: any) => {
       setBookings(getAdminBookings());
@@ -134,7 +134,7 @@ export const AdminMasterConsoleView: React.FC = () => {
 
     // Polling interval every 2 seconds for instant cross-tab sync of drivers, bookings & driver applications
     const timer = setInterval(() => {
-      setDrivers(getAllDriverAccounts());
+      setDrivers(getAllDriverAccounts(true));
       setKpis(getAdminMasterKpis());
       setAuditLogs(getAuditLogs());
       syncBookingsFromApi();
@@ -248,7 +248,7 @@ export const AdminMasterConsoleView: React.FC = () => {
     const nextStatus = currentStatus === 'OFFLINE' ? 'ACTIVE' : 'OFFLINE';
     const res = setDriverDutyStatus(driverId, nextStatus);
     if (res.success && res.driver) {
-      setDrivers(getAllDriverAccounts());
+      setDrivers(getAllDriverAccounts(true));
       setAuditLogs(getAuditLogs());
       setDriverMsg(
         `✓ Updated duty status for ${res.driver.fullName} to ${nextStatus === 'ACTIVE' ? '🟢 ONLINE' : '🔴 OFFLINE'}`
@@ -264,7 +264,7 @@ export const AdminMasterConsoleView: React.FC = () => {
   const [bookings, setBookings] = useState(getAdminBookings());
   const [vehicles, setVehicles] = useState(getAllVehicles());
   const [locations, setLocations] = useState<MangaluruLocation[]>(getAllLocationsAdmin());
-  const [drivers, setDrivers] = useState<DriverAccountRecord[]>(getAllDriverAccounts());
+  const [drivers, setDrivers] = useState<DriverAccountRecord[]>(getAllDriverAccounts(true));
   const [driverRequests, setDriverRequests] = useState<DriverJoinRequestRecord[]>(getDriverPartnerRequests());
   const [driverRequestFilter, setDriverRequestFilter] = useState<'PENDING' | 'ONBOARDED' | 'ALL'>('PENDING');
   const [vendors, setVendors] = useState<VendorPartnerRecord[]>(getAllVendorPartners());
@@ -836,7 +836,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
       return;
     }
 
-    setDrivers(getAllDriverAccounts());
+    setDrivers(getAllDriverAccounts(true));
     setAuditLogs(getAuditLogs());
     setDriverMsg(`✓ Password updated successfully for ${res.driver?.fullName}!`);
     setSelectedDriverId(null);
@@ -855,9 +855,12 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
         fullName: newDriverName,
         phone: newDriverPhone,
         username: newDriverUsername || newDriverName.toLowerCase().replace(/\s+/g, ''),
+        password: newDriverPasswordForm || undefined,
         vehicleRegistration: newDriverVehicleReg,
         licenseNumber: newDriverLicenseNo || `KA19-${Date.now().toString().slice(-6)}`,
         vendorAgencyName: newDriverVendorAgency || 'Sri Durga Travels & Cab Service',
+        status: 'ACTIVE',
+        verificationStatus: 'APPROVED',
       },
       'Super Admin'
     );
@@ -878,9 +881,9 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
       setDriverRequests(getDriverPartnerRequests());
     } catch {}
 
-    setDrivers(getAllDriverAccounts());
+    setDrivers(getAllDriverAccounts(true));
     setAuditLogs(getAuditLogs());
-    setDriverMsg(`✓ New driver '${newRecord.fullName}' (${newRecord.vendorAgencyName}) registered successfully with password!`);
+    setDriverMsg(`✓ Driver '${newRecord.fullName}' (${newRecord.vendorAgencyName}) registered & activated successfully!`);
     setShowAddDriverModal(false);
     setNewDriverName('');
     setNewDriverPhone('');
@@ -899,21 +902,18 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
   const [editDriverVehicleReg, setEditDriverVehicleReg] = useState('');
   const [editDriverVehicleModel, setEditDriverVehicleModel] = useState('');
   const [editDriverLicenseNo, setEditDriverLicenseNo] = useState('');
-  const [editDriverVendorAgency, setEditDriverVendorAgency] = useState('Sri Durga Travels & Cab Service');
+  const [editDriverVendorAgency, setEditDriverVendorAgency] = useState('');
 
   const handleOpenEditDriver = (driver: DriverAccountRecord) => {
     setEditDriverTarget(driver);
-    setEditDriverName(driver.fullName);
-    setEditDriverPhone(driver.phone);
+    setEditDriverName(driver.fullName || '');
+    setEditDriverPhone(driver.phone || '');
     setEditDriverUsername(driver.username || '');
     setEditDriverPassword(driver.password || '');
     setEditDriverVehicleReg(driver.vehicleRegistration || '');
     setEditDriverVehicleModel(driver.vehicleModel || '');
     setEditDriverLicenseNo(driver.licenseNumber || '');
-    setEditDriverVendorAgency(driver.vendorAgencyName || 'Sri Durga Travels & Cab Service');
-    setSelectedDriverId(null);
-    setShowAddDriverModal(false);
-    setDriverMsg(null);
+    setEditDriverVendorAgency(driver.vendorAgencyName || '');
   };
 
   const handleUpdateDriverDetailsSubmit = (e: React.FormEvent) => {
@@ -939,24 +939,24 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
       return;
     }
 
-    setDrivers(getAllDriverAccounts());
+    setDrivers(getAllDriverAccounts(true));
     setAuditLogs(getAuditLogs());
     setDriverMsg(`✓ Driver details for '${res.driver?.fullName}' updated successfully!`);
     setEditDriverTarget(null);
   };
 
   const handleDeleteDriverSubmit = (driverId: string, driverName: string) => {
-    if (!window.confirm(`Are you sure you want to delete the chauffeur account for '${driverName}'?`)) return;
+    if (!window.confirm(`Are you sure you want to deactivate chauffeur access for '${driverName}'? Work & trip history will be preserved.`)) return;
 
     const res = deleteDriverAccount(driverId, 'Super Admin');
     if (!res.success) {
-      setDriverMsg(`⚠️ ${res.error || 'Failed to delete driver'}`);
+      setDriverMsg(`⚠️ ${res.error || 'Failed to deactivate driver account'}`);
       return;
     }
 
-    setDrivers(getAllDriverAccounts());
+    setDrivers(getAllDriverAccounts(true));
     setAuditLogs(getAuditLogs());
-    setDriverMsg(`✓ Chauffeur account for '${driverName}' deleted successfully.`);
+    setDriverMsg(`✓ Driver account for '${driverName}' deactivated. Work & trip history preserved.`);
     if (editDriverTarget?.id === driverId) {
       setEditDriverTarget(null);
     }
@@ -1600,9 +1600,13 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                           </span>
                         </td>
                         <td style={{ padding: '8px' }}>
-                          {d.verificationStatus === 'APPROVED' ? (
+                          {d.status === 'DEACTIVATED' || d.status === 'INACTIVE' ? (
+                            <span className="pill red" style={{ fontSize: '11px', fontWeight: 800 }}>
+                              ⛔ Inactive (Removed)
+                            </span>
+                          ) : d.verificationStatus === 'APPROVED' ? (
                             <span className="pill green" style={{ fontSize: '11px', fontWeight: 800 }}>
-                              ✅ Approved
+                              ✅ Active & Approved
                             </span>
                           ) : d.verificationStatus === 'REJECTED' ? (
                             <span className="pill red" style={{ fontSize: '11px', fontWeight: 800 }}>
@@ -1616,31 +1620,54 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                         </td>
                         <td style={{ padding: '8px' }}>
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                            <Button
-                              type="button"
-                              onClick={() => {
-                                setSelectedInspectionDriver(d);
-                                setRejectionReasonInput('');
-                              }}
-                              style={{ fontSize: '11px', padding: '4px 8px', background: '#8B5CF6', borderColor: '#8B5CF6', color: '#fff', fontWeight: 700 }}
-                            >
-                              🔍 Inspect Docs & Photos
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={() => handleOpenEditDriver(d)}
-                              variant="ghost"
-                              style={{ fontSize: '11px', padding: '4px 8px', borderColor: '#CBD5E1' }}
-                            >
-                              ✏️ Edit Driver
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={() => handleDeleteDriverSubmit(d.id, d.fullName)}
-                              style={{ fontSize: '11px', padding: '4px 8px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5' }}
-                            >
-                              🗑️ Delete
-                            </Button>
+                            {d.status === 'DEACTIVATED' || d.status === 'INACTIVE' ? (
+                              <Button
+                                type="button"
+                                onClick={() => {
+                                  addDriverAccount({
+                                    fullName: d.fullName,
+                                    phone: d.phone,
+                                    username: d.username,
+                                    vehicleRegistration: d.vehicleRegistration,
+                                    licenseNumber: d.licenseNumber,
+                                    vendorAgencyName: d.vendorAgencyName,
+                                  }, 'Super Admin');
+                                  setDrivers(getAllDriverAccounts(true));
+                                  setDriverMsg(`✓ Driver '${d.fullName}' (${d.phone}) reactivated successfully! Full history restored.`);
+                                }}
+                                style={{ fontSize: '11px', padding: '4px 8px', background: '#DCFCE7', color: '#166534', border: '1px solid #86EFAC', fontWeight: 800 }}
+                              >
+                                🔄 Reactivate Driver Access
+                              </Button>
+                            ) : (
+                              <>
+                                <Button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedInspectionDriver(d);
+                                    setRejectionReasonInput('');
+                                  }}
+                                  style={{ fontSize: '11px', padding: '4px 8px', background: '#8B5CF6', borderColor: '#8B5CF6', color: '#fff', fontWeight: 700 }}
+                                >
+                                  🔍 Inspect Docs & Photos
+                                </Button>
+                                <Button
+                                  type="button"
+                                  onClick={() => handleOpenEditDriver(d)}
+                                  variant="ghost"
+                                  style={{ fontSize: '11px', padding: '4px 8px', borderColor: '#CBD5E1' }}
+                                >
+                                  ✏️ Edit Driver
+                                </Button>
+                                <Button
+                                  type="button"
+                                  onClick={() => handleDeleteDriverSubmit(d.id, d.fullName)}
+                                  style={{ fontSize: '11px', padding: '4px 8px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5' }}
+                                >
+                                  🗑️ Deactivate / Delete
+                                </Button>
+                              </>
+                            )}
                             <Button
                               type="button"
                               onClick={() => {
@@ -1819,7 +1846,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                       onClick={() => {
                         const res = updateDriverVerificationStatus(selectedInspectionDriver.id, 'REJECTED', rejectionReasonInput || 'Documents or vehicle photos require correction.');
                         if (res.success) {
-                          setDrivers(getAllDriverAccounts());
+                          setDrivers(getAllDriverAccounts(true));
                           setDriverMsg(`❌ Driver ${selectedInspectionDriver.fullName} verification rejected with reason: "${rejectionReasonInput || 'Correction required'}"`);
                           setSelectedInspectionDriver(null);
                         }
@@ -1834,7 +1861,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                       onClick={() => {
                         const res = updateDriverVerificationStatus(selectedInspectionDriver.id, 'APPROVED');
                         if (res.success) {
-                          setDrivers(getAllDriverAccounts());
+                          setDrivers(getAllDriverAccounts(true));
                           setDriverMsg(`✅ Driver ${selectedInspectionDriver.fullName} verification APPROVED! Chauffeur can now view & accept trip assignments.`);
                           setSelectedInspectionDriver(null);
                         }
