@@ -1098,8 +1098,11 @@ export const DriverDashboardView: React.FC = () => {
                     ) : null}
                   </div>
 
-                  {/* OTP DISPATCH & TRIP EXECUTION PANEL */}
-                  {b.status !== 'TRIP_STARTED' && b.status !== 'COMPLETED' && b.status !== 'CANCELLED' ? (
+                  {/* OTP DISPATCH & TRIP EXECUTION PANEL — Only visible AFTER driver accepts trip assignment */}
+                  {(b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' || b.status === 'DRIVER_ASSIGNED') &&
+                  b.status !== 'TRIP_STARTED' &&
+                  b.status !== 'COMPLETED' &&
+                  b.status !== 'CANCELLED' ? (
                     <div style={{ background: '#ECFDF5', border: '1px solid var(--green)', padding: '14px', borderRadius: '8px', marginBottom: '14px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                         <h4 className="h4" style={{ color: '#065F46', margin: 0 }}>
