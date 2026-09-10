@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/Card';
+import { calculateHaversineDistanceKm } from '@/lib/gpsTelemetryEngine';
 
 interface Props {
   bookingReference?: string;
@@ -22,6 +23,35 @@ export const DriverGpsTracker: React.FC<Props> = ({
   const [isTransmitting, setIsTransmitting] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const prevCoordsRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null);
+
+  const calculateSpeedKmh = (lat: number, lng: number, rawSpeedMs: number | null | undefined): number => {
+    const now = Date.now();
+    // 1. Native HTML5 Geolocation speed in meters/second -> convert to km/h
+    if (typeof rawSpeedMs === 'number' && rawSpeedMs > 0) {
+      const spd = Math.round(rawSpeedMs * 3.6);
+      prevCoordsRef.current = { lat, lng, timestamp: now };
+      return spd;
+    }
+
+    // 2. Fallback: Distance-over-Time Haversine Delta Velocity (when raw speed is 0/null on desktop/low-acc GPS)
+    if (prevCoordsRef.current) {
+      const dtSeconds = (now - prevCoordsRef.current.timestamp) / 1000;
+      if (dtSeconds >= 1) {
+        const distKm = calculateHaversineDistanceKm(prevCoordsRef.current.lat, prevCoordsRef.current.lng, lat, lng);
+        prevCoordsRef.current = { lat, lng, timestamp: now };
+        if (distKm >= 0.002) { // Moved >= 2 meters
+          const speedFromDelta = Math.round(distKm / (dtSeconds / 3600));
+          return Math.min(180, Math.max(0, speedFromDelta));
+        }
+      }
+    } else {
+      prevCoordsRef.current = { lat, lng, timestamp: now };
+    }
+
+    return 0;
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
       setPermissionStatus('GRANTED');
@@ -29,13 +59,14 @@ export const DriverGpsTracker: React.FC<Props> = ({
       const watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude, longitude, accuracy, speed } = pos.coords;
+          const computedSpeed = calculateSpeedKmh(latitude, longitude, speed);
           setCurrentCoords({
             lat: latitude,
             lng: longitude,
             accuracy: accuracy || 5,
-            speed: speed ? Math.round(speed * 3.6) : 0, // m/s to km/h
+            speed: computedSpeed,
           });
-          sendTelemetryToServer(latitude, longitude, accuracy || 5, speed ? Math.round(speed * 3.6) : 0);
+          sendTelemetryToServer(latitude, longitude, accuracy || 5, computedSpeed);
         },
         (err) => {
           if (err.code === err.PERMISSION_DENIED) {
