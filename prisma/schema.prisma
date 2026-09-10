@@ -522,3 +522,44 @@ model DriverApplication {
   @@index([phone])
   @@map("driver_applications")
 }
+
+model AdminBooking {
+  id                   String   @id @default(uuid())
+  bookingReference     String   @unique
+  customerName         String
+  customerPhone        String
+  pickupAddress        String
+  dropAddress          String
+  pickupTime           String
+  tripMode             String
+  tripDays             Int      @default(1)
+  status               String   @default("WAITING_FOR_ADMIN_DISPATCH")
+  vendorId             String?
+  vendorAgencyName     String?
+  assignedDriverId     String?
+  assignedDriverName   String?
+  driverPhone          String?
+  vehicleModel         String?
+  assignedVehicleReg   String?
+  driverApprovalStatus String?  @default("PENDING")
+  driverApprovedAt     String?
+  estimatedFare        Float    @default(0)
+  advancePaid          Float    @default(0)
+  remainingFare        Float    @default(0)
+  startOtp             String?
+  initialMeterKm       Float?
+  finalMeterKm         Float?
+  initialMeterImage    String?
+  finalMeterImage      String?
+  startMeterReading    Float?
+  tollCharges          Float?
+  tollReceiptImage     String?
+  tripStartedAt        String?
+  tripCompletedAt      String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([status])
+  @@index([bookingReference])
+  @@map("admin_bookings")
+}

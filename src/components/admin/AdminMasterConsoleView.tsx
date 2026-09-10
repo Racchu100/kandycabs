@@ -86,6 +86,22 @@ export const AdminMasterConsoleView: React.FC = () => {
       window.addEventListener('storage', handleStorageChange);
     }
 
+    const syncBookingsFromApi = () => {
+      fetch('/api/admin/bookings', { cache: 'no-store' })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            setBookings(data.data);
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem('kc_all_admin_bookings', JSON.stringify(data.data));
+              } catch {}
+            }
+          }
+        })
+        .catch(() => {});
+    };
+
     const syncDriverApplicationsFromApi = () => {
       fetch('/api/driver-applications', { cache: 'no-store' })
         .then((res) => res.json())
@@ -102,14 +118,15 @@ export const AdminMasterConsoleView: React.FC = () => {
         .catch(() => {});
     };
 
+    syncBookingsFromApi();
     syncDriverApplicationsFromApi();
 
     // Polling interval every 2 seconds for instant cross-tab sync of drivers, bookings & driver applications
     const timer = setInterval(() => {
       setDrivers(getAllDriverAccounts());
-      setBookings(getAdminBookings());
       setKpis(getAdminMasterKpis());
       setAuditLogs(getAuditLogs());
+      syncBookingsFromApi();
       syncDriverApplicationsFromApi();
     }, 2000);
 

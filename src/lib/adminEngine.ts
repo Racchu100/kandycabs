@@ -129,6 +129,10 @@ export function deleteAllCustomerData(): { success: boolean; message: string } {
     clearAllDriverTrips();
   } catch {}
 
+  try {
+    fetch('/api/admin/bookings?all=true', { method: 'DELETE' }).catch(() => {});
+  } catch {}
+
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem('kc_all_admin_bookings', JSON.stringify([]));
@@ -201,6 +205,19 @@ function persistAdminBookings(list: AdminBookingOverview[]) {
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem('kc_all_admin_bookings', JSON.stringify(list));
+      window.dispatchEvent(new Event('new_booking_created'));
+      window.dispatchEvent(new Event('storage'));
+    } catch {}
+  }
+
+  // Also sync all bookings to live Supabase DB API
+  for (const b of list) {
+    try {
+      fetch('/api/admin/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(b),
+      }).catch(() => {});
     } catch {}
   }
 }
@@ -239,6 +256,15 @@ export function createCustomerBooking(
   }
 
   persistAdminBookings(allCurrent);
+
+  // Sync to live Supabase DB API
+  try {
+    fetch('/api/admin/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(targetBooking),
+    }).catch(() => {});
+  } catch {}
 
   recordAuditLog({
     adminId: 'system',
