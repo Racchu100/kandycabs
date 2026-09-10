@@ -158,13 +158,25 @@ function saveDriverAccounts(list: DriverAccountRecord[]) {
  * Get all registered drivers for Admin Console
  */
 export function getAllDriverAccounts(): DriverAccountRecord[] {
+  const deletedIds = getDeletedDriverIds();
+  const isDeleted = (d: DriverAccountRecord) => {
+    const cleanP = (d.phone || '').replace(/\D/g, '').slice(-10);
+    return deletedIds.includes(d.id) || (cleanP && deletedIds.includes(cleanP));
+  };
+
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('kc_driver_accounts');
       if (stored) {
-        const parsed: DriverAccountRecord[] = JSON.parse(stored);
+        let parsed: DriverAccountRecord[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           let modified = false;
+
+          // Remove any entries that were marked as deleted
+          const initialLen = parsed.length;
+          parsed = parsed.filter((d) => !isDeleted(d));
+          if (parsed.length !== initialLen) modified = true;
+
           // Ensure all registered drivers default to APPROVED verification status
           parsed.forEach((d) => {
             if (!d.verificationStatus || d.verificationStatus === 'PENDING_VERIFICATION') {
@@ -173,15 +185,17 @@ export function getAllDriverAccounts(): DriverAccountRecord[] {
             }
           });
 
-          // Merge seed drivers if missing from local storage
+          // Merge seed drivers if missing from local storage AND not deleted
           driverStore.forEach((seed) => {
-            const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
-            const exists = parsed.some(
-              (p) => p.id === seed.id || (cleanSeedP && p.phone.replace(/\D/g, '').slice(-10) === cleanSeedP)
-            );
-            if (!exists) {
-              parsed.push(seed);
-              modified = true;
+            if (!isDeleted(seed)) {
+              const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
+              const exists = parsed.some(
+                (p) => p.id === seed.id || (cleanSeedP && p.phone.replace(/\D/g, '').slice(-10) === cleanSeedP)
+              );
+              if (!exists) {
+                parsed.push(seed);
+                modified = true;
+              }
             }
           });
           if (modified) {
@@ -190,10 +204,12 @@ export function getAllDriverAccounts(): DriverAccountRecord[] {
           return parsed;
         }
       }
-      localStorage.setItem('kc_driver_accounts', JSON.stringify(driverStore));
+      const initialSeedFiltered = driverStore.filter((d) => !isDeleted(d));
+      localStorage.setItem('kc_driver_accounts', JSON.stringify(initialSeedFiltered));
+      return initialSeedFiltered;
     } catch {}
   }
-  return [...driverStore];
+  return driverStore.filter((d) => !isDeleted(d));
 }
 
 /**
@@ -331,6 +347,36 @@ export function addDriverAccount(
 }
 
 /**
+ * Helper to get list of deleted driver identifiers from localStorage
+ */
+export function getDeletedDriverIds(): string[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('kc_deleted_driver_ids');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+  }
+  return [];
+}
+
+/**
+ * Helper to record a deleted driver ID/phone to prevent re-merging or unauthorized access
+ */
+function recordDeletedDriverId(id: string, phone?: string) {
+  if (typeof window !== 'undefined') {
+    try {
+      const current = getDeletedDriverIds();
+      if (id && !current.includes(id)) current.push(id);
+      if (phone) {
+        const cleanP = phone.replace(/\D/g, '').slice(-10);
+        if (cleanP && !current.includes(cleanP)) current.push(cleanP);
+      }
+      localStorage.setItem('kc_deleted_driver_ids', JSON.stringify(current));
+    } catch {}
+  }
+}
+
+/**
  * Update Full Driver Account Details by Admin
  */
 export function updateDriverAccount(
@@ -357,7 +403,32 @@ export function updateDriverAccount(
 
   driver.updatedAt = new Date().toISOString();
 
+  // Also update in-memory seed store if present
+  const seedDriver = driverStore.find((d) => d.id === driver.id);
+  if (seedDriver) {
+    Object.assign(seedDriver, driver);
+  }
+
   saveDriverAccounts(allDrivers);
+
+  // Sync active driver session if logged in as this driver
+  if (typeof window !== 'undefined') {
+    try {
+      const currentSession = localStorage.getItem('kc_driver_user');
+      if (currentSession) {
+        const parsed = JSON.parse(currentSession);
+        if (
+          parsed.id === driver.id ||
+          parsed.phone === driver.phone ||
+          (parsed.username && parsed.username.toLowerCase() === driver.username.toLowerCase())
+        ) {
+          localStorage.setItem('kc_driver_user', JSON.stringify(driver));
+        }
+      }
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('driver_account_updated', { detail: driver }));
+    } catch {}
+  }
 
   recordAuditLog({
     adminId: 'admin_super',
@@ -385,7 +456,36 @@ export function deleteDriverAccount(
   }
 
   const removed = allDrivers.splice(idx, 1)[0];
+
+  // Remove from in-memory seed store
+  const seedIdx = driverStore.findIndex((d) => d.id === removed.id);
+  if (seedIdx !== -1) {
+    driverStore.splice(seedIdx, 1);
+  }
+
+  // Record deleted driver identifier to prevent re-merging or access
+  recordDeletedDriverId(removed.id, removed.phone);
+
   saveDriverAccounts(allDrivers);
+
+  // Invalidate and clear active driver session if logged in as this deleted driver
+  if (typeof window !== 'undefined') {
+    try {
+      const currentSession = localStorage.getItem('kc_driver_user');
+      if (currentSession) {
+        const parsed = JSON.parse(currentSession);
+        if (
+          parsed.id === removed.id ||
+          parsed.phone === removed.phone ||
+          (parsed.username && parsed.username.toLowerCase() === removed.username.toLowerCase())
+        ) {
+          localStorage.removeItem('kc_driver_user');
+        }
+      }
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('driver_account_deleted', { detail: { id: removed.id, phone: removed.phone } }));
+    } catch {}
+  }
 
   recordAuditLog({
     adminId: 'admin_super',

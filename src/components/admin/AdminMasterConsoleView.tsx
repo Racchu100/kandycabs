@@ -1511,7 +1511,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                       onChange={(e) => setEditDriverVehicleModel(e.target.value)}
                     />
                   </div>
-                  <div className="fld" style={{ gridColumn: 'span 2' }}>
+                  <div className="fld">
                     <label style={{ color: '#15803D', fontSize: '12px' }}>Commercial License Number</label>
                     <input
                       type="text"
@@ -1519,6 +1519,20 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                       value={editDriverLicenseNo}
                       onChange={(e) => setEditDriverLicenseNo(e.target.value)}
                     />
+                  </div>
+                  <div className="fld">
+                    <label style={{ color: '#15803D', fontSize: '12px' }}>Vendor Agency</label>
+                    <select
+                      value={editDriverVendorAgency}
+                      onChange={(e) => setEditDriverVendorAgency(e.target.value)}
+                      style={{ padding: '8px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '13px', width: '100%', background: '#fff' }}
+                    >
+                      {vendors.map((v) => (
+                        <option key={v.id} value={v.agencyName}>
+                          {v.agencyName} ({v.city})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div style={{ gridColumn: 'span 2', display: 'flex', gap: '10px', marginTop: '6px' }}>
                     <Button type="submit" variant="accent">

@@ -182,6 +182,7 @@ export const DriverDashboardView: React.FC = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'ASSIGNED' | 'AVAILABLE' | 'COMPLETED' | 'PROFILE'>('ASSIGNED');
   const [driverUser, setDriverUser] = useState<any | null>(null);
+  const [isAccountDeleted, setIsAccountDeleted] = useState(false);
   const [allDrivers] = useState(getAllDriverAccounts());
   const [assignedBookings, setAssignedBookings] = useState<AdminBookingOverview[]>([]);
   const [invoiceBooking, setInvoiceBooking] = useState<any | null>(null);
@@ -267,61 +268,58 @@ export const DriverDashboardView: React.FC = () => {
 
   // Sync assigned customer bookings from Persistent Storage & Supabase DB
   const loadDriverTrips = async () => {
-    let currentDriver: any = null;
+    let identifierToVerify: string | null = null;
 
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const urlDriverParam = params.get('driverId') || params.get('phone');
       if (urlDriverParam) {
-        const found = getDriverByPhoneOrUsername(urlDriverParam);
-        if (found) {
-          currentDriver = found;
-          setDriverUser(found);
-        }
+        identifierToVerify = urlDriverParam;
       }
     }
 
-    if (!currentDriver) {
+    if (!identifierToVerify && typeof window !== 'undefined') {
       try {
         const storedDriver = localStorage.getItem('kc_driver_user');
         const storedUser = localStorage.getItem('kc_user');
         if (storedDriver) {
-          currentDriver = JSON.parse(storedDriver);
+          const parsed = JSON.parse(storedDriver);
+          identifierToVerify = parsed.id || parsed.phone || parsed.username || parsed.fullName;
         } else if (storedUser) {
           const parsed = JSON.parse(storedUser);
-          const found = getDriverByPhoneOrUsername(parsed.phone || parsed.username || parsed.id || parsed.fullName);
-          currentDriver = found || parsed;
+          identifierToVerify = parsed.phone || parsed.username || parsed.id || parsed.fullName;
         }
-        if (currentDriver) setDriverUser(currentDriver);
       } catch {}
     }
 
-    if (!currentDriver) {
-      currentDriver = {
-        id: 'driver_suresh',
-        fullName: 'Suresh Gowda',
-        phone: '9900887777',
-        username: 'suresh',
-        vehicleRegistration: 'KA 19 C 4829',
-      };
-      setDriverUser(currentDriver);
+    if (!identifierToVerify) {
+      identifierToVerify = 'driver_suresh';
     }
 
-    const liveDriver = getDriverByPhoneOrUsername(
-      currentDriver?.id || currentDriver?.phone || currentDriver?.username || currentDriver?.fullName
-    );
-    if (liveDriver) {
-      currentDriver = { ...liveDriver };
-      setDriverUser(liveDriver);
-      setIsOnline(liveDriver.status === 'ACTIVE' || liveDriver.status === 'ON_DUTY');
-      try {
-        localStorage.setItem('kc_driver_user', JSON.stringify(liveDriver));
-      } catch {}
+    const liveDriver = getDriverByPhoneOrUsername(identifierToVerify);
+    if (!liveDriver) {
+      // Driver account was deleted or unavailable
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('kc_driver_user');
+        } catch {}
+      }
+      setDriverUser(null);
+      setIsAccountDeleted(true);
+      return;
     }
 
-    const targetDriverName = (currentDriver?.fullName || 'Suresh Gowda').toLowerCase().trim();
-    const targetDriverPhoneDigits = (currentDriver?.phone || '9900887777').replace(/\D/g, '').slice(-10);
-    const targetDriverId = currentDriver?.id || '';
+    setIsAccountDeleted(false);
+    let currentDriver = { ...liveDriver };
+    setDriverUser(liveDriver);
+    setIsOnline(liveDriver.status === 'ACTIVE' || liveDriver.status === 'ON_DUTY');
+    try {
+      localStorage.setItem('kc_driver_user', JSON.stringify(liveDriver));
+    } catch {}
+
+    const targetDriverName = (currentDriver.fullName || '').toLowerCase().trim();
+    const targetDriverPhoneDigits = (currentDriver.phone || '').replace(/\D/g, '').slice(-10);
+    const targetDriverId = currentDriver.id || '';
 
     // 1. Load from local cache first for fast initial display
     let adminBookings = getAdminBookings();
@@ -528,6 +526,8 @@ export const DriverDashboardView: React.FC = () => {
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', handleSync);
       window.addEventListener('new_booking_created', handleSync);
+      window.addEventListener('driver_account_updated', handleSync);
+      window.addEventListener('driver_account_deleted', handleSync);
     }
 
     const intervalId = setInterval(() => {
@@ -539,6 +539,8 @@ export const DriverDashboardView: React.FC = () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', handleSync);
         window.removeEventListener('new_booking_created', handleSync);
+        window.removeEventListener('driver_account_updated', handleSync);
+        window.removeEventListener('driver_account_deleted', handleSync);
       }
     };
   }, [driverUser?.id]);
@@ -808,6 +810,58 @@ export const DriverDashboardView: React.FC = () => {
     setActiveTrip(null);
     setActiveTab('COMPLETED');
   };
+
+  if (isAccountDeleted) {
+    return (
+      <Container style={{ paddingTop: '40px', paddingBottom: '60px' }}>
+        <Card
+          padded
+          style={{
+            textAlign: 'center',
+            background: '#FEF2F2',
+            border: '2px solid #FCA5A5',
+            padding: '40px 24px',
+            margin: '30px auto',
+            maxWidth: '560px',
+            borderRadius: '16px',
+            boxShadow: '0 10px 25px rgba(239, 68, 68, 0.12)',
+          }}
+        >
+          <div style={{ fontSize: '56px', marginBottom: '12px' }}>🚫</div>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#991B1B', margin: '0 0 12px' }}>
+            Driver Account Deleted or Access Revoked
+          </h2>
+          <p style={{ fontSize: '14px', color: '#7F1D1D', lineHeight: 1.65, marginBottom: '24px' }}>
+            This driver account has been removed by the Fleet Admin. Access to the driver dashboard, assigned trip details, vehicle verification, and profile details has been completely disabled.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <Button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem('kc_driver_user');
+                  window.location.href = '/driver/login';
+                }
+              }}
+              variant="primary"
+              style={{ background: '#DC2626', borderColor: '#DC2626', fontWeight: 700 }}
+            >
+              🔑 Back to Driver Login
+            </Button>
+            <Button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/';
+                }
+              }}
+              variant="ghost"
+            >
+              🏠 Home Page
+            </Button>
+          </div>
+        </Card>
+      </Container>
+    );
+  }
 
   return (
     <section className="sec" style={{ padding: '16px 0 60px' }}>
