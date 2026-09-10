@@ -48,23 +48,6 @@ export const DriverJoinRequestForm: React.FC = () => {
       return;
     }
 
-    // Check if an application was already submitted
-    const existingRequests = getDriverPartnerRequests();
-    const existingReq = existingRequests.find((r) => {
-      const rPhone = (r.phone || '').replace(/\D/g, '').slice(-10);
-      return cleanPhone.length >= 10 && rPhone.length >= 10 && cleanPhone.slice(-10) === rPhone;
-    });
-
-    if (existingReq) {
-      if (existingReq.status === 'ONBOARDED') {
-        setErrorMsg(`You are already an onboarded Driver Partner with Kandy Cabs! Please login to your chauffeur account.`);
-        return;
-      } else {
-        setErrorMsg(`You have already submitted a driver partner application! Our team is reviewing it and will contact you at 📱 ${cleanPhone}.`);
-        return;
-      }
-    }
-
     setIsLoading(true);
 
     try {
