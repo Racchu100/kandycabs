@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "test": "npx tsx tests/bookingStateMachine.test.ts"
   },
   "dependencies": {
