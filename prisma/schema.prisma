@@ -507,3 +507,18 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+model DriverApplication {
+  id             String   @id @default(uuid())
+  name           String
+  phone          String
+  city           String   @default("Mangaluru")
+  vehicleDetails String?
+  status         String   @default("PENDING_CONTACT")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+  @@index([phone])
+  @@map("driver_applications")
+}

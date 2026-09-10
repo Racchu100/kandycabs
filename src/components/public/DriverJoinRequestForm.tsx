@@ -16,7 +16,7 @@ export const DriverJoinRequestForm: React.FC = () => {
   const [submittedData, setSubmittedData] = useState<{ name: string; phone: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -84,6 +84,22 @@ export const DriverJoinRequestForm: React.FC = () => {
         list.unshift(newRequest);
         localStorage.setItem('kc_driver_join_requests', JSON.stringify(list));
         window.dispatchEvent(new Event('storage'));
+      }
+
+      // Sync to live Supabase Database API
+      try {
+        await fetch('/api/driver-applications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: cleanName,
+            phone: cleanPhone,
+            city: city.trim() || 'Mangaluru',
+            vehicleDetails: vehicleDetails.trim() || 'AC Sedan / SUV',
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to sync driver application to DB:', err);
       }
 
       // Record Audit Log in Admin Engine

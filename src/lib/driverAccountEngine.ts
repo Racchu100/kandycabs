@@ -403,6 +403,14 @@ export function updateDriverPartnerRequestStatus(
         window.dispatchEvent(new Event('storage'));
       } catch {}
     }
+
+    try {
+      fetch('/api/driver-applications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: target.id, phone: target.phone, status: newStatus }),
+      }).catch(() => {});
+    } catch {}
   }
   return current;
 }

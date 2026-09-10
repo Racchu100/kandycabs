@@ -86,12 +86,31 @@ export const AdminMasterConsoleView: React.FC = () => {
       window.addEventListener('storage', handleStorageChange);
     }
 
-    // Polling interval every 2 seconds for instant cross-tab sync of drivers & bookings
+    const syncDriverApplicationsFromApi = () => {
+      fetch('/api/driver-applications')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.data)) {
+            setDriverRequests(data.data);
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem('kc_driver_join_requests', JSON.stringify(data.data));
+              } catch {}
+            }
+          }
+        })
+        .catch(() => {});
+    };
+
+    syncDriverApplicationsFromApi();
+
+    // Polling interval every 2 seconds for instant cross-tab sync of drivers, bookings & driver applications
     const timer = setInterval(() => {
       setDrivers(getAllDriverAccounts());
       setBookings(getAdminBookings());
       setKpis(getAdminMasterKpis());
       setAuditLogs(getAuditLogs());
+      syncDriverApplicationsFromApi();
     }, 2000);
 
     return () => {
