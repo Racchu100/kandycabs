@@ -125,6 +125,21 @@ const driverStore: DriverAccountRecord[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: 'driver_sathish_poojary',
+    fullName: 'Sathish Poojary',
+    phone: '9900334455',
+    username: 'sathishpoojary',
+    password: 'driver123',
+    vehicleRegistration: 'KA 19 C 4898',
+    vehicleModel: 'Toyota Etios (AC Sedan)',
+    licenseNumber: 'KA19-2021-00828',
+    vendorAgencyName: 'Coastal Mookambika Cabs',
+    vendorId: 'vnd_mookambika',
+    verificationStatus: 'APPROVED',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 /**
@@ -149,8 +164,16 @@ export function getAllDriverAccounts(): DriverAccountRecord[] {
       if (stored) {
         const parsed: DriverAccountRecord[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Merge seed drivers if missing from local storage
           let modified = false;
+          // Ensure all registered drivers default to APPROVED verification status
+          parsed.forEach((d) => {
+            if (!d.verificationStatus || d.verificationStatus === 'PENDING_VERIFICATION') {
+              d.verificationStatus = 'APPROVED';
+              modified = true;
+            }
+          });
+
+          // Merge seed drivers if missing from local storage
           driverStore.forEach((seed) => {
             const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
             const exists = parsed.some(
