@@ -12,6 +12,7 @@ import {
   updateCustomerLastLogin,
   normalizeMobileNumber,
 } from '@/lib/customerAccountEngine';
+import { getDriverByPhoneOrUsername, addDriverAccount } from '@/lib/driverAccountEngine';
 
 export const CustomerLoginForm: React.FC = () => {
   const router = useRouter();
@@ -159,8 +160,44 @@ export const CustomerLoginForm: React.FC = () => {
 
       if (isVerified) {
         setVerifiedToken(token);
+        
+        // Detect if this phone number belongs to a registered Driver
+        let isDriverUser = Boolean(data?.isDriver || data?.user?.isDriver);
+        let matchedDriver = data?.driver || data?.user?.driver || getDriverByPhoneOrUsername(cleanDigits);
+
+        if (!matchedDriver) {
+          try {
+            const driverRes = await fetch(`/api/admin/drivers?phone=${cleanDigits}`);
+            if (driverRes.ok) {
+              const driverData = await driverRes.json();
+              if (driverData.success && driverData.driver) {
+                matchedDriver = driverData.driver;
+                isDriverUser = true;
+              }
+            }
+          } catch {}
+        }
+
+        if (matchedDriver) {
+          isDriverUser = true;
+          try {
+            addDriverAccount({
+              fullName: matchedDriver.fullName || matchedDriver.name || 'Driver',
+              phone: cleanDigits,
+              username: matchedDriver.username || (matchedDriver.fullName ? matchedDriver.fullName.toLowerCase().replace(/\s+/g, '') : `driver_${cleanDigits}`),
+              vehicleRegistration: matchedDriver.vehicleRegistration || 'KA 19 C 4829',
+              licenseNumber: matchedDriver.licenseNumber || `KA19-LIC-${cleanDigits}`,
+              vendorAgencyName: matchedDriver.vendorAgencyName || 'Sri Durga Travels & Cab Service',
+              status: 'ACTIVE',
+              verificationStatus: 'APPROVED',
+            });
+            localStorage.setItem('kc_driver_token', token);
+            localStorage.setItem('kc_driver_user', JSON.stringify(matchedDriver));
+          } catch {}
+        }
+
         // Check if returning customer with profile from local storage, API user data, or booking history
-        let activeName = (existingCustomer?.fullName || data?.user?.fullName || '').trim();
+        let activeName = (matchedDriver?.fullName || existingCustomer?.fullName || data?.user?.fullName || '').trim();
 
         if (!activeName) {
           try {
@@ -175,7 +212,7 @@ export const CustomerLoginForm: React.FC = () => {
         }
 
         if (activeName && activeName.length >= 2) {
-          // Returning customer -> Login immediately without asking for name again!
+          // Returning user -> Login immediately without asking for name again!
           if (!existingCustomer) {
             registerCustomerProfile(cleanDigits, activeName);
           } else {
@@ -186,7 +223,9 @@ export const CustomerLoginForm: React.FC = () => {
             customerId: existingCustomer?.customerId || data?.user?.customerId || `cust_${cleanDigits}`,
             phone: cleanDigits,
             fullName: activeName,
-            role: 'CUSTOMER',
+            role: isDriverUser ? 'DRIVER' : 'CUSTOMER',
+            isDriver: isDriverUser,
+            driver: matchedDriver,
           });
         } else {
           // New customer -> Show "Complete Your Profile"
@@ -228,12 +267,15 @@ export const CustomerLoginForm: React.FC = () => {
     } catch {}
 
     const token = verifiedToken || `token_${Date.now()}`;
+    const matchedDriver = getDriverByPhoneOrUsername(cleanDigits);
     completeLoginSession(token, {
       id: regRes.customer.id || `user_${cleanDigits}`,
       customerId: regRes.customer.customerId || `cust_${cleanDigits}`,
       phone: cleanDigits,
       fullName: cleanName,
-      role: 'CUSTOMER',
+      role: matchedDriver ? 'DRIVER' : 'CUSTOMER',
+      isDriver: Boolean(matchedDriver),
+      driver: matchedDriver,
     });
     setIsLoading(false);
   };
@@ -242,6 +284,13 @@ export const CustomerLoginForm: React.FC = () => {
   const completeLoginSession = (token: string, userData: any) => {
     localStorage.setItem('kc_token', token);
     localStorage.setItem('kc_user', JSON.stringify(userData));
+
+    let matchedDriver = userData?.driver || (userData?.phone ? getDriverByPhoneOrUsername(userData.phone) : null);
+    if (matchedDriver) {
+      localStorage.setItem('kc_driver_token', token);
+      localStorage.setItem('kc_driver_user', JSON.stringify(matchedDriver));
+    }
+
     if (userData?.role === 'ADMIN' || userData?.phone === '9481086058') {
       localStorage.setItem('kc_admin_token', token);
       localStorage.setItem('kc_admin_user', JSON.stringify({
@@ -254,7 +303,13 @@ export const CustomerLoginForm: React.FC = () => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('auth_change'));
     }
-    const targetPath = getPostLoginRedirectPath(userData?.role || (userData?.phone === '9481086058' ? 'ADMIN' : 'CUSTOMER'));
+    const effectiveRole = (userData?.role === 'ADMIN' || userData?.phone === '9481086058')
+      ? 'ADMIN'
+      : (matchedDriver || userData?.isDriver || userData?.role === 'DRIVER')
+      ? 'DRIVER'
+      : 'CUSTOMER';
+
+    const targetPath = getPostLoginRedirectPath(effectiveRole);
     router.push(targetPath);
   };
 

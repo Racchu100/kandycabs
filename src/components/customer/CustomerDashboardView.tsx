@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { CustomerInvoiceModal } from '@/components/invoice/CustomerInvoiceModal';
 import { getAdminBookings, AdminBookingOverview } from '@/lib/adminEngine';
+import { getDriverByPhoneOrUsername } from '@/lib/driverAccountEngine';
 
 export const CustomerDashboardView: React.FC = () => {
   const router = useRouter();
@@ -205,6 +206,57 @@ export const CustomerDashboardView: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {/* Registered Driver Banner */}
+        {(() => {
+          const registeredDriver = user?.phone ? getDriverByPhoneOrUsername(user.phone) : null;
+          if (!registeredDriver) return null;
+          return (
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)',
+                color: '#FFFFFF',
+                padding: '16px 20px',
+                borderRadius: '12px',
+                marginBottom: '24px',
+                boxShadow: '0 4px 16px rgba(49, 46, 129, 0.3)',
+                border: '1.5px solid #4338CA',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '32px' }}>👨‍✈️</span>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '15px', color: '#FDE047' }}>
+                    Registered Driver Account — {registeredDriver.fullName} ({registeredDriver.vehicleRegistration || 'Active Driver'})
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#E0E7FF', marginTop: '2px' }}>
+                    Mobile <b>+91 {registeredDriver.phone}</b> is registered as an active driver. Tap below to view your driver dashboard and start assigned tasks.
+                  </div>
+                </div>
+              </div>
+              <Button
+                onClick={() => router.push('/driver/dashboard')}
+                style={{
+                  background: '#F59E0B',
+                  color: '#000000',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                🚕 Open Driver Dashboard & Start Tasks
+              </Button>
+            </div>
+          );
+        })()}
 
         {/* Dashboard Statistics KPIs */}
         <div className="grid4" style={{ marginBottom: '24px' }}>

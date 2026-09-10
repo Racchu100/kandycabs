@@ -27,7 +27,7 @@ import {
   recordDriverDecline,
   AdminBookingOverview,
 } from '@/lib/adminEngine';
-import { setDriverDutyStatus, getDriverByPhoneOrUsername, getAllDriverAccounts } from '@/lib/driverAccountEngine';
+import { setDriverDutyStatus, getDriverByPhoneOrUsername, getAllDriverAccounts, addDriverAccount } from '@/lib/driverAccountEngine';
 
 interface DriverSwipeCardProps {
   booking: AdminBookingOverview;
@@ -307,7 +307,34 @@ export const DriverDashboardView: React.FC = () => {
       return;
     }
 
-    const liveDriver = getDriverByPhoneOrUsername(identifierToVerify);
+    let liveDriver = getDriverByPhoneOrUsername(identifierToVerify);
+
+    if (!liveDriver && identifierToVerify) {
+      const cleanDigits = identifierToVerify.replace(/\D/g, '').slice(-10);
+      if (cleanDigits) {
+        try {
+          const driverRes = await fetch(`/api/admin/drivers?phone=${cleanDigits}`);
+          if (driverRes.ok) {
+            const driverData = await driverRes.json();
+            if (driverData.success && driverData.driver) {
+              const apiDriver = driverData.driver;
+              addDriverAccount({
+                fullName: apiDriver.fullName || 'Driver',
+                phone: cleanDigits,
+                username: apiDriver.username || (apiDriver.fullName ? apiDriver.fullName.toLowerCase().replace(/\s+/g, '') : `driver_${cleanDigits}`),
+                vehicleRegistration: apiDriver.vehicleRegistration || 'KA 19 C 4829',
+                licenseNumber: apiDriver.licenseNumber || `KA19-LIC-${cleanDigits}`,
+                vendorAgencyName: apiDriver.vendorAgencyName || 'Sri Durga Travels & Cab Service',
+                status: 'ACTIVE',
+                verificationStatus: 'APPROVED',
+              });
+              liveDriver = getDriverByPhoneOrUsername(cleanDigits) || apiDriver;
+            }
+          }
+        } catch {}
+      }
+    }
+
     if (!liveDriver) {
       // Driver account was deleted or unavailable
       if (typeof window !== 'undefined') {
