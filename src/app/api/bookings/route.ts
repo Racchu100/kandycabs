@@ -4,7 +4,7 @@ import { calculateAndValidateDistance } from '@/lib/distanceEngine';
 import { freezeFareSnapshot, formatINR } from '@/lib/productionPricingEngine';
 import { validateCoupon, recordCouponRedemption } from '@/lib/couponEngine';
 import { getExistingBookingByIdempotencyKey, saveBookingIdempotencyKey } from '@/lib/idempotency';
-import { createCustomerBooking } from '@/lib/adminEngine';
+import { createCustomerBooking, getAdminBookings } from '@/lib/adminEngine';
 
 export async function GET(request: Request) {
   const token = extractBearerToken(request.headers.get('authorization'));
@@ -18,27 +18,23 @@ export async function GET(request: Request) {
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 50);
 
-  const mockBookings = [
-    {
-      id: 'bk_1001',
-      bookingReference: 'KC-88429',
-      customerId: auth.customerId || 'cust_1',
-      status: 'CONFIRMED',
-      tripMode: 'ONEWAY',
-      pickupAddress: 'Mangaluru City',
-      dropAddress: 'Udupi Sri Krishna Matha',
-      pickupTime: new Date().toISOString(),
-      estimatedDistanceKm: 58,
-      estimatedFare: 1450,
-    },
-  ];
+  const allBookings = getAdminBookings();
+  const userPhone = auth.phone ? auth.phone.replace(/\D/g, '') : '';
+  const userPhoneSuffix = userPhone.length >= 10 ? userPhone.slice(-10) : userPhone;
+
+  const userBookings = allBookings.filter((b) => {
+    const bPhone = (b.customerPhone || '').replace(/\D/g, '');
+    const phoneMatch = Boolean(userPhoneSuffix && userPhoneSuffix.length >= 7 && bPhone.includes(userPhoneSuffix));
+    const idMatch = Boolean(auth.customerId && ((b as any).customerId === auth.customerId || b.customerPhone === auth.phone));
+    return phoneMatch || idMatch;
+  });
 
   return NextResponse.json({
     success: true,
     page,
     limit,
-    total: mockBookings.length,
-    data: mockBookings,
+    total: userBookings.length,
+    data: userBookings,
   });
 }
 

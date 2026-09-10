@@ -18,37 +18,46 @@ export const CustomerDashboardView: React.FC = () => {
   const loadCustomerBookings = () => {
     let currentUser: any = null;
     try {
-      const stored = localStorage.getItem('kc_user');
+      const stored = localStorage.getItem('kc_user') || localStorage.getItem('kc_admin_user');
       if (stored) {
         currentUser = JSON.parse(stored);
         setUser(currentUser);
       } else {
-        currentUser = { fullName: 'Graphitex Customer', phone: '+91 91873 36058', email: 'customer@graphitex.in' };
-        setUser(currentUser);
+        setUser(null);
+        setLiveBookingsList([]);
+        return;
       }
     } catch {
-      currentUser = { fullName: 'Valued Customer', phone: '+91 98450 12345', email: 'customer@kandycabs.com' };
-      setUser(currentUser);
+      setUser(null);
+      setLiveBookingsList([]);
+      return;
     }
 
-    const cleanUserPhone = currentUser?.phone ? currentUser.phone.replace(/\D/g, '') : '';
-    const userPhoneSuffix = cleanUserPhone.length >= 10 ? cleanUserPhone.slice(-10) : '';
+    if (!currentUser || (!currentUser.phone && !currentUser.id && !currentUser.customerId)) {
+      setLiveBookingsList([]);
+      return;
+    }
+
+    const cleanUserPhone = currentUser.phone ? currentUser.phone.replace(/\D/g, '') : '';
+    const userPhoneSuffix = cleanUserPhone.length >= 10 ? cleanUserPhone.slice(-10) : cleanUserPhone;
+    const currentUserId = currentUser.id || currentUser.customerId;
 
     const allAdmin = getAdminBookings();
 
-    // Filter bookings belonging to logged in customer (or fall back to all if demo/unfiltered)
-    let filteredBookings = allAdmin;
-    if (userPhoneSuffix) {
-      const matched = allAdmin.filter((b) => {
-        const bPhone = (b.customerPhone || '').replace(/\D/g, '');
-        const phoneMatch = bPhone.length >= 10 && bPhone.endsWith(userPhoneSuffix);
-        const idMatch = (b as any).customerId === currentUser?.id || (b as any).customerId === currentUser?.customerId;
-        return phoneMatch || idMatch;
-      });
-      if (matched.length > 0) {
-        filteredBookings = matched;
-      }
-    }
+    // STRICT USER FILTER: Match ONLY by user's phone or customerId
+    const matchedBookings = allAdmin.filter((b) => {
+      const bPhone = (b.customerPhone || '').replace(/\D/g, '');
+      const phoneMatch = Boolean(
+        userPhoneSuffix && userPhoneSuffix.length >= 7 && bPhone.includes(userPhoneSuffix)
+      );
+      const idMatch = Boolean(
+        currentUserId && ((b as any).customerId === currentUserId || b.customerPhone === currentUser.phone)
+      );
+      return phoneMatch || idMatch;
+    });
+
+    // If matchedBookings is empty, filteredBookings MUST BE [] (EMPTY)!
+    const filteredBookings = matchedBookings;
 
     const mapped = filteredBookings.map((b: AdminBookingOverview) => {
       const advance = b.advancePaid !== undefined ? b.advancePaid : Math.round((b.estimatedFare || 0) * 0.25);
@@ -179,9 +188,11 @@ export const CustomerDashboardView: React.FC = () => {
             <span className="pill green" style={{ marginBottom: '6px', display: 'inline-block' }}>
               Verified Rider Profile
             </span>
-            <h1 className="h2" style={{ margin: 0 }}>Welcome back, {user?.fullName || 'Valued Customer'}</h1>
+            <h1 className="h2" style={{ margin: 0 }}>
+              {liveBookingsList.length > 0 ? `Welcome back, ${user?.fullName || 'Valued Customer'}` : `Welcome, ${user?.fullName || 'Valued Customer'}`}
+            </h1>
             <p className="muted" style={{ fontSize: '13.5px', margin: '4px 0 0' }}>
-              📱 Mobile: <b>{user?.phone || '+91 98450 12345'}</b> {user?.email ? `· 📧 ${user.email}` : ''}
+              📱 Mobile: <b>{user?.phone || ''}</b> {user?.email ? `· 📧 ${user.email}` : ''}
             </p>
           </div>
 
@@ -509,15 +520,15 @@ export const CustomerDashboardView: React.FC = () => {
             <form onSubmit={(e) => e.preventDefault()}>
               <div className="fld">
                 <label>Full Name</label>
-                <input type="text" defaultValue={user?.fullName || 'Graphitex Customer'} />
+                <input type="text" defaultValue={user?.fullName || ''} placeholder="Enter your full name" />
               </div>
               <div className="fld">
                 <label>Registered Mobile Number (Verified)</label>
-                <input type="tel" defaultValue={user?.phone || '+91 91873 36058'} readOnly style={{ background: 'var(--bg-soft)' }} />
+                <input type="tel" defaultValue={user?.phone || ''} readOnly style={{ background: 'var(--bg-soft)' }} />
               </div>
               <div className="fld">
                 <label>Email Address</label>
-                <input type="email" defaultValue={user?.email || 'customer@graphitex.in'} />
+                <input type="email" defaultValue={user?.email || ''} placeholder="e.g. name@domain.com" />
               </div>
               <div className="fld">
                 <label>Default Pickup Address</label>

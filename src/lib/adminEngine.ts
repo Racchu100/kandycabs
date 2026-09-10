@@ -175,18 +175,12 @@ export function getAdminBookings(): AdminBookingOverview[] {
       const stored = localStorage.getItem('kc_all_admin_bookings');
       if (stored) {
         const parsed: AdminBookingOverview[] = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           const map = new Map<string, AdminBookingOverview>();
-          // 1. Add mock seed bookings
-          for (const m of mockAdminBookings) {
-            map.set(m.bookingReference || m.id, m);
-          }
-          // 2. Override/add with stored bookings
           for (const p of parsed) {
             map.set(p.bookingReference || p.id, p);
           }
           const mergedList = Array.from(map.values());
-          // Sort newest first
           mergedList.sort(
             (a, b) => new Date(b.createdAt || Date.now()).getTime() - new Date(a.createdAt || Date.now()).getTime()
           );
