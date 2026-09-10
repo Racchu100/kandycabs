@@ -140,6 +140,21 @@ const driverStore: DriverAccountRecord[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: 'driver_akshath',
+    fullName: 'akshath',
+    phone: '8088313517',
+    username: 'akshath',
+    password: 'driver123',
+    vehicleRegistration: 'KA 19 C 4885',
+    vehicleModel: 'Swift Dzire (AC Sedan)',
+    licenseNumber: 'KA19-2021-00825',
+    vendorAgencyName: 'Sri Durga Travels & Cab Service',
+    vendorId: 'vnd_durga',
+    verificationStatus: 'APPROVED',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 /**
@@ -308,7 +323,7 @@ export function addDriverAccount(
     ...account,
     id,
     vendorAgencyName: account.vendorAgencyName || 'Sri Durga Travels & Cab Service',
-    verificationStatus: account.verificationStatus || 'PENDING_VERIFICATION',
+    verificationStatus: account.verificationStatus || 'APPROVED',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

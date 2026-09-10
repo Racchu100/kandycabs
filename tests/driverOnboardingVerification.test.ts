@@ -19,6 +19,7 @@ function runDriverOnboardingVerificationTests() {
     vehicleModel: 'Tata Tigor EV',
     licenseNumber: 'KA19-2026-99999',
     vendorAgencyName: 'Sri Durga Travels & Cab Service',
+    verificationStatus: 'PENDING_VERIFICATION',
   });
 
   if (newDriver.verificationStatus !== 'PENDING_VERIFICATION') {
