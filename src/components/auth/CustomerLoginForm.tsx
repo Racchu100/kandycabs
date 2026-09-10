@@ -160,7 +160,19 @@ export const CustomerLoginForm: React.FC = () => {
       if (isVerified) {
         setVerifiedToken(token);
         // Check if returning customer with profile from local storage, API user data, or booking history
-        const activeName = (existingCustomer?.fullName || data?.user?.fullName || '').trim();
+        let activeName = (existingCustomer?.fullName || data?.user?.fullName || '').trim();
+
+        if (!activeName) {
+          try {
+            const profileRes = await fetch(`/api/customer/profile?phone=${cleanDigits}`);
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              if (profileData.success && profileData.customer?.fullName) {
+                activeName = profileData.customer.fullName.trim();
+              }
+            }
+          } catch {}
+        }
 
         if (activeName && activeName.length >= 2) {
           // Returning customer -> Login immediately without asking for name again!
@@ -190,7 +202,7 @@ export const CustomerLoginForm: React.FC = () => {
   };
 
   // Step 3: Complete Profile (New Customer Name Entry)
-  const handleCompleteProfileSubmit = (e: React.FormEvent) => {
+  const handleCompleteProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullNameInput || fullNameInput.trim().length < 2) {
       setErrorMsg('Please enter your full name.');
@@ -198,20 +210,32 @@ export const CustomerLoginForm: React.FC = () => {
     }
 
     const cleanDigits = normalizeMobileNumber(mobileInput);
-    const regRes = registerCustomerProfile(cleanDigits, fullNameInput.trim());
+    const cleanName = fullNameInput.trim();
 
-    if (regRes.success) {
-      const token = verifiedToken || `token_${Date.now()}`;
-      completeLoginSession(token, {
-        id: regRes.customer.id,
-        customerId: regRes.customer.customerId,
-        phone: regRes.customer.phone,
-        fullName: regRes.customer.fullName,
-        role: 'CUSTOMER',
+    setIsLoading(true);
+    setErrorMsg(null);
+
+    // Save locally
+    const regRes = registerCustomerProfile(cleanDigits, cleanName);
+
+    // Persist to Supabase PostgreSQL Database via API for cross-device support
+    try {
+      await fetch('/api/customer/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanDigits, fullName: cleanName }),
       });
-    } else {
-      setErrorMsg('Failed to save profile. Please try again.');
-    }
+    } catch {}
+
+    const token = verifiedToken || `token_${Date.now()}`;
+    completeLoginSession(token, {
+      id: regRes.customer.id || `user_${cleanDigits}`,
+      customerId: regRes.customer.customerId || `cust_${cleanDigits}`,
+      phone: cleanDigits,
+      fullName: cleanName,
+      role: 'CUSTOMER',
+    });
+    setIsLoading(false);
   };
 
   // Complete Login Session & Redirect
