@@ -87,7 +87,7 @@ export const AdminMasterConsoleView: React.FC = () => {
     }
 
     const syncDriverApplicationsFromApi = () => {
-      fetch('/api/driver-applications')
+      fetch('/api/driver-applications', { cache: 'no-store' })
         .then((res) => res.json())
         .then((data) => {
           if (data.success && Array.isArray(data.data)) {
