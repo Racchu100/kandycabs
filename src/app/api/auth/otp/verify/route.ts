@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { verifyMobileOtp } from '@/lib/otpAuth';
-import { getCustomerByMobile, updateCustomerLastLogin, normalizeMobileNumber, registerCustomerProfile } from '@/lib/customerAccountEngine';
+import { getCustomerByMobile, updateCustomerLastLogin, registerCustomerProfile } from '@/lib/customerAccountEngine';
 import { getDriverByPhoneOrUsername } from '@/lib/driverAccountEngine';
 import { prisma } from '@/lib/prisma';
 import { recordAuditLog } from '@/lib/adminEngine';
+import { normalizePhone, phoneSearchVariants } from '@/lib/phoneUtils';
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +15,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Mobile and OTP code are required' }, { status: 400 });
     }
 
-    const cleanMobile = normalizeMobileNumber(mobile);
+    const cleanMobile = normalizePhone(mobile);
+    if (!cleanMobile || cleanMobile.length < 10) {
+      return NextResponse.json({ error: 'Invalid 10-digit mobile number' }, { status: 400 });
+    }
 
     const res = verifyMobileOtp(cleanMobile, otp);
     if (!res.success) {
@@ -25,64 +29,59 @@ export async function POST(request: Request) {
     let customerId = `cust_${cleanMobile}`;
     let userId = `user_${cleanMobile}`;
 
-    // 1. Check Supabase PostgreSQL DB via Prisma for User & Customer records
+    // 1. Check Supabase PostgreSQL DB via Prisma for User, Customer, and Driver records
     try {
       const dbUser = await prisma.user.findFirst({
         where: {
-          OR: [
-            { phone: cleanMobile },
-            { phone: `+91${cleanMobile}` },
-            { phone: `91${cleanMobile}` },
-          ],
+          OR: phoneSearchVariants(cleanMobile),
         },
         include: { customer: true, driver: true },
       });
 
-      if (dbUser && dbUser.customer && dbUser.customer.fullName && dbUser.customer.fullName.trim() !== '') {
-        fullName = dbUser.customer.fullName.trim();
+      if (dbUser) {
         userId = dbUser.id;
-        customerId = dbUser.customer.id;
-      } else if (dbUser && dbUser.driver && dbUser.driver.fullName && dbUser.driver.fullName.trim() !== '') {
-        fullName = dbUser.driver.fullName.trim();
-        userId = dbUser.id;
+        if (dbUser.customer && dbUser.customer.fullName) {
+          fullName = dbUser.customer.fullName.trim();
+          customerId = dbUser.customer.id;
+        } else if (dbUser.driver && dbUser.driver.fullName) {
+          fullName = dbUser.driver.fullName.trim();
+        }
       }
     } catch {}
 
-    // 2. Check Supabase DB Driver record & local driver engine lookup
+    // 2. Check Supabase DB Driver record & driver status
     let isDriver = false;
     let driverData: any = null;
 
     try {
       const dbDriverUser = await prisma.user.findFirst({
         where: {
-          OR: [
-            { phone: cleanMobile },
-            { phone: `+91${cleanMobile}` },
-            { phone: `91${cleanMobile}` },
-          ],
+          OR: phoneSearchVariants(cleanMobile),
         },
         include: { driver: true },
       });
 
-      if (dbDriverUser && dbDriverUser.driver) {
+      if (dbDriverUser && dbDriverUser.driver && dbDriverUser.driver.isActive) {
         isDriver = true;
         driverData = {
           id: dbDriverUser.driver.id,
+          userId: dbDriverUser.id,
           fullName: dbDriverUser.driver.fullName,
           phone: cleanMobile,
           username: cleanMobile,
           licenseNumber: dbDriverUser.driver.licenseNumber || `KA19-LIC-${cleanMobile}`,
           vehicleRegistration: 'KA 19 C 4829',
           vendorAgencyName: 'Sri Durga Travels & Cab Service',
-          status: dbDriverUser.driver.isActive ? 'ACTIVE' : 'DEACTIVATED',
+          status: 'ACTIVE',
           verificationStatus: 'APPROVED',
+          isActive: true,
         };
         if (!fullName) fullName = dbDriverUser.driver.fullName;
       }
     } catch {}
 
     if (!isDriver) {
-      const localDriver = getDriverByPhoneOrUsername(cleanMobile);
+      const localDriver = getDriverByPhoneOrUsername(cleanMobile, true);
       if (localDriver) {
         isDriver = true;
         driverData = localDriver;
@@ -115,6 +114,7 @@ export async function POST(request: Request) {
             vendorAgencyName: assignedBooking.vendorAgencyName || 'Sri Durga Travels & Cab Service',
             status: 'ACTIVE',
             verificationStatus: 'APPROVED',
+            isActive: true,
           };
           if (!fullName) fullName = assignedBooking.assignedDriverName;
         }

@@ -28,6 +28,7 @@ import {
   AdminBookingOverview,
 } from '@/lib/adminEngine';
 import { setDriverDutyStatus, getDriverByPhoneOrUsername, getAllDriverAccounts, addDriverAccount } from '@/lib/driverAccountEngine';
+import { normalizePhone } from '@/lib/phoneUtils';
 
 interface DriverSwipeCardProps {
   booking: AdminBookingOverview;
@@ -295,7 +296,9 @@ export const DriverDashboardView: React.FC = () => {
       } catch {}
     }
 
-    if (!identifierToVerify) {
+    const cleanPhone = normalizePhone(identifierToVerify);
+
+    if (!cleanPhone && !identifierToVerify) {
       if (typeof window !== 'undefined') {
         try {
           localStorage.removeItem('kc_driver_user');
@@ -304,35 +307,38 @@ export const DriverDashboardView: React.FC = () => {
       }
       setDriverUser(null);
       setIsAccountDeleted(true);
+      router.push('/customer/dashboard');
       return;
     }
 
-    let liveDriver = getDriverByPhoneOrUsername(identifierToVerify);
+    // Server-side Authorization & Assigned Trips Verification via DB API
+    let liveDriver: any = getDriverByPhoneOrUsername(cleanPhone || identifierToVerify!, true);
 
-    if (!liveDriver && identifierToVerify) {
-      const cleanDigits = identifierToVerify.replace(/\D/g, '').slice(-10);
-      if (cleanDigits) {
-        try {
-          const driverRes = await fetch(`/api/admin/drivers?phone=${cleanDigits}`);
-          if (driverRes.ok) {
-            const driverData = await driverRes.json();
-            if (driverData.success && driverData.driver) {
-              const apiDriver = driverData.driver;
-              addDriverAccount({
-                fullName: apiDriver.fullName || 'Driver',
-                phone: cleanDigits,
-                username: apiDriver.username || (apiDriver.fullName ? apiDriver.fullName.toLowerCase().replace(/\s+/g, '') : `driver_${cleanDigits}`),
-                vehicleRegistration: apiDriver.vehicleRegistration || 'KA 19 C 4829',
-                licenseNumber: apiDriver.licenseNumber || `KA19-LIC-${cleanDigits}`,
-                vendorAgencyName: apiDriver.vendorAgencyName || 'Sri Durga Travels & Cab Service',
-                status: 'ACTIVE',
-                verificationStatus: 'APPROVED',
-              });
-              liveDriver = getDriverByPhoneOrUsername(cleanDigits) || apiDriver;
-            }
-          }
-        } catch {}
+    try {
+      const tripsRes = await fetch(`/api/driver/trips?phone=${cleanPhone || identifierToVerify}`);
+      if (tripsRes.status === 403 || tripsRes.status === 401) {
+        // Access Denied: User is NOT a registered or active driver!
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('kc_driver_user');
+            localStorage.removeItem('kc_driver_token');
+          } catch {}
+        }
+        setDriverUser(null);
+        setIsAccountDeleted(true);
+        router.push('/customer/dashboard');
+        return;
       }
+
+      if (tripsRes.ok) {
+        const tripsData = await tripsRes.json();
+        if (tripsData.success && tripsData.driver) {
+          liveDriver = tripsData.driver;
+          addDriverAccount(tripsData.driver);
+        }
+      }
+    } catch (e: any) {
+      console.warn('Driver API verification warning:', e.message);
     }
 
     if (!liveDriver) {
@@ -345,6 +351,7 @@ export const DriverDashboardView: React.FC = () => {
       }
       setDriverUser(null);
       setIsAccountDeleted(true);
+      router.push('/customer/dashboard');
       return;
     }
 

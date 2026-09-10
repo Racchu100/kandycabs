@@ -45,7 +45,6 @@ export const CustomerLoginForm: React.FC = () => {
       if (draft) return '/booking';
     }
     if (role === 'ADMIN') return '/admin';
-    if (role === 'DRIVER') return '/driver/dashboard';
     return '/customer/dashboard';
   };
 

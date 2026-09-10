@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { MobileNav } from './MobileNav';
 import { KandyCabsLogo } from '@/components/ui/KandyCabsLogo';
 import { getDriverByPhoneOrUsername, addDriverAccount } from '@/lib/driverAccountEngine';
+import { normalizePhone } from '@/lib/phoneUtils';
 
 export interface NavItem {
   id: string;
@@ -33,7 +34,7 @@ export const Header: React.FC = () => {
   const closeMobileNav = () => setMobileNavOpen(false);
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
         const adminUser = localStorage.getItem('kc_admin_user');
         const custUser = localStorage.getItem('kc_user');
@@ -42,47 +43,45 @@ export const Header: React.FC = () => {
         if (adminUser) {
           const parsed = JSON.parse(adminUser);
           setUser({ name: parsed.name || 'Super Admin (9481086058)', role: 'ADMIN' });
-        } else if (driverUser) {
-          const parsed = JSON.parse(driverUser);
-          const matchedDriver = getDriverByPhoneOrUsername(parsed.id || parsed.phone || parsed.username || parsed.fullName);
-          if (matchedDriver) {
-            setUser({ name: matchedDriver.fullName || 'Driver', role: 'DRIVER' });
-          } else {
-            // Driver is deleted in Admin Panel! Remove stale session and do not show Driver Dashboard button
-            localStorage.removeItem('kc_driver_user');
-            localStorage.removeItem('kc_driver_token');
-            setUser(null);
-          }
-        } else if (custUser) {
-          const parsed = JSON.parse(custUser);
-          let matchedDriver = parsed.phone ? getDriverByPhoneOrUsername(parsed.phone) : null;
-          if (parsed.role === 'ADMIN' || parsed.phone === '9481086058' || (parsed.name && parsed.name.includes('9481086058'))) {
-            setUser({ name: parsed.name || 'Super Admin (9481086058)', role: 'ADMIN' });
-          } else if (matchedDriver) {
-            setUser({ name: matchedDriver.fullName, role: 'DRIVER' });
-          } else {
-            const displayName = (parsed.fullName && parsed.fullName !== 'Customer Rider') ? parsed.fullName : 'My Account';
-            setUser({ name: displayName, role: 'CUSTOMER' });
+          return;
+        }
 
-            // Asynchronous API fallback for registered driver detection
-            if (parsed.phone) {
-              const cleanDigits = String(parsed.phone).replace(/\D/g, '');
-              if (cleanDigits.length >= 10) {
-                fetch(`/api/admin/drivers?phone=${cleanDigits}`)
-                  .then((res) => res.json())
-                  .then((data) => {
-                    if (data.success && data.driver) {
-                      addDriverAccount(data.driver);
-                      localStorage.setItem('kc_driver_user', JSON.stringify(data.driver));
-                      setUser({ name: data.driver.fullName || displayName, role: 'DRIVER' });
-                    }
-                  })
-                  .catch(() => {});
+        const activeUserObj = custUser ? JSON.parse(custUser) : (driverUser ? JSON.parse(driverUser) : null);
+        if (!activeUserObj || !activeUserObj.phone) {
+          setUser(null);
+          return;
+        }
+
+        const userPhone = activeUserObj.phone;
+        const cleanPhone = normalizePhone(userPhone);
+
+        // Initial check from local memory engine
+        const localDriver = getDriverByPhoneOrUsername(cleanPhone, true);
+        if (localDriver) {
+          setUser({ name: localDriver.fullName || activeUserObj.fullName || 'My Account', role: 'DRIVER' });
+        } else {
+          const displayName = (activeUserObj.fullName && activeUserObj.fullName !== 'Customer Rider') ? activeUserObj.fullName : 'My Account';
+          setUser({ name: displayName, role: 'CUSTOMER' });
+        }
+
+        // Revalidate against backend DB API (/api/auth/session)
+        if (cleanPhone && cleanPhone.length >= 10) {
+          try {
+            const res = await fetch(`/api/auth/session?phone=${cleanPhone}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.authenticated && data.isDriver && data.driver) {
+                addDriverAccount(data.driver);
+                localStorage.setItem('kc_driver_user', JSON.stringify(data.driver));
+                setUser({ name: data.driver.fullName || activeUserObj.fullName || 'My Account', role: 'DRIVER' });
+              } else if (data.authenticated && !data.isDriver) {
+                localStorage.removeItem('kc_driver_user');
+                localStorage.removeItem('kc_driver_token');
+                const displayName = (activeUserObj.fullName && activeUserObj.fullName !== 'Customer Rider') ? activeUserObj.fullName : 'My Account';
+                setUser({ name: displayName, role: 'CUSTOMER' });
               }
             }
-          }
-        } else {
-          setUser(null);
+          } catch {}
         }
       } catch {
         setUser(null);

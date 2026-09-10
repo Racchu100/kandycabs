@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { addDriverAccount, getAllDriverAccounts, getDriverByPhoneOrUsername } from '@/lib/driverAccountEngine';
-import { normalizeMobileNumber } from '@/lib/customerAccountEngine';
+import { normalizePhone, phoneSearchVariants } from '@/lib/phoneUtils';
 
 export async function GET(request: Request) {
   try {
@@ -9,34 +9,38 @@ export async function GET(request: Request) {
     const rawPhone = searchParams.get('phone') || searchParams.get('mobile');
 
     if (rawPhone) {
-      const cleanPhone = normalizeMobileNumber(rawPhone);
+      const cleanPhone = normalizePhone(rawPhone);
+      if (!cleanPhone) {
+        return NextResponse.json({ success: false, message: 'Invalid phone number' }, { status: 400 });
+      }
+
       let driverData: any = null;
 
       // 1. Check Supabase DB Prisma User & Driver
       try {
         const dbUser = await prisma.user.findFirst({
           where: {
-            OR: [
-              { phone: cleanPhone },
-              { phone: `+91${cleanPhone}` },
-              { phone: `91${cleanPhone}` },
-            ],
+            OR: phoneSearchVariants(cleanPhone),
           },
           include: { driver: true },
         });
 
-        if (dbUser && dbUser.driver) {
+        if (dbUser && dbUser.driver && dbUser.driver.isActive) {
           driverData = {
             id: dbUser.driver.id,
+            userId: dbUser.id,
             fullName: dbUser.driver.fullName,
             phone: cleanPhone,
-            username: cleanPhone,
+            username: dbUser.phone,
             licenseNumber: dbUser.driver.licenseNumber || `KA19-LIC-${cleanPhone}`,
             vehicleRegistration: 'KA 19 C 4829',
             vendorAgencyName: 'Sri Durga Travels & Cab Service',
-            status: dbUser.driver.isActive ? 'ACTIVE' : 'DEACTIVATED',
+            status: 'ACTIVE',
             verificationStatus: 'APPROVED',
+            isActive: true,
           };
+        } else if (dbUser && dbUser.driver && !dbUser.driver.isActive) {
+          return NextResponse.json({ success: false, message: 'Driver account is deactivated', isActive: false }, { status: 403 });
         }
       } catch {}
 
@@ -63,6 +67,7 @@ export async function GET(request: Request) {
               vendorAgencyName: dbBooking.vendorAgencyName || 'Sri Durga Travels & Cab Service',
               status: 'ACTIVE',
               verificationStatus: 'APPROVED',
+              isActive: true,
             };
           }
         } catch {}
@@ -70,14 +75,18 @@ export async function GET(request: Request) {
 
       // 3. Fallback to local engine
       if (!driverData) {
-        const localDriver = getDriverByPhoneOrUsername(cleanPhone);
+        const localDriver = getDriverByPhoneOrUsername(cleanPhone, true);
         if (localDriver) {
-          driverData = localDriver;
+          driverData = {
+            ...localDriver,
+            phone: cleanPhone,
+            isActive: localDriver.status !== 'DEACTIVATED' && localDriver.status !== 'INACTIVE',
+          };
         }
       }
 
       if (!driverData) {
-        return NextResponse.json({ success: false, message: 'Driver not found' }, { status: 404 });
+        return NextResponse.json({ success: false, message: 'Driver account not found' }, { status: 404 });
       }
 
       return NextResponse.json({ success: true, driver: driverData });
@@ -92,26 +101,27 @@ export async function GET(request: Request) {
       if (Array.isArray(dbDrivers) && dbDrivers.length > 0) {
         const map = new Map<string, any>();
         for (const d of drivers) {
-          map.set(d.phone.replace(/\D/g, '').slice(-10), d);
+          map.set(normalizePhone(d.phone), d);
         }
         for (const d of dbDrivers) {
           if (d.user && d.user.phone) {
-            const p = d.user.phone.replace(/\D/g, '').slice(-10);
-            if (!map.has(p)) {
-              map.set(p, {
-                id: d.id,
-                fullName: d.fullName,
-                phone: p,
-                username: p,
-                licenseNumber: d.licenseNumber,
-                vehicleRegistration: 'KA 19 C 4829',
-                vendorAgencyName: 'Sri Durga Travels & Cab Service',
-                status: d.isActive ? 'ACTIVE' : 'DEACTIVATED',
-                verificationStatus: 'APPROVED',
-                createdAt: d.createdAt.toISOString(),
-                updatedAt: d.createdAt.toISOString(),
-              });
-            }
+            const p = normalizePhone(d.user.phone);
+            const existing = map.get(p);
+            map.set(p, {
+              id: d.id,
+              userId: d.userId,
+              fullName: d.fullName,
+              phone: p,
+              username: p,
+              licenseNumber: d.licenseNumber,
+              vehicleRegistration: existing?.vehicleRegistration || 'KA 19 C 4829',
+              vendorAgencyName: existing?.vendorAgencyName || 'Sri Durga Travels & Cab Service',
+              status: d.isActive ? 'ACTIVE' : 'DEACTIVATED',
+              verificationStatus: 'APPROVED',
+              isActive: d.isActive,
+              createdAt: d.createdAt.toISOString(),
+              updatedAt: d.createdAt.toISOString(),
+            });
           }
         }
         drivers = Array.from(map.values());
@@ -127,15 +137,19 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { fullName, phone, username, vehicleRegistration, licenseNumber, vendorAgencyName } = body;
+    const { fullName, phone, username, vehicleRegistration, licenseNumber, vendorAgencyName, password } = body;
 
     if (!fullName || !phone || !vehicleRegistration) {
       return NextResponse.json({ error: 'Full name, phone, and vehicle registration are required' }, { status: 400 });
     }
 
-    const cleanPhone = normalizeMobileNumber(phone);
+    const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone || cleanPhone.length < 10) {
+      return NextResponse.json({ error: 'Invalid 10-digit mobile number' }, { status: 400 });
+    }
+
     const cleanName = fullName.trim();
-    const cleanLicense = licenseNumber || `KA19-LIC-${cleanPhone}`;
+    const cleanLicense = licenseNumber ? licenseNumber.trim() : `KA19-LIC-${cleanPhone}`;
 
     // 1. Save to local engine & persistence
     const localRecord = addDriverAccount(
@@ -143,6 +157,7 @@ export async function POST(request: Request) {
         fullName: cleanName,
         phone: cleanPhone,
         username: username || cleanName.toLowerCase().replace(/\s+/g, ''),
+        password: password || undefined,
         vehicleRegistration,
         licenseNumber: cleanLicense,
         vendorAgencyName: vendorAgencyName || 'Sri Durga Travels & Cab Service',
@@ -152,18 +167,17 @@ export async function POST(request: Request) {
       'Super Admin'
     );
 
-    // 2. Save directly into Supabase PostgreSQL DB via Prisma
+    // 2. Connect or Create User & Driver in Supabase PostgreSQL DB via Prisma
+    let driverUserId = `user_${cleanPhone}`;
+    let driverId = `driver_${cleanPhone}`;
+    let dbDriverRecord: any = null;
+
     try {
       const email = `driver_${cleanPhone}@kandycabs.com`;
-      const driverUserId = `user_driver_${cleanPhone}`;
-      const driverId = `driver_${cleanPhone}`;
 
       let user = await prisma.user.findFirst({
         where: {
-          OR: [
-            { phone: cleanPhone },
-            { phone: `+91${cleanPhone}` },
-          ],
+          OR: phoneSearchVariants(cleanPhone),
         },
       });
 
@@ -173,21 +187,20 @@ export async function POST(request: Request) {
             id: driverUserId,
             phone: cleanPhone,
             email,
-            passwordHash: 'driver_authenticated_pass',
+            passwordHash: password || 'driver_authenticated_pass',
             role: 'DRIVER',
             status: 'ACTIVE',
           },
         });
       } else {
-        // Ensure user role includes DRIVER
+        driverUserId = user.id;
         await prisma.user.update({
           where: { id: user.id },
           data: { role: 'DRIVER', status: 'ACTIVE' },
         });
       }
 
-      // Upsert Driver record linked to User
-      await prisma.driver.upsert({
+      dbDriverRecord = await prisma.driver.upsert({
         where: { userId: user.id },
         update: {
           fullName: cleanName,
@@ -203,16 +216,65 @@ export async function POST(request: Request) {
           rating: 5.0,
         },
       });
+      driverId = dbDriverRecord.id;
     } catch (dbErr: any) {
       console.warn('Supabase DB Driver persistence warning:', dbErr.message);
     }
 
+    const finalDriver = {
+      ...localRecord,
+      id: driverId,
+      userId: driverUserId,
+      fullName: cleanName,
+      phone: cleanPhone,
+      vehicleRegistration,
+      licenseNumber: cleanLicense,
+      isActive: true,
+    };
+
     return NextResponse.json({
       success: true,
-      message: `Driver '${cleanName}' saved to Supabase DB successfully!`,
-      driver: localRecord,
+      message: `Driver '${cleanName}' registered successfully in Supabase DB!`,
+      driver: finalDriver,
     });
   } catch (err: any) {
     return NextResponse.json({ error: 'Failed to save driver account', details: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const rawPhone = searchParams.get('phone') || searchParams.get('driverId');
+
+    if (!rawPhone) {
+      return NextResponse.json({ error: 'Phone or driverId parameter required' }, { status: 400 });
+    }
+
+    const cleanPhone = normalizePhone(rawPhone);
+
+    // Deactivate in Prisma PostgreSQL DB
+    try {
+      const user = await prisma.user.findFirst({
+        where: { OR: phoneSearchVariants(cleanPhone) },
+        include: { driver: true },
+      });
+
+      if (user && user.driver) {
+        await prisma.driver.update({
+          where: { id: user.driver.id },
+          data: { isActive: false },
+        });
+      }
+    } catch (e: any) {
+      console.warn('Deactivating driver in DB warning:', e.message);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Driver account ${cleanPhone} deactivated successfully. Customer account remains intact.`,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: 'Failed to deactivate driver', details: err.message }, { status: 500 });
   }
 }

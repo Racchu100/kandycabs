@@ -219,7 +219,7 @@ export const AdminMasterConsoleView: React.FC = () => {
   const [selectedDispatchDriverMap, setSelectedDispatchDriverMap] = useState<Record<string, string>>({});
   const [dispatchMsg, setDispatchMsg] = useState<string | null>(null);
 
-  const handleDispatchSubmit = (bookingId: string) => {
+  const handleDispatchSubmit = async (bookingId: string) => {
     const driverId = selectedDispatchDriverMap[bookingId] || drivers[0]?.id || 'driver_suresh';
     const targetDriver = drivers.find((d) => d.id === driverId || d.phone === driverId);
     if (!targetDriver) return;
@@ -237,10 +237,26 @@ export const AdminMasterConsoleView: React.FC = () => {
       return;
     }
 
+    try {
+      await fetch('/api/admin/bookings/assign-driver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId,
+          driverId: targetDriver.id,
+          driverName: targetDriver.fullName,
+          driverPhone: targetDriver.phone,
+          vehicleRegistration: targetDriver.vehicleRegistration,
+        }),
+      });
+    } catch (e: any) {
+      console.warn('Dispatch API error:', e.message);
+    }
+
     setBookings(getAdminBookings());
     setAuditLogs(getAuditLogs());
     setDispatchMsg(
-      `✓ Dispatched trip ${res.booking?.bookingReference} to ${targetDriver.fullName} (${targetDriver.vehicleRegistration})! Awaiting driver approval.`
+      `✓ Dispatched trip ${res.booking?.bookingReference || bookingId} to ${targetDriver.fullName} (${targetDriver.vehicleRegistration})! Awaiting driver approval.`
     );
   };
 
@@ -265,6 +281,17 @@ export const AdminMasterConsoleView: React.FC = () => {
   const [vehicles, setVehicles] = useState(getAllVehicles());
   const [locations, setLocations] = useState<MangaluruLocation[]>(getAllLocationsAdmin());
   const [drivers, setDrivers] = useState<DriverAccountRecord[]>(getAllDriverAccounts(true));
+
+  useEffect(() => {
+    fetch('/api/admin/drivers')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setDrivers(data.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [driverRequests, setDriverRequests] = useState<DriverJoinRequestRecord[]>(getDriverPartnerRequests());
   const [driverRequestFilter, setDriverRequestFilter] = useState<'PENDING' | 'ONBOARDED' | 'ALL'>('PENDING');
   const [vendors, setVendors] = useState<VendorPartnerRecord[]>(getAllVendorPartners());
