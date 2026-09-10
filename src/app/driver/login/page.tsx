@@ -109,21 +109,36 @@ export default function DriverLoginPage() {
         return;
       }
 
-      // 2. Strict Driver Authorization Check
-      const authRes = verifyDriverOtpLogin(cleanMobile);
-      if (!authRes.success || !authRes.driver) {
-        setErrorMsg(authRes.error || 'Access denied. Account is not approved or active.');
-        return;
-      }
+      // 2. Strict Driver Authorization & Supabase DB Login Recording
+      let driverUser: any = null;
+      let token = `driver_token_${Date.now()}`;
 
-      const driverFound = authRes.driver;
-      const token = `driver_token_${Date.now()}`;
-      const driverUser = {
-        ...driverFound,
-        role: 'DRIVER',
-        canBookRides: true,
-        canManageDriver: true,
-      };
+      try {
+        const apiRes = await fetch('/api/auth/driver/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mobile: cleanMobile, otp: cleanOtp }),
+        });
+        const apiData = await apiRes.json();
+        if (apiRes.ok && apiData.success && apiData.driver) {
+          driverUser = apiData.driver;
+          token = apiData.token || token;
+        }
+      } catch {}
+
+      if (!driverUser) {
+        const authRes = verifyDriverOtpLogin(cleanMobile);
+        if (!authRes.success || !authRes.driver) {
+          setErrorMsg(authRes.error || 'Access denied. Account is not approved or active.');
+          return;
+        }
+        driverUser = {
+          ...authRes.driver,
+          role: 'DRIVER',
+          canBookRides: true,
+          canManageDriver: true,
+        };
+      }
 
       localStorage.setItem('kc_driver_token', token);
       localStorage.setItem('kc_driver_user', JSON.stringify(driverUser));
