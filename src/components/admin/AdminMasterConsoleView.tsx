@@ -2083,18 +2083,36 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                             const totalFare = (b.estimatedFare || 0) + toll;
                             const remaining = b.remainingFare !== undefined ? b.remainingFare : Math.max(0, totalFare - advance);
                             const isPaymentDone = remaining === 0;
+                            const isCancelled = b.status === 'CANCELLED';
 
-                            // Rule 1: Booking Cancelled
-                            if (b.status === 'CANCELLED') {
+                            const hasDriverStartedTrip = Boolean(
+                              b.status === 'TRIP_STARTED' ||
+                              b.status === 'IN_PROGRESS' ||
+                              (b.initialMeterKm && b.initialMeterKm > 0) ||
+                              b.initialMeterImage ||
+                              (b.startMeterReading && b.startMeterReading > 0) ||
+                              (b as any).otpVerified ||
+                              (b as any).tripStarted
+                            );
+
+                            const isTripCompleted = Boolean(
+                              b.status === 'COMPLETED' ||
+                              b.status === 'TRIP_COMPLETED' ||
+                              b.finalMeterImage ||
+                              (b.finalMeterKm && b.finalMeterKm > 0)
+                            );
+
+                            // 1. Booking Cancelled
+                            if (isCancelled) {
                               return (
                                 <div
                                   style={{
                                     marginTop: '6px',
-                                    padding: '4px 8px',
+                                    padding: '4px 10px',
                                     background: '#FEE2E2',
                                     color: '#991B1B',
                                     border: '1px solid #FCA5A5',
-                                    borderRadius: '5px',
+                                    borderRadius: '6px',
                                     fontSize: '11px',
                                     fontWeight: 800,
                                     textAlign: 'center',
@@ -2108,17 +2126,17 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                               );
                             }
 
-                            // Rule 2: Payment Done
+                            // 2. Payment Done (Fully paid, remaining = 0)
                             if (isPaymentDone) {
                               return (
                                 <div
                                   style={{
                                     marginTop: '6px',
-                                    padding: '4px 8px',
+                                    padding: '4px 10px',
                                     background: '#D1FAE5',
                                     color: '#065F46',
                                     border: '1px solid #6EE7B7',
-                                    borderRadius: '5px',
+                                    borderRadius: '6px',
                                     fontSize: '11px',
                                     fontWeight: 800,
                                     textAlign: 'center',
@@ -2132,22 +2150,18 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                               );
                             }
 
-                            // Rule 4: Final Odometer image & Toll fare updated, BUT payment NOT received yet
-                            const hasDriverSubmittedMeterAndToll = Boolean(
-                              (b.finalMeterImage || b.status === 'COMPLETED') && b.tollCharges !== undefined && b.tollCharges !== null
-                            );
-
-                            if (hasDriverSubmittedMeterAndToll) {
+                            // 3. Payment Pending (Trip finished, but balance remaining > 0)
+                            if (isTripCompleted && remaining > 0) {
                               return (
                                 <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                   <div
                                     style={{
-                                      padding: '3px 8px',
+                                      padding: '4px 10px',
                                       background: '#FEE2E2',
                                       color: '#991B1B',
                                       border: '1px solid #FCA5A5',
-                                      borderRadius: '4px',
-                                      fontSize: '10.5px',
+                                      borderRadius: '6px',
+                                      fontSize: '11px',
                                       fontWeight: 800,
                                       textAlign: 'center',
                                       display: 'inline-flex',
@@ -2156,7 +2170,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                                       gap: '4px',
                                     }}
                                   >
-                                    ⚠️ Payment Not Received
+                                    ⏳ Payment Pending
                                   </div>
                                   <button
                                     type="button"
@@ -2178,27 +2192,59 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                               );
                             }
 
-                            // Rule 3: Check if driver has started trip or entered OTP / initial meter reading
-                            const hasDriverStartedTrip = Boolean(
-                              b.status === 'TRIP_STARTED' ||
-                              b.status === 'IN_PROGRESS' ||
-                              (b.initialMeterKm && b.initialMeterKm > 0) ||
-                              b.initialMeterImage ||
-                              (b.startMeterReading && b.startMeterReading > 0) ||
-                              (b as any).otpVerified ||
-                              (b as any).tripStarted
-                            );
+                            // 4. On Trip (Driver verified OTP & trip is active)
+                            if (hasDriverStartedTrip) {
+                              return (
+                                <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <div
+                                    style={{
+                                      padding: '4px 10px',
+                                      background: '#FEF3C7',
+                                      color: '#92400E',
+                                      border: '1px solid #FCD34D',
+                                      borderRadius: '6px',
+                                      fontSize: '11px',
+                                      fontWeight: 800,
+                                      textAlign: 'center',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    🚖 On Trip
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setOnlinePaymentBooking(b)}
+                                    style={{
+                                      padding: '2px 5px',
+                                      background: 'transparent',
+                                      color: '#059669',
+                                      border: '1px solid #059669',
+                                      borderRadius: '4px',
+                                      fontSize: '10px',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    💳 QR Code Options
+                                  </button>
+                                </div>
+                              );
+                            }
 
+                            // 5. Trip Not Started (Dispatched / Assigned, awaiting driver start)
                             return (
                               <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <div
                                   style={{
-                                    padding: '3px 8px',
-                                    background: hasDriverStartedTrip ? '#FEF3C7' : '#F3F4F6',
-                                    color: hasDriverStartedTrip ? '#92400E' : '#4B5563',
-                                    border: hasDriverStartedTrip ? '1px solid #FCD34D' : '1px solid #D1D5DB',
-                                    borderRadius: '4px',
-                                    fontSize: '10.5px',
+                                    padding: '4px 10px',
+                                    background: '#F3F4F6',
+                                    color: '#374151',
+                                    border: '1px solid #D1D5DB',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
                                     fontWeight: 800,
                                     textAlign: 'center',
                                     display: 'inline-flex',
@@ -2207,7 +2253,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                                     gap: '4px',
                                   }}
                                 >
-                                  {hasDriverStartedTrip ? '🚕 On Trip' : '⏳ Trip Not Started'}
+                                  ⌛ Trip Not Started
                                 </div>
                                 <button
                                   type="button"
