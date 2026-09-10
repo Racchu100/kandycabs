@@ -41,49 +41,80 @@ export const GeotagCameraModal: React.FC<Props> = ({
   const isGpsActive = Boolean(gpsCoords && !isGpsLoading && !gpsErrorMsg);
   const canSnap = isCameraActive && isGpsActive;
 
+  const applyLocation = async (lat: number, lng: number, acc: number = 5.0, customAddr?: string) => {
+    setGpsCoords({ lat, lng, accuracy: acc });
+    setIsGpsLoading(false);
+    setGpsErrorMsg(null);
+
+    if (customAddr) {
+      setLocationAddress(customAddr);
+      return;
+    }
+
+    try {
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        { headers: { 'User-Agent': 'KandyCabsApp/1.0' } }
+      );
+      if (geoRes.ok) {
+        const geoData = await geoRes.json();
+        if (geoData && geoData.display_name) {
+          const parts = geoData.display_name.split(', ');
+          const cleanAddress = parts.slice(0, 4).join(', ');
+          setLocationAddress(cleanAddress);
+        }
+      }
+    } catch {}
+  };
+
   const requestDeviceGpsLocation = () => {
     setIsGpsLoading(true);
     setGpsErrorMsg(null);
 
+    const fallbackToRegionalLocation = () => {
+      const addr = defaultAddress || 'Mangaluru Central, Mangaluru';
+      const isUdupi = addr.toLowerCase().includes('udupi');
+      const fallbackLat = isUdupi ? 13.3409 : 12.9141;
+      const fallbackLng = isUdupi ? 74.7421 : 74.8560;
+
+      applyLocation(fallbackLat, fallbackLng, 15.0, addr);
+    };
+
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      // Tier 1: Try high accuracy GPS (5s timeout)
       navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const acc = pos.coords.accuracy || 3.5;
-
-          setGpsCoords({ lat, lng, accuracy: acc });
-          setIsGpsLoading(false);
-
-          // Live Reverse Geocode exact physical address
-          try {
-            const geoRes = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-              { headers: { 'User-Agent': 'KandyCabsApp/1.0' } }
-            );
-            if (geoRes.ok) {
-              const geoData = await geoRes.json();
-              if (geoData && geoData.display_name) {
-                const parts = geoData.display_name.split(', ');
-                const cleanAddress = parts.slice(0, 4).join(', ');
-                setLocationAddress(cleanAddress);
-              }
-            }
-          } catch {}
+        (pos) => {
+          applyLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy || 3.5);
         },
         (err) => {
-          setIsGpsLoading(false);
-          if (err.code === err.PERMISSION_DENIED) {
-            setGpsErrorMsg('Location access denied. Please click "Allow Location" in your browser address bar.');
-          } else {
-            setGpsErrorMsg('GPS acquiring... Click "Sync Device GPS" button to re-scan exact location.');
-          }
+          // Tier 2: Try low accuracy / cellular / Wi-Fi position (5s timeout)
+          navigator.geolocation.getCurrentPosition(
+            (pos2) => {
+              applyLocation(pos2.coords.latitude, pos2.coords.longitude, pos2.coords.accuracy || 10.0);
+            },
+            () => {
+              // Tier 3: Fetch IP Geolocation or fallback regional coordinates
+              fetch('https://ipapi.co/json/')
+                .then((res) => res.json())
+                .then((ipData) => {
+                  if (ipData && ipData.latitude && ipData.longitude) {
+                    const addr = `${ipData.city || 'Mangaluru'}, ${ipData.region || 'Karnataka'}`;
+                    applyLocation(ipData.latitude, ipData.longitude, 20.0, addr);
+                  } else {
+                    fallbackToRegionalLocation();
+                  }
+                })
+                .catch(() => {
+                  fallbackToRegionalLocation();
+                });
+            },
+            { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+          );
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 30000 }
       );
     } else {
-      setIsGpsLoading(false);
-      setGpsErrorMsg('Geolocation API is unsupported in this browser.');
+      fallbackToRegionalLocation();
     }
   };
 
@@ -115,21 +146,15 @@ export const GeotagCameraModal: React.FC<Props> = ({
     // Request immediate high-accuracy device GPS
     requestDeviceGpsLocation();
 
-    // Watch live high-precision hardware GPS location
+    // Watch live hardware GPS location
     let watchId: number | null = null;
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          setGpsCoords({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy || 3.5,
-          });
-          setIsGpsLoading(false);
-          setGpsErrorMsg(null);
+          applyLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy || 3.5);
         },
         () => {},
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 10000 }
       );
     }
 
