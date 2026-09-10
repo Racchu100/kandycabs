@@ -37,14 +37,7 @@ export async function POST(req: Request) {
     // 2. Upload Compressed WebP File to Supabase Storage Bucket `cab-photos`
     const uploadResult = await uploadCabPhotoToSupabase(storagePath, imageDataUrl, 'image/webp');
 
-    if (!uploadResult.success) {
-      return NextResponse.json(
-        { success: false, error: uploadResult.error || 'Failed to upload photo to Supabase Storage' },
-        { status: 500 }
-      );
-    }
-
-    const publicUrl = uploadResult.publicUrl;
+    const publicUrl = (uploadResult.success && uploadResult.publicUrl) ? uploadResult.publicUrl : imageDataUrl;
 
     // 3. Save Supabase Storage Public URL to Supabase Database
     if (bookingId) {

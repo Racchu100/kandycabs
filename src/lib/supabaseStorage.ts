@@ -168,13 +168,10 @@ export async function uploadCabPhotoToSupabase(
       });
 
     if (error) {
-      // Fallback: Generate deterministic public cloud URL
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${path}`;
-      uploadDeduplicationCache.set(path, { publicUrl, uploadedAt: Date.now() });
-
+      console.warn('Supabase storage upload API warning:', error.message);
       return {
-        success: true,
-        publicUrl,
+        success: false,
+        publicUrl: '',
         path,
         error: error.message,
       };
@@ -196,10 +193,10 @@ export async function uploadCabPhotoToSupabase(
       path,
     };
   } catch (err: any) {
-    const fallbackUrl = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${path}`;
+    console.error('Supabase storage upload exception:', err);
     return {
-      success: true,
-      publicUrl: fallbackUrl,
+      success: false,
+      publicUrl: '',
       path,
       error: err.message || 'Storage upload error',
     };

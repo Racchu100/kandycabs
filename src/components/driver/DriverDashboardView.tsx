@@ -1935,11 +1935,11 @@ export const DriverDashboardView: React.FC = () => {
           bookingId={cameraModalConfig.bookingId}
           category={cameraModalConfig.type === 'TOLL_RECEIPT' ? 'receipt' : 'odometer'}
           onCapture={(imageDataUrl, _meta, cloudUrl) => {
-            const finalPhotoUrl = cloudUrl || imageDataUrl;
+            const finalPhotoUrl: string = imageDataUrl || cloudUrl || '';
             const bId = cameraModalConfig.bookingId;
             if (cameraModalConfig.type === 'PICKUP_METER') {
               setMeterImages((prev) => {
-                const next = { ...prev, [bId]: finalPhotoUrl };
+                const next: Record<string, string> = { ...prev, [bId]: finalPhotoUrl };
                 try {
                   localStorage.setItem('kc_driver_meter_images', JSON.stringify(next));
                 } catch {}
@@ -1947,7 +1947,7 @@ export const DriverDashboardView: React.FC = () => {
               });
             } else if (cameraModalConfig.type === 'DROPOFF_METER') {
               setEndMeterImages((prev) => {
-                const next = { ...prev, [bId]: finalPhotoUrl };
+                const next: Record<string, string> = { ...prev, [bId]: finalPhotoUrl };
                 try {
                   localStorage.setItem('kc_driver_end_meter_images', JSON.stringify(next));
                 } catch {}
