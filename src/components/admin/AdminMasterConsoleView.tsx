@@ -1174,15 +1174,16 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
 
             {/* Incoming Driver Join Requests from Contact Page (Only show un-registered/pending applicants) */}
             {(() => {
-              const allReqs = (typeof window !== 'undefined') ? JSON.parse(localStorage.getItem('kc_driver_join_requests') || '[]') : [];
+              const allReqs = getDriverPartnerRequests();
               const pendingReqs = allReqs.filter((r: any) => {
                 if (r.status === 'ONBOARDED' || r.status === 'REJECTED') return false;
-                const isAlreadyRegistered = drivers.some(
-                  (d) =>
-                    d.phone === r.phone ||
-                    (r.phone && d.phone && d.phone.replace(/\D/g, '') === r.phone.replace(/\D/g, '')) ||
-                    d.fullName.toLowerCase().trim() === r.name.toLowerCase().trim()
-                );
+                const rCleanP = (r.phone || '').replace(/\D/g, '').slice(-10);
+                const rCleanN = (r.name || '').toLowerCase().trim();
+                const isAlreadyRegistered = drivers.some((d) => {
+                  const dCleanP = (d.phone || '').replace(/\D/g, '').slice(-10);
+                  const dCleanN = (d.fullName || '').toLowerCase().trim();
+                  return (rCleanP && dCleanP && rCleanP === dCleanP) || (rCleanN && dCleanN && rCleanN === dCleanN);
+                });
                 return !isAlreadyRegistered;
               });
 

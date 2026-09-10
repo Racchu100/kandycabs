@@ -63,9 +63,33 @@ const driverStore: DriverAccountRecord[] = [
 ];
 
 /**
+ * Save driver accounts list to localStorage for persistence across reloads
+ */
+function saveDriverAccounts(list: DriverAccountRecord[]) {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('kc_driver_accounts', JSON.stringify(list));
+      window.dispatchEvent(new Event('storage'));
+    } catch {}
+  }
+}
+
+/**
  * Get all registered drivers for Admin Console
  */
 export function getAllDriverAccounts(): DriverAccountRecord[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('kc_driver_accounts');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+      localStorage.setItem('kc_driver_accounts', JSON.stringify(driverStore));
+    } catch {}
+  }
   return [...driverStore];
 }
 
@@ -74,10 +98,11 @@ export function getAllDriverAccounts(): DriverAccountRecord[] {
  */
 export function getDriverByPhoneOrUsername(identifier: string): DriverAccountRecord | undefined {
   const cleanId = identifier.trim().replace(/\D/g, '');
-  return driverStore.find(
+  const allDrivers = getAllDriverAccounts();
+  return allDrivers.find(
     (d) =>
       d.phone === identifier.trim() ||
-      (cleanId.length >= 10 && d.phone === cleanId) ||
+      (cleanId.length >= 10 && d.phone.replace(/\D/g, '').slice(-10) === cleanId.slice(-10)) ||
       d.username.toLowerCase() === identifier.trim().toLowerCase() ||
       d.id === identifier.trim()
   );
@@ -95,13 +120,20 @@ export function setDriverPassword(
     return { success: false, error: 'Password must be at least 4 characters long.' };
   }
 
-  const driver = driverStore.find((d) => d.id === driverId || d.phone === driverId || d.username === driverId);
+  const allDrivers = getAllDriverAccounts();
+  const driver = allDrivers.find((d) => d.id === driverId || d.phone === driverId || d.username === driverId);
   if (!driver) {
     return { success: false, error: 'Driver account not found.' };
   }
 
   driver.password = newPassword.trim();
   driver.updatedAt = new Date().toISOString();
+
+  // Also update in-memory seed store if present
+  const seedDriver = driverStore.find((d) => d.id === driver.id);
+  if (seedDriver) seedDriver.password = driver.password;
+
+  saveDriverAccounts(allDrivers);
 
   // Record Audit Log for security trail
   recordAuditLog({
@@ -124,11 +156,12 @@ export function verifyDriverCredentials(
   inputPass: string
 ): { success: boolean; driver?: DriverAccountRecord; error?: string } {
   const cleanId = identifier.trim().replace(/\D/g, '');
+  const allDrivers = getAllDriverAccounts();
 
-  const driver = driverStore.find(
+  const driver = allDrivers.find(
     (d) =>
       d.phone === identifier.trim() ||
-      (cleanId.length >= 10 && d.phone === cleanId) ||
+      (cleanId.length >= 10 && d.phone.replace(/\D/g, '').slice(-10) === cleanId.slice(-10)) ||
       d.username.toLowerCase() === identifier.trim().toLowerCase() ||
       d.id === identifier.trim()
   );
@@ -160,7 +193,26 @@ export function addDriverAccount(
     updatedAt: new Date().toISOString(),
   };
 
+  const allDrivers = getAllDriverAccounts();
+  allDrivers.push(record);
   driverStore.push(record);
+
+  saveDriverAccounts(allDrivers);
+
+  // Auto-mark any matching applicant request as ONBOARDED
+  try {
+    const cleanP = record.phone.replace(/\D/g, '').slice(-10);
+    const cleanN = record.fullName.toLowerCase().trim();
+    const reqs = getDriverPartnerRequests();
+    const match = reqs.find((r) => {
+      const rP = (r.phone || '').replace(/\D/g, '').slice(-10);
+      const rN = (r.name || '').toLowerCase().trim();
+      return (cleanP && rP && cleanP === rP) || (cleanN && rN && cleanN === rN);
+    });
+    if (match) {
+      updateDriverPartnerRequestStatus(match.id, 'ONBOARDED');
+    }
+  } catch {}
 
   recordAuditLog({
     adminId: 'admin_super',
@@ -182,7 +234,8 @@ export function updateDriverAccount(
   updates: Partial<Omit<DriverAccountRecord, 'id' | 'createdAt'>>,
   adminName: string = 'Super Admin'
 ): { success: boolean; driver?: DriverAccountRecord; error?: string } {
-  const driver = driverStore.find((d) => d.id === driverId || d.phone === driverId);
+  const allDrivers = getAllDriverAccounts();
+  const driver = allDrivers.find((d) => d.id === driverId || d.phone === driverId);
   if (!driver) {
     return { success: false, error: 'Driver account not found.' };
   }
@@ -199,6 +252,8 @@ export function updateDriverAccount(
   if (updates.status) driver.status = updates.status;
 
   driver.updatedAt = new Date().toISOString();
+
+  saveDriverAccounts(allDrivers);
 
   recordAuditLog({
     adminId: 'admin_super',
@@ -219,12 +274,14 @@ export function deleteDriverAccount(
   driverId: string,
   adminName: string = 'Super Admin'
 ): { success: boolean; error?: string } {
-  const idx = driverStore.findIndex((d) => d.id === driverId || d.phone === driverId);
+  let allDrivers = getAllDriverAccounts();
+  const idx = allDrivers.findIndex((d) => d.id === driverId || d.phone === driverId);
   if (idx === -1) {
     return { success: false, error: 'Driver account not found.' };
   }
 
-  const removed = driverStore.splice(idx, 1)[0];
+  const removed = allDrivers.splice(idx, 1)[0];
+  saveDriverAccounts(allDrivers);
 
   recordAuditLog({
     adminId: 'admin_super',
@@ -245,7 +302,8 @@ export function setDriverDutyStatus(
   driverId: string,
   newStatus: string
 ): { success: boolean; driver?: DriverAccountRecord; error?: string } {
-  const driver = driverStore.find((d) => d.id === driverId);
+  const allDrivers = getAllDriverAccounts();
+  const driver = allDrivers.find((d) => d.id === driverId);
   return { success: true, driver };
 }
 
@@ -290,20 +348,45 @@ const SEED_DRIVER_REQUESTS: DriverJoinRequestRecord[] = [
 ];
 
 export function getDriverPartnerRequests(): DriverJoinRequestRecord[] {
+  let list: DriverJoinRequestRecord[] = SEED_DRIVER_REQUESTS;
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('kc_driver_join_requests');
       if (stored) {
         const parsed: DriverJoinRequestRecord[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          list = parsed;
         }
+      } else {
+        localStorage.setItem('kc_driver_join_requests', JSON.stringify(SEED_DRIVER_REQUESTS));
       }
-      localStorage.setItem('kc_driver_join_requests', JSON.stringify(SEED_DRIVER_REQUESTS));
-      return SEED_DRIVER_REQUESTS;
+    } catch {}
+
+    // Auto-sync ONBOARDED status with registered driver accounts
+    try {
+      const registeredDrivers = getAllDriverAccounts();
+      let updated = false;
+      list.forEach((r) => {
+        if (r.status !== 'ONBOARDED' && r.status !== 'REJECTED') {
+          const rPhone = (r.phone || '').replace(/\D/g, '').slice(-10);
+          const rName = (r.name || '').toLowerCase().trim();
+          const isRegistered = registeredDrivers.some((d) => {
+            const dPhone = (d.phone || '').replace(/\D/g, '').slice(-10);
+            const dName = (d.fullName || '').toLowerCase().trim();
+            return (rPhone && dPhone && rPhone === dPhone) || (rName && dName && rName === dName);
+          });
+          if (isRegistered) {
+            r.status = 'ONBOARDED';
+            updated = true;
+          }
+        }
+      });
+      if (updated && typeof window !== 'undefined') {
+        localStorage.setItem('kc_driver_join_requests', JSON.stringify(list));
+      }
     } catch {}
   }
-  return SEED_DRIVER_REQUESTS;
+  return list;
 }
 
 export function updateDriverPartnerRequestStatus(
