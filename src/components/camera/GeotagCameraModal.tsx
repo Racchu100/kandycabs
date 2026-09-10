@@ -26,7 +26,9 @@ export const GeotagCameraModal: React.FC<Props> = ({
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
-  
+  const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
+  const [showCameraRequiredPopup, setShowCameraRequiredPopup] = useState<boolean>(false);
+
   // GPS State
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [isGpsLoading, setIsGpsLoading] = useState<boolean>(true);
@@ -34,6 +36,10 @@ export const GeotagCameraModal: React.FC<Props> = ({
   const [locationAddress, setLocationAddress] = useState<string>(defaultAddress);
   const [timestampStr, setTimestampStr] = useState<string>('');
   const [showGpsRequiredPopup, setShowGpsRequiredPopup] = useState<boolean>(false);
+
+  const isCameraActive = Boolean(stream && stream.active && isVideoReady && !cameraError);
+  const isGpsActive = Boolean(gpsCoords && !isGpsLoading && !gpsErrorMsg);
+  const canSnap = isCameraActive && isGpsActive;
 
   const requestDeviceGpsLocation = () => {
     setIsGpsLoading(true);
@@ -87,16 +93,19 @@ export const GeotagCameraModal: React.FC<Props> = ({
     // Update live timestamp string
     const updateTime = () => {
       const now = new Date();
-      const formatted = now.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      }) + ', ' + now.toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-      });
+      const formatted =
+        now.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }) +
+        ', ' +
+        now.toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true,
+        });
       setTimestampStr(formatted);
     };
 
@@ -117,6 +126,7 @@ export const GeotagCameraModal: React.FC<Props> = ({
             accuracy: pos.coords.accuracy || 3.5,
           });
           setIsGpsLoading(false);
+          setGpsErrorMsg(null);
         },
         () => {},
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -147,6 +157,7 @@ export const GeotagCameraModal: React.FC<Props> = ({
 
   const startCamera = async (mode: 'environment' | 'user') => {
     setCameraError(null);
+    setIsVideoReady(false);
     stopCamera();
 
     try {
@@ -163,13 +174,18 @@ export const GeotagCameraModal: React.FC<Props> = ({
         setStream(mediaStream);
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
+          videoRef.current.play().then(() => {
+            setIsVideoReady(true);
+          }).catch(() => {});
         }
       } else {
-        setCameraError('Camera access API is not supported in this browser. Please use File Upload below.');
+        setCameraError('Camera access API is not supported in this browser. Please allow camera permissions.');
+        setIsVideoReady(false);
       }
     } catch (err: any) {
       console.warn('Camera stream request fallback:', err);
-      setCameraError('Live camera feed unavailable or permission required. You can upload a photo from your gallery below with automatic location watermarking.');
+      setCameraError('Live camera feed unavailable or permission required. Turn ON camera or grant camera permission to snap photos.');
+      setIsVideoReady(false);
     }
   };
 
@@ -178,6 +194,7 @@ export const GeotagCameraModal: React.FC<Props> = ({
       stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
+    setIsVideoReady(false);
   };
 
   const handleToggleCamera = () => {
@@ -289,13 +306,21 @@ export const GeotagCameraModal: React.FC<Props> = ({
   };
 
   const handleCapturePhoto = () => {
-    if (!gpsCoords) {
+    if (!isCameraActive) {
+      setShowCameraRequiredPopup(true);
+      return;
+    }
+
+    if (!isGpsActive || !gpsCoords) {
       setShowGpsRequiredPopup(true);
       return;
     }
 
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setShowCameraRequiredPopup(true);
+      return;
+    }
 
     const canvas = document.createElement('canvas');
     const width = video.videoWidth || 1280;
@@ -324,7 +349,7 @@ export const GeotagCameraModal: React.FC<Props> = ({
 
   // Fallback file input upload with location watermarking
   const handleFileUploadFallback = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!gpsCoords) {
+    if (!isGpsActive || !gpsCoords) {
       e.target.value = '';
       setShowGpsRequiredPopup(true);
       return;
@@ -410,8 +435,14 @@ export const GeotagCameraModal: React.FC<Props> = ({
             <h3 style={{ margin: 0, fontSize: '15px', color: '#F8FAFC', fontWeight: 800 }}>
               {title}
             </h3>
-            <div style={{ fontSize: '11.5px', color: '#10B981', marginTop: '2px', fontWeight: 700 }}>
-              📍 Real-Time Visual Map & Location Watermark Active
+            <div style={{ fontSize: '11.5px', color: canSnap ? '#10B981' : '#F87171', marginTop: '2px', fontWeight: 700 }}>
+              {canSnap
+                ? '📍 Real-Time Visual Map & Live Camera Stream Active'
+                : !isCameraActive && !isGpsActive
+                ? '⚠️ Live Camera Stream & GPS Location BOTH Required'
+                : !isCameraActive
+                ? '📷 Live Camera Stream OFF / Permission Required'
+                : '📡 Device GPS Location Turned OFF / Acquiring...'}
             </div>
           </div>
           <button
@@ -436,10 +467,31 @@ export const GeotagCameraModal: React.FC<Props> = ({
 
         {/* Viewfinder Container */}
         <div style={{ position: 'relative', width: '100%', height: '480px', background: '#000', overflow: 'hidden' }}>
-          {cameraError ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            onLoadedMetadata={() => {
+              if (videoRef.current) {
+                videoRef.current.play().then(() => setIsVideoReady(true)).catch(() => {});
+              }
+            }}
+            onPlaying={() => setIsVideoReady(true)}
+            onCanPlay={() => setIsVideoReady(true)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+
+          {/* Camera Feed Offline / Blocked Overlay */}
+          {(!isCameraActive || cameraError) && (
             <div
               style={{
-                height: '100%',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: '100px',
+                background: 'rgba(15, 23, 42, 0.92)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -447,280 +499,298 @@ export const GeotagCameraModal: React.FC<Props> = ({
                 padding: '20px',
                 textAlign: 'center',
                 color: '#F8FAFC',
+                zIndex: 4,
               }}
             >
-              <div style={{ fontSize: '32px', marginBottom: '10px' }}>📷</div>
-              <div style={{ fontSize: '13px', color: '#CBD5E1', marginBottom: '16px', maxWidth: '400px' }}>
-                {cameraError}
+              <div style={{ fontSize: '40px', marginBottom: '10px' }}>📷</div>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#F87171', marginBottom: '6px' }}>
+                {cameraError ? 'Camera Feed OFF / Permission Blocked' : 'Initializing Live Camera Feed...'}
               </div>
-              <label
+              <div style={{ fontSize: '12.5px', color: '#CBD5E1', marginBottom: '16px', maxWidth: '400px', lineHeight: 1.5 }}>
+                {cameraError || 'Please wait while camera video stream loads or click button below to turn ON camera.'}
+              </div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => startCamera(facingMode)}
+                  style={{
+                    background: '#EF4444',
+                    color: '#fff',
+                    padding: '10px 18px',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                  }}
+                >
+                  📷 Turn ON Live Camera Feed
+                </button>
+
+                <label
+                  style={{
+                    background: '#334155',
+                    color: '#fff',
+                    padding: '10px 18px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  📁 Select Photo from Gallery
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUploadFallback}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Viewfinder Frame Guide */}
+          {isCameraActive && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '16px',
+                left: '16px',
+                right: '16px',
+                bottom: '120px',
+                border: '2px dashed rgba(255, 255, 255, 0.4)',
+                borderRadius: '12px',
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                paddingTop: '10px',
+                zIndex: 3,
+              }}
+            >
+              <span
                 style={{
-                  background: '#10B981',
+                  background: 'rgba(0,0,0,0.6)',
                   color: '#fff',
-                  padding: '10px 18px',
-                  borderRadius: '8px',
+                  fontSize: '11px',
+                  padding: '3px 10px',
+                  borderRadius: '12px',
                   fontWeight: 700,
-                  fontSize: '13px',
-                  cursor: 'pointer',
                 }}
               >
-                📁 Select Photo from Gallery / Files
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUploadFallback}
-                  style={{ display: 'none' }}
-                />
-              </label>
+                Align Odometer Display Here
+              </span>
             </div>
-          ) : (
-            <>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+          )}
 
-              {/* Viewfinder Frame Guide */}
+          {/* Top Camera Controls */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              display: 'flex',
+              gap: '8px',
+              zIndex: 5,
+            }}
+          >
+            <button
+              type="button"
+              onClick={requestDeviceGpsLocation}
+              style={{
+                background: isGpsActive ? '#10B981' : isGpsLoading ? '#3B82F6' : '#EF4444',
+                border: 'none',
+                color: '#fff',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: isGpsActive ? '0 2px 8px rgba(16, 185, 129, 0.4)' : '0 2px 8px rgba(239, 68, 68, 0.4)',
+              }}
+            >
+              {isGpsLoading ? '📡 Acquiring GPS...' : isGpsActive ? '📍 Sync / Allow Device GPS' : '📡 Turn ON GPS'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleCamera}
+              style={{
+                background: 'rgba(15, 23, 42, 0.75)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#fff',
+                padding: '6px 10px',
+                borderRadius: '20px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              🔄 Flip Camera
+            </button>
+          </div>
+
+          {/* BOTTOM VISUAL MAP LOCATION BANNER OVERLAY */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: 'rgba(15, 23, 42, 0.92)',
+              borderTop: `2px solid ${isGpsActive ? '#10B981' : '#EF4444'}`,
+              padding: '12px 16px',
+              color: '#fff',
+              backdropFilter: 'blur(6px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              zIndex: 5,
+            }}
+          >
+            {/* Visual Mini Map Graphic Box */}
+            <div
+              style={{
+                width: '100px',
+                height: '74px',
+                background: '#1E293B',
+                borderRadius: '8px',
+                border: '1.5px solid #334155',
+                position: 'relative',
+                overflow: 'hidden',
+                flexShrink: 0,
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              {/* Exact Map Static Tile */}
+              {gpsCoords && (
+                <img
+                  src={
+                    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+                      ? `https://maps.googleapis.com/maps/api/staticmap?center=${gpsCoords.lat},${gpsCoords.lng}&zoom=15&size=200x150&maptype=roadmap&markers=color:red%7C${gpsCoords.lat},${gpsCoords.lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+                      : `https://staticmap.openstreetmap.de/staticmap.php?center=${gpsCoords.lng},${gpsCoords.lat}&zoom=15&size=200x150&maptype=mapnik&markers=${gpsCoords.lng},${gpsCoords.lat},ol-marker`
+                  }
+                  alt="Exact Map"
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1 }}
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              )}
+
+              <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
+                <defs>
+                  <pattern id="map-grid-pattern" width="18" height="18" patternUnits="userSpaceOnUse">
+                    <path d="M 18 0 L 0 0 0 18" fill="none" stroke="#334155" strokeWidth="0.8" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="#0F172A" />
+                <rect width="100%" height="100%" fill="url(#map-grid-pattern)" opacity="0.6" />
+                <path d="M-10 20 Q 40 10 110 50" fill="none" stroke="#38BDF8" strokeWidth="3" opacity="0.8" />
+                <path d="M 50 -10 L 50 80" fill="none" stroke="#64748B" strokeWidth="2.5" opacity="0.7" />
+              </svg>
+
               <div
                 style={{
                   position: 'absolute',
-                  top: '16px',
-                  left: '16px',
-                  right: '16px',
-                  bottom: '120px',
-                  border: '2px dashed rgba(255, 255, 255, 0.4)',
-                  borderRadius: '12px',
-                  pointerEvents: 'none',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
                   display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'center',
-                  paddingTop: '10px',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  zIndex: 2,
                 }}
               >
+                <span style={{ fontSize: '18px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>📍</span>
                 <span
                   style={{
-                    background: 'rgba(0,0,0,0.6)',
-                    color: '#fff',
-                    fontSize: '11px',
-                    padding: '3px 10px',
-                    borderRadius: '12px',
-                    fontWeight: 700,
+                    width: '8px',
+                    height: '4px',
+                    background: 'rgba(16, 185, 129, 0.6)',
+                    borderRadius: '50%',
+                    boxShadow: '0 0 8px #10B981',
                   }}
-                >
-                  Align Odometer Display Here
-                </span>
+                />
               </div>
 
-              {/* Top Camera Controls */}
               <div
                 style={{
                   position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  display: 'flex',
-                  gap: '8px',
-                  zIndex: 5,
+                  top: '4px',
+                  left: '4px',
+                  background: isGpsActive ? '#10B981' : '#EF4444',
+                  color: '#ffffff',
+                  fontSize: '9px',
+                  fontWeight: 800,
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  letterSpacing: '.05em',
+                  zIndex: 2,
                 }}
               >
-                <button
-                  type="button"
-                  onClick={requestDeviceGpsLocation}
-                  style={{
-                    background: isGpsLoading ? '#3B82F6' : '#10B981',
-                    border: 'none',
-                    color: '#fff',
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    fontSize: '11.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
-                  }}
-                >
-                  {isGpsLoading ? '📡 Acquiring GPS...' : '📍 Sync / Allow Device GPS'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleToggleCamera}
-                  style={{
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#fff',
-                    padding: '6px 10px',
-                    borderRadius: '20px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    backdropFilter: 'blur(4px)',
-                  }}
-                >
-                  🔄 Flip Camera
-                </button>
+                MAP
               </div>
+            </div>
 
-              {/* BOTTOM VISUAL MAP LOCATION BANNER OVERLAY */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  background: 'rgba(15, 23, 42, 0.92)',
-                  borderTop: '2px solid #10B981',
-                  padding: '12px 16px',
-                  color: '#fff',
-                  backdropFilter: 'blur(6px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                }}
-              >
-                {/* Visual Mini Map Graphic Box */}
-                <div
+            {/* Geotag Text Meta */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                <span
                   style={{
-                    width: '100px',
-                    height: '74px',
-                    background: '#1E293B',
-                    borderRadius: '8px',
-                    border: '1.5px solid #334155',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
+                    display: 'inline-block',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: isGpsActive ? '#10B981' : '#EF4444',
+                    boxShadow: isGpsActive ? '0 0 8px #10B981' : '0 0 8px #EF4444',
                   }}
-                >
-                  {/* Exact Map Static Tile */}
-                  {gpsCoords && (
-                    <img
-                      src={
-                        process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-                          ? `https://maps.googleapis.com/maps/api/staticmap?center=${gpsCoords.lat},${gpsCoords.lng}&zoom=15&size=200x150&maptype=roadmap&markers=color:red%7C${gpsCoords.lat},${gpsCoords.lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-                          : `https://staticmap.openstreetmap.de/staticmap.php?center=${gpsCoords.lng},${gpsCoords.lat}&zoom=15&size=200x150&maptype=mapnik&markers=${gpsCoords.lng},${gpsCoords.lat},ol-marker`
-                      }
-                      alt="Exact Map"
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1 }}
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                  )}
-
-                  <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
-                    <defs>
-                      <pattern id="map-grid-pattern" width="18" height="18" patternUnits="userSpaceOnUse">
-                        <path d="M 18 0 L 0 0 0 18" fill="none" stroke="#334155" strokeWidth="0.8" />
-                      </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="#0F172A" />
-                    <rect width="100%" height="100%" fill="url(#map-grid-pattern)" opacity="0.6" />
-                    <path d="M-10 20 Q 40 10 110 50" fill="none" stroke="#38BDF8" strokeWidth="3" opacity="0.8" />
-                    <path d="M 50 -10 L 50 80" fill="none" stroke="#64748B" strokeWidth="2.5" opacity="0.7" />
-                  </svg>
-
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      zIndex: 2,
-                    }}
-                  >
-                    <span style={{ fontSize: '18px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>📍</span>
-                    <span
-                      style={{
-                        width: '8px',
-                        height: '4px',
-                        background: 'rgba(16, 185, 129, 0.6)',
-                        borderRadius: '50%',
-                        boxShadow: '0 0 8px #10B981',
-                      }}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '4px',
-                      left: '4px',
-                      background: '#10B981',
-                      color: '#ffffff',
-                      fontSize: '9px',
-                      fontWeight: 800,
-                      padding: '1px 5px',
-                      borderRadius: '4px',
-                      letterSpacing: '.05em',
-                      zIndex: 2,
-                    }}
-                  >
-                    MAP
-                  </div>
-                </div>
-
-                {/* Geotag Text Meta */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: gpsCoords ? '#10B981' : '#F59E0B',
-                        boxShadow: gpsCoords ? '0 0 8px #10B981' : '0 0 8px #F59E0B',
-                      }}
-                    />
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      📍 {locationAddress}
-                    </div>
-                  </div>
-
-                  <div style={{ fontSize: '11px', color: '#34D399', fontWeight: 700, fontFamily: 'monospace', marginBottom: '3px' }}>
-                    {isGpsLoading ? (
-                      <span style={{ color: '#F59E0B' }}>📡 Acquiring Exact Device GPS Location...</span>
-                    ) : gpsCoords ? (
-                      <span>🌐 GPS: {gpsCoords.lat.toFixed(5)}° N, {gpsCoords.lng.toFixed(5)}° E (±{gpsCoords.accuracy.toFixed(1)}m)</span>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                        <span style={{ color: '#F87171' }}>⚠️ {gpsErrorMsg || 'Location access denied / turned off.'}</span>
-                        <button
-                          type="button"
-                          onClick={requestDeviceGpsLocation}
-                          style={{
-                            background: '#E11D48',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            padding: '3px 8px',
-                            fontSize: '10.5px',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          📡 Turn On & Allow GPS
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ fontSize: '10.5px', color: '#94A3B8', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
-                    <span>📅 {timestampStr}</span>
-                    <span>🚗 {vehicleReg} • 👨‍✈️ {driverName}</span>
-                  </div>
+                />
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  📍 {locationAddress}
                 </div>
               </div>
-            </>
-          )}
+
+              <div style={{ fontSize: '11px', color: isGpsActive ? '#34D399' : '#F87171', fontWeight: 700, fontFamily: 'monospace', marginBottom: '3px' }}>
+                {isGpsLoading ? (
+                  <span style={{ color: '#F59E0B' }}>📡 Acquiring Exact Device GPS Location...</span>
+                ) : gpsCoords ? (
+                  <span>🌐 GPS: {gpsCoords.lat.toFixed(5)}° N, {gpsCoords.lng.toFixed(5)}° E (±{gpsCoords.accuracy.toFixed(1)}m)</span>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                    <span style={{ color: '#F87171' }}>⚠️ {gpsErrorMsg || 'Location access denied / turned off.'}</span>
+                    <button
+                      type="button"
+                      onClick={requestDeviceGpsLocation}
+                      style={{
+                        background: '#E11D48',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '3px 8px',
+                        fontSize: '10.5px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      📡 Turn On & Allow GPS
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ fontSize: '10.5px', color: '#94A3B8', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                <span>📅 {timestampStr}</span>
+                <span>🚗 {vehicleReg} • 👨‍✈️ {driverName}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Footer Actions */}
@@ -758,30 +828,142 @@ export const GeotagCameraModal: React.FC<Props> = ({
           <Button
             type="button"
             onClick={() => {
-              if (!gpsCoords) {
+              if (!isCameraActive) {
+                setShowCameraRequiredPopup(true);
+              } else if (!isGpsActive) {
                 setShowGpsRequiredPopup(true);
               } else {
                 handleCapturePhoto();
               }
             }}
-            disabled={!!cameraError}
             variant="accent"
             style={{
               flex: 1,
               padding: '10px 16px',
               fontSize: '14px',
               fontWeight: 800,
-              background: gpsCoords ? '#10B981' : '#F59E0B',
-              borderColor: gpsCoords ? '#10B981' : '#F59E0B',
-              color: gpsCoords ? '#FFFFFF' : '#000000',
-              opacity: cameraError ? 0.5 : 1,
-              cursor: 'pointer',
-              boxShadow: gpsCoords ? '0 4px 12px rgba(16, 185, 129, 0.4)' : '0 4px 12px rgba(245, 158, 11, 0.4)',
+              background: canSnap ? '#10B981' : '#DC2626',
+              borderColor: canSnap ? '#10B981' : '#DC2626',
+              color: '#FFFFFF',
+              opacity: canSnap ? 1 : 0.75,
+              cursor: canSnap ? 'pointer' : 'not-allowed',
+              boxShadow: canSnap
+                ? '0 4px 12px rgba(16, 185, 129, 0.4)'
+                : '0 4px 12px rgba(220, 38, 38, 0.4)',
             }}
           >
-            {gpsCoords ? '📸 Snap Geotagged Photo' : '🚨 Turn On GPS to Snap Photo'}
+            {canSnap
+              ? '📸 Snap Geotagged Photo'
+              : !isCameraActive && !isGpsActive
+              ? '🚫 Turn ON Camera & GPS to Snap Photo'
+              : !isCameraActive
+              ? '📷 Turn ON Camera Feed to Snap Photo'
+              : '📡 Turn ON Device GPS to Snap Photo'}
           </Button>
         </div>
+
+        {/* Popup Alert Modal when Camera is Turned Off / Unavailable */}
+        {showCameraRequiredPopup && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 10000,
+              background: 'rgba(0, 0, 0, 0.90)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <div
+              style={{
+                background: '#1E293B',
+                border: '2px solid #EF4444',
+                borderRadius: '16px',
+                padding: '24px',
+                maxWidth: '440px',
+                width: '100%',
+                color: '#F8FAFC',
+                textAlign: 'center',
+                boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.3)',
+              }}
+            >
+              <div style={{ fontSize: '44px', marginBottom: '10px' }}>📷</div>
+              <h3 style={{ margin: '0 0 8px', fontSize: '19px', fontWeight: 900, color: '#EF4444' }}>
+                Camera Feed OFF or Permission Blocked!
+              </h3>
+              <p style={{ fontSize: '13px', color: '#CBD5E1', lineHeight: 1.5, margin: '0 0 16px', fontWeight: 600 }}>
+                You CANNOT snap or submit geotagged Odometer photos without an active live camera feed.
+              </p>
+
+              <div
+                style={{
+                  background: '#0F172A',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #334155',
+                  fontSize: '12px',
+                  color: '#94A3B8',
+                  textAlign: 'left',
+                  marginBottom: '18px',
+                  lineHeight: 1.6,
+                }}
+              >
+                <b style={{ color: '#F87171' }}>📷 Step-by-Step Camera Setup:</b>
+                <ul style={{ margin: '6px 0 0', paddingLeft: '18px' }}>
+                  <li>Tap lock icon 🔒 / 🌐 in browser top address bar ➔ <b>Permissions</b>.</li>
+                  <li>Set <b>Camera</b> to <b>Allow</b>.</li>
+                  <li>Click <b>"📷 Turn On & Start Camera"</b> below.</li>
+                </ul>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCameraRequiredPopup(false);
+                    startCamera(facingMode);
+                  }}
+                  style={{
+                    background: '#EF4444',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                  }}
+                >
+                  📷 Turn On & Start Camera
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowCameraRequiredPopup(false)}
+                  style={{
+                    background: 'transparent',
+                    color: '#94A3B8',
+                    border: '1px solid #475569',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Popup Alert Modal when GPS is Turned Off */}
         {showGpsRequiredPopup && (
