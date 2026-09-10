@@ -865,6 +865,22 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
       'Super Admin'
     );
 
+    // Sync driver directly to Supabase DB via API
+    try {
+      fetch('/api/admin/drivers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: newDriverName,
+          phone: newDriverPhone,
+          username: newDriverUsername,
+          vehicleRegistration: newDriverVehicleReg,
+          licenseNumber: newDriverLicenseNo,
+          vendorAgencyName: newDriverVendorAgency,
+        }),
+      }).catch(() => {});
+    } catch {}
+
     // Automatically mark matching application as ONBOARDED so it disappears from incoming pending list
     try {
       const cleanP = newDriverPhone.replace(/\D/g, '');
