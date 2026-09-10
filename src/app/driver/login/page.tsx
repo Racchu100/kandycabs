@@ -45,13 +45,10 @@ export default function DriverLoginPage() {
       const driver = authRes.driver;
       const token = `driver_token_${Date.now()}`;
       const driverUser = {
-        id: driver.id,
-        fullName: driver.fullName,
-        phone: driver.phone,
+        ...driver,
         role: 'DRIVER',
-        vehicleRegistration: driver.vehicleRegistration,
-        licenseNumber: driver.licenseNumber,
-        status: driver.status,
+        canBookRides: true,
+        canManageDriver: true,
       };
 
       localStorage.setItem('kc_driver_token', token);
@@ -134,13 +131,8 @@ export default function DriverLoginPage() {
       const token = `driver_token_${Date.now()}`;
       const driverUser = driverFound
         ? {
-            id: driverFound.id,
-            fullName: driverFound.fullName,
-            phone: driverFound.phone,
+            ...driverFound,
             role: 'DRIVER',
-            vehicleRegistration: driverFound.vehicleRegistration,
-            licenseNumber: driverFound.licenseNumber,
-            status: driverFound.status || 'ACTIVE',
             canBookRides: true,
             canManageDriver: true,
           }
@@ -151,6 +143,7 @@ export default function DriverLoginPage() {
             role: 'DRIVER',
             vehicleRegistration: 'KA 19 C 4829',
             licenseNumber: 'KA19-2021-00892',
+            verificationStatus: 'APPROVED',
             canBookRides: true,
             canManageDriver: true,
           };

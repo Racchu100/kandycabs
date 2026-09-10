@@ -95,6 +95,36 @@ const driverStore: DriverAccountRecord[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: 'driver_ramesh_kumar',
+    fullName: 'Ramesh Kumar',
+    phone: '9845011223',
+    username: 'rameshkumar',
+    password: 'driver123',
+    vehicleRegistration: 'KA 19 C 4856',
+    vehicleModel: 'Swift Dzire (AC Sedan)',
+    licenseNumber: 'KA19-2021-00882',
+    vendorAgencyName: 'Sri Durga Travels & Cab Service',
+    vendorId: 'vnd_durga',
+    verificationStatus: 'APPROVED',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'driver_praveen_naik',
+    fullName: 'Praveen Naik',
+    phone: '9740223344',
+    username: 'praveennaik',
+    password: 'driver123',
+    vehicleRegistration: 'KA 19 C 4868',
+    vehicleModel: 'Toyota Innova Crysta',
+    licenseNumber: 'KA19-2021-00878',
+    vendorAgencyName: 'Kudla Wheels Travel Desk',
+    vendorId: 'vnd_kudla',
+    verificationStatus: 'APPROVED',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 /**
@@ -117,8 +147,23 @@ export function getAllDriverAccounts(): DriverAccountRecord[] {
     try {
       const stored = localStorage.getItem('kc_driver_accounts');
       if (stored) {
-        const parsed = JSON.parse(stored);
+        const parsed: DriverAccountRecord[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Merge seed drivers if missing from local storage
+          let modified = false;
+          driverStore.forEach((seed) => {
+            const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
+            const exists = parsed.some(
+              (p) => p.id === seed.id || (cleanSeedP && p.phone.replace(/\D/g, '').slice(-10) === cleanSeedP)
+            );
+            if (!exists) {
+              parsed.push(seed);
+              modified = true;
+            }
+          });
+          if (modified) {
+            localStorage.setItem('kc_driver_accounts', JSON.stringify(parsed));
+          }
           return parsed;
         }
       }

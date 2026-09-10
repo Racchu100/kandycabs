@@ -105,14 +105,8 @@ export const CustomerLoginForm: React.FC = () => {
   const setDriverSessionAndRedirect = (driver: any) => {
     const token = `driver_token_${Date.now()}`;
     const driverUser = {
-      id: driver.id,
-      fullName: driver.fullName,
-      phone: driver.phone,
-      username: driver.username,
+      ...driver,
       role: 'DRIVER',
-      vehicleRegistration: driver.vehicleRegistration,
-      licenseNumber: driver.licenseNumber,
-      status: driver.status || 'ACTIVE',
       canBookRides: true,
       canManageDriver: true,
     };

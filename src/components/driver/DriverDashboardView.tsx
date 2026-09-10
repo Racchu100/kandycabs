@@ -246,6 +246,7 @@ export const DriverDashboardView: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [gpsPermissionState, setGpsPermissionState] = useState<'GRANTED' | 'DENIED' | 'PROMPT' | 'CHECKING'>('CHECKING');
   const [showGpsHelpModal, setShowGpsHelpModal] = useState(false);
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
 
   const checkAndRequestGpsLocation = () => {
     setGpsPermissionState('CHECKING');
@@ -306,14 +307,21 @@ export const DriverDashboardView: React.FC = () => {
       setDriverUser(currentDriver);
     }
 
+    const liveDriver = getDriverByPhoneOrUsername(
+      currentDriver?.id || currentDriver?.phone || currentDriver?.username || currentDriver?.fullName
+    );
+    if (liveDriver) {
+      currentDriver = { ...liveDriver };
+      setDriverUser(liveDriver);
+      setIsOnline(liveDriver.status === 'ACTIVE' || liveDriver.status === 'ON_DUTY');
+      try {
+        localStorage.setItem('kc_driver_user', JSON.stringify(liveDriver));
+      } catch {}
+    }
+
     const targetDriverName = (currentDriver?.fullName || 'Suresh Gowda').toLowerCase().trim();
     const targetDriverPhoneDigits = (currentDriver?.phone || '9900887777').replace(/\D/g, '').slice(-10);
     const targetDriverId = currentDriver?.id || '';
-
-    const liveDriver = getDriverByPhoneOrUsername(currentDriver?.id || currentDriver?.phone || currentDriver?.fullName);
-    if (liveDriver) {
-      setIsOnline(liveDriver.status === 'ACTIVE' || liveDriver.status === 'ON_DUTY');
-    }
 
     // 1. Load from local cache first for fast initial display
     let adminBookings = getAdminBookings();
@@ -849,17 +857,43 @@ export const DriverDashboardView: React.FC = () => {
           </div>
         </div>
 
-        {/* DRIVER ONBOARDING & VERIFICATION GATE */}
-        {driverUser && driverUser.verificationStatus && driverUser.verificationStatus !== 'APPROVED' ? (
-          <DriverOnboardingView
-            driver={driverUser}
-            onVerificationSubmitted={(updated) => {
-              setDriverUser(updated);
-              loadDriverTrips();
+        {/* DRIVER VERIFICATION NOTIFICATION BANNER */}
+        {driverUser && driverUser.verificationStatus && driverUser.verificationStatus !== 'APPROVED' && (
+          <Card
+            padded
+            style={{
+              background: driverUser.verificationStatus === 'REJECTED' ? '#FEE2E2' : '#FFFBEB',
+              border: driverUser.verificationStatus === 'REJECTED' ? '2px solid #EF4444' : '2px solid #F59E0B',
+              borderRadius: '10px',
+              marginBottom: '16px',
             }}
-          />
-        ) : (
-          <>
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '20px' }}>{driverUser.verificationStatus === 'REJECTED' ? '❌' : '⏳'}</span>
+                  <h4 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: driverUser.verificationStatus === 'REJECTED' ? '#991B1B' : '#92400E' }}>
+                    {driverUser.verificationStatus === 'REJECTED'
+                      ? 'Verification Correction Required'
+                      : 'Chauffeur Credentials Under Admin Review'}
+                  </h4>
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: driverUser.verificationStatus === 'REJECTED' ? '#7F1D1D' : '#78350F' }}>
+                  {driverUser.verificationStatus === 'REJECTED'
+                    ? `Admin Feedback: ${driverUser.rejectionReason || 'Uploaded files require update.'} Please re-upload clear document copies.`
+                    : 'Your 5 vehicle photos and 3 commercial documents are being audited by Admin. You can manage assigned trips below.'}
+                </p>
+              </div>
+              <Button
+                onClick={() => setShowOnboardingModal(true)}
+                variant="accent"
+                style={{ fontSize: '12.5px', fontWeight: 800, padding: '8px 16px' }}
+              >
+                📋 {driverUser.verificationStatus === 'REJECTED' ? 'Re-upload Credentials' : 'Manage Verification Uploads'}
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* GPS Location Services Warning Banner */}
         {gpsPermissionState === 'DENIED' && (
@@ -2058,7 +2092,66 @@ export const DriverDashboardView: React.FC = () => {
             }
           }}
         />
-        </>
+
+        {/* Verification Credentials Upload Modal */}
+        {showOnboardingModal && driverUser && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(15, 23, 42, 0.8)',
+              zIndex: 99999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            <div
+              style={{
+                background: '#F8FAFC',
+                borderRadius: '16px',
+                maxWidth: '850px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '20px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+                position: 'relative',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowOnboardingModal(false)}
+                  style={{
+                    background: '#E2E8F0',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '34px',
+                    height: '34px',
+                    cursor: 'pointer',
+                    fontWeight: 800,
+                    fontSize: '16px',
+                    color: '#334155',
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <DriverOnboardingView
+                driver={driverUser}
+                onVerificationSubmitted={(updated) => {
+                  setDriverUser(updated);
+                  loadDriverTrips();
+                }}
+              />
+            </div>
+          </div>
         )}
       </Container>
     </section>
