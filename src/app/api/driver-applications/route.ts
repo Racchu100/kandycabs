@@ -7,6 +7,7 @@ export const revalidate = 0;
 // Global server instance memory store for zero-latency fallbacks across requests
 const globalStore = global as unknown as {
   driverApplicationsMemory?: any[];
+  deletedDriverAppIds?: Set<string>;
 };
 
 if (!globalStore.driverApplicationsMemory) {
@@ -41,41 +42,43 @@ if (!globalStore.driverApplicationsMemory) {
   ];
 }
 
+if (!globalStore.deletedDriverAppIds) {
+  globalStore.deletedDriverAppIds = new Set<string>();
+}
+
 const memoryApps = globalStore.driverApplicationsMemory;
+const deletedAppIds = globalStore.deletedDriverAppIds;
+
+function isAppDeleted(app: any): boolean {
+  if (!app) return true;
+  if (app.status === 'REJECTED' || app.status === 'ONBOARDED') return true;
+  if (deletedAppIds.has(app.id)) return true;
+  const cleanP = (app.phone || '').toString().replace(/\D/g, '').slice(-10);
+  if (cleanP && (deletedAppIds.has(cleanP) || deletedAppIds.has(`phone_${cleanP}`))) return true;
+  return false;
+}
 
 export async function GET() {
   try {
     const dbApps = await prisma.driverApplication.findMany({
+      where: {
+        status: { notIn: ['REJECTED', 'ONBOARDED'] },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
     if (dbApps && dbApps.length > 0) {
-      // Merge memory apps into DB list (avoid duplicates by ID or phone)
       const dbPhones = new Set(dbApps.map((a) => a.phone));
       const memoryOnly = memoryApps.filter((m) => !dbPhones.has(m.phone));
-      const combined = [...dbApps, ...memoryOnly];
+      const combined = [...dbApps, ...memoryOnly].filter((a) => !isAppDeleted(a));
       return NextResponse.json({ success: true, data: combined });
-    } else {
-      // Seed DB asynchronously
-      for (const seed of memoryApps) {
-        try {
-          await prisma.driverApplication.create({
-            data: {
-              name: seed.name,
-              phone: seed.phone,
-              city: seed.city || 'Mangaluru',
-              vehicleDetails: seed.vehicleDetails || 'AC Sedan',
-              status: seed.status || 'PENDING_CONTACT',
-            },
-          });
-        } catch {}
-      }
     }
   } catch (error) {
     console.warn('Prisma DB query fallback in driver-applications GET:', error);
   }
 
-  return NextResponse.json({ success: true, data: memoryApps });
+  const filteredMemory = memoryApps.filter((a) => !isAppDeleted(a));
+  return NextResponse.json({ success: true, data: filteredMemory });
 }
 
 export async function POST(req: Request) {
@@ -99,10 +102,8 @@ export async function POST(req: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    // Store in global memory store immediately
     memoryApps.unshift(newAppRecord);
 
-    // Persist in Prisma database
     try {
       const createdInDb = await prisma.driverApplication.create({
         data: {
@@ -134,14 +135,18 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: false, error: 'Status is required.' }, { status: 400 });
     }
 
-    // Update memory store
+    if (id) deletedAppIds.add(id);
+    if (phone) {
+      const cleanP = phone.toString().replace(/[^0-9]/g, '').slice(-10);
+      if (cleanP) deletedAppIds.add(`phone_${cleanP}`);
+    }
+
     memoryApps.forEach((item) => {
       if (item.id === id || (phone && item.phone.includes(phone.toString().replace(/\D/g, '').slice(-10)))) {
         item.status = status;
       }
     });
 
-    // Update Prisma DB
     try {
       if (id) {
         await prisma.driverApplication.update({
@@ -174,22 +179,39 @@ export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    const phone = searchParams.get('phone');
 
-    if (!id) {
-      return NextResponse.json({ success: false, error: 'ID is required.' }, { status: 400 });
+    if (!id && !phone) {
+      return NextResponse.json({ success: false, error: 'ID or phone is required.' }, { status: 400 });
     }
 
-    // Remove from memory store
-    const idx = memoryApps.findIndex((a) => a.id === id);
-    if (idx !== -1) {
-      memoryApps.splice(idx, 1);
+    if (id) deletedAppIds.add(id);
+    if (phone) {
+      const cleanP = phone.replace(/\D/g, '').slice(-10);
+      if (cleanP) deletedAppIds.add(`phone_${cleanP}`);
     }
 
-    // Remove from Prisma DB
+    for (let i = memoryApps.length - 1; i >= 0; i--) {
+      const item = memoryApps[i];
+      const cleanItemP = (item.phone || '').replace(/\D/g, '').slice(-10);
+      const cleanInputP = (phone || id || '').replace(/\D/g, '').slice(-10);
+      if (item.id === id || (cleanInputP && cleanItemP && cleanItemP === cleanInputP)) {
+        memoryApps.splice(i, 1);
+      }
+    }
+
     try {
-      await prisma.driverApplication.delete({
-        where: { id },
-      });
+      if (id) {
+        await prisma.driverApplication.deleteMany({
+          where: { id },
+        });
+      }
+      if (phone) {
+        const cleanP = phone.replace(/\D/g, '').slice(-10);
+        await prisma.driverApplication.deleteMany({
+          where: { phone: { contains: cleanP } },
+        });
+      }
     } catch {}
 
     return NextResponse.json({ success: true });

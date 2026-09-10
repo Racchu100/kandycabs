@@ -585,7 +585,69 @@ const SEED_DRIVER_REQUESTS: DriverJoinRequestRecord[] = [
   },
 ];
 
+/**
+ * Helper to get list of deleted driver application IDs/phones from localStorage
+ */
+export function getDeletedDriverAppIds(): string[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('kc_deleted_driver_app_ids');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+  }
+  return [];
+}
+
+/**
+ * Permanently delete driver partner application
+ */
+export function deleteDriverPartnerRequest(requestId: string, phone?: string): DriverJoinRequestRecord[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const currentDeleted = getDeletedDriverAppIds();
+      if (requestId && !currentDeleted.includes(requestId)) currentDeleted.push(requestId);
+      if (phone) {
+        const cleanP = phone.replace(/\D/g, '').slice(-10);
+        if (cleanP && !currentDeleted.includes(cleanP)) currentDeleted.push(cleanP);
+      }
+      localStorage.setItem('kc_deleted_driver_app_ids', JSON.stringify(currentDeleted));
+    } catch {}
+  }
+
+  let list = getDriverPartnerRequests();
+  const cleanInputP = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+
+  list = list.filter((r) => {
+    const cleanRP = (r.phone || '').replace(/\D/g, '').slice(-10);
+    return r.id !== requestId && (!cleanInputP || !cleanRP || cleanRP !== cleanInputP);
+  });
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('kc_driver_join_requests', JSON.stringify(list));
+      window.dispatchEvent(new Event('storage'));
+    } catch {}
+
+    try {
+      const url = `/api/driver-applications?id=${encodeURIComponent(requestId)}${phone ? `&phone=${encodeURIComponent(phone)}` : ''}`;
+      fetch(url, { method: 'DELETE' }).catch(() => {});
+    } catch {}
+  }
+
+  return list;
+}
+
 export function getDriverPartnerRequests(): DriverJoinRequestRecord[] {
+  const deletedAppIds = getDeletedDriverAppIds();
+  const isAppDeleted = (r: DriverJoinRequestRecord) => {
+    if (!r) return true;
+    if (r.status === 'REJECTED' || r.status === 'ONBOARDED') return true;
+    if (deletedAppIds.includes(r.id)) return true;
+    const cleanP = (r.phone || '').replace(/\D/g, '').slice(-10);
+    if (cleanP && deletedAppIds.includes(cleanP)) return true;
+    return false;
+  };
+
   let list: DriverJoinRequestRecord[] = SEED_DRIVER_REQUESTS;
   if (typeof window !== 'undefined') {
     try {
@@ -600,7 +662,7 @@ export function getDriverPartnerRequests(): DriverJoinRequestRecord[] {
       }
     } catch {}
 
-    // Auto-sync ONBOARDED status with registered driver accounts
+    // Auto-sync ONBOARDED status with registered driver accounts & filter deleted ones
     try {
       const registeredDrivers = getAllDriverAccounts();
       let updated = false;
@@ -619,12 +681,17 @@ export function getDriverPartnerRequests(): DriverJoinRequestRecord[] {
           }
         }
       });
+
+      const initialLen = list.length;
+      list = list.filter((r) => !isAppDeleted(r));
+      if (list.length !== initialLen) updated = true;
+
       if (updated && typeof window !== 'undefined') {
         localStorage.setItem('kc_driver_join_requests', JSON.stringify(list));
       }
     } catch {}
   }
-  return list;
+  return list.filter((r) => !isAppDeleted(r));
 }
 
 export function updateDriverPartnerRequestStatus(
@@ -635,7 +702,9 @@ export function updateDriverPartnerRequestStatus(
   const target = current.find((r) => r.id === requestId);
   if (target) {
     target.status = newStatus;
-    if (typeof window !== 'undefined') {
+    if (newStatus === 'REJECTED') {
+      deleteDriverPartnerRequest(target.id, target.phone);
+    } else if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('kc_driver_join_requests', JSON.stringify(current));
         window.dispatchEvent(new Event('storage'));

@@ -36,6 +36,8 @@ import {
   setDriverDutyStatus,
   getDriverPartnerRequests,
   updateDriverPartnerRequestStatus,
+  deleteDriverPartnerRequest,
+  getDeletedDriverAppIds,
   updateDriverVerificationStatus,
   DriverAccountRecord,
   DriverJoinRequestRecord,
@@ -108,10 +110,18 @@ export const AdminMasterConsoleView: React.FC = () => {
         .then((res) => res.json())
         .then((data) => {
           if (data.success && Array.isArray(data.data)) {
-            setDriverRequests(data.data);
+            const deletedAppIds = getDeletedDriverAppIds();
+            const activeOnly = data.data.filter((r: any) => {
+              if (r.status === 'REJECTED' || r.status === 'ONBOARDED') return false;
+              if (deletedAppIds.includes(r.id)) return false;
+              const cleanP = (r.phone || '').replace(/\D/g, '').slice(-10);
+              if (cleanP && deletedAppIds.includes(cleanP)) return false;
+              return true;
+            });
+            setDriverRequests(activeOnly);
             if (typeof window !== 'undefined') {
               try {
-                localStorage.setItem('kc_driver_join_requests', JSON.stringify(data.data));
+                localStorage.setItem('kc_driver_join_requests', JSON.stringify(activeOnly));
               } catch {}
             }
           }
@@ -928,19 +938,23 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
     }
   };
 
-  const handleDeleteDriverRequest = async (requestId: string, applicantName: string) => {
+  const handleDeleteDriverRequest = async (requestId: string, applicantName: string, phone?: string) => {
     if (!window.confirm(`Are you sure you want to delete the driver application for '${applicantName}'?`)) return;
 
+    deleteDriverPartnerRequest(requestId, phone);
+    updateDriverPartnerRequestStatus(requestId, 'REJECTED');
+
     try {
-      await fetch(`/api/driver-applications?id=${encodeURIComponent(requestId)}`, {
-        method: 'DELETE',
-      });
+      const url = `/api/driver-applications?id=${encodeURIComponent(requestId)}${phone ? `&phone=${encodeURIComponent(phone)}` : ''}`;
+      await fetch(url, { method: 'DELETE' });
     } catch (e) {
       console.error('Failed to delete driver application:', e);
     }
 
-    updateDriverPartnerRequestStatus(requestId, 'REJECTED');
-    setDriverRequests((prev) => prev.filter((r) => r.id !== requestId));
+    const cleanInputP = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+    setDriverRequests((prev) =>
+      prev.filter((r) => r.id !== requestId && (!cleanInputP || !r.phone || !r.phone.includes(cleanInputP)))
+    );
     setDriverMsg(`✓ Driver partner application for '${applicantName}' deleted successfully.`);
   };
 
@@ -1300,7 +1314,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                                 </Button>
                                 <Button
                                   type="button"
-                                  onClick={() => handleDeleteDriverRequest(r.id, r.name)}
+                                  onClick={() => handleDeleteDriverRequest(r.id, r.name, r.phone)}
                                   style={{ fontSize: '11px', padding: '4px 8px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5' }}
                                 >
                                   🗑️ Delete
@@ -1991,7 +2005,7 @@ Thank you for choosing *KANDY CABS*! Have a safe and pleasant journey!`;
                             </Button>
                             <Button
                               type="button"
-                              onClick={() => handleDeleteDriverRequest(req.id, req.name)}
+                              onClick={() => handleDeleteDriverRequest(req.id, req.name, req.phone)}
                               style={{ fontSize: '11px', padding: '4px 8px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5' }}
                             >
                               🗑️ Delete
