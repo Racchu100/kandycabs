@@ -18,7 +18,7 @@ export const DriverGpsTracker: React.FC<Props> = ({
     lat: 13.0827,
     lng: 74.7954,
     accuracy: 4.5,
-    speed: 48,
+    speed: 0,
   });
   const [isTransmitting, setIsTransmitting] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

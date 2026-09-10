@@ -87,7 +87,7 @@ const INITIAL_DRIVER_LOCATIONS: DriverGpsPoint[] = [
     latitude: 13.0827, // En route near Surathkal on NH-66
     longitude: 74.7954,
     accuracyMeters: 4.2,
-    speedKmh: 52,
+    speedKmh: 0, // Stationary (0 km/h)
     headingDegrees: 350,
     isStale: false,
     lastUpdated: new Date().toISOString(),
@@ -107,7 +107,7 @@ const INITIAL_DRIVER_LOCATIONS: DriverGpsPoint[] = [
     latitude: 12.9141, // Near Mangaluru Central Railway Station
     longitude: 74.856,
     accuracyMeters: 6.0,
-    speedKmh: 12,
+    speedKmh: 0,
     headingDegrees: 90,
     isStale: false,
     lastUpdated: new Date().toISOString(),
@@ -249,22 +249,24 @@ export function getAdminDriverLocations(): DriverGpsPoint[] {
 
       if (activeBooking && activeBooking.status === 'TRIP_STARTED') {
         tripState = 'TRIP_STARTED';
-        const dLat = destCoords.lat - currentLat;
-        const dLng = destCoords.lng - currentLng;
-        const distToDest = Math.sqrt(dLat * dLat + dLng * dLng);
+        currentSpeed = existing ? existing.speedKmh : 0;
+        if (currentSpeed > 0) {
+          const dLat = destCoords.lat - currentLat;
+          const dLng = destCoords.lng - currentLng;
+          const distToDest = Math.sqrt(dLat * dLat + dLng * dLng);
 
-        if (distToDest > 0.002) {
-          const stepSize = 0.0004;
-          currentLat += (dLat / distToDest) * stepSize;
-          currentLng += (dLng / distToDest) * stepSize;
-          currentHeading = Math.round((Math.atan2(dLng, dLat) * 180 / Math.PI + 360) % 360);
-          currentSpeed = Math.round(48 + Math.sin(now / 4000) * 12);
-        } else {
-          currentSpeed = 0;
+          if (distToDest > 0.002) {
+            const stepSize = 0.0004;
+            currentLat += (dLat / distToDest) * stepSize;
+            currentLng += (dLng / distToDest) * stepSize;
+            currentHeading = Math.round((Math.atan2(dLng, dLat) * 180 / Math.PI + 360) % 360);
+          } else {
+            currentSpeed = 0;
+          }
         }
       } else if (activeBooking && (activeBooking.status === 'DRIVER_APPROVED' || activeBooking.status === 'DRIVER_ASSIGNED')) {
         tripState = 'DRIVER_ASSIGNED';
-        currentSpeed = existing && existing.speedKmh > 0 ? existing.speedKmh : 12;
+        currentSpeed = existing ? existing.speedKmh : 0;
       } else {
         tripState = 'AVAILABLE';
         currentSpeed = existing ? existing.speedKmh : 0;
