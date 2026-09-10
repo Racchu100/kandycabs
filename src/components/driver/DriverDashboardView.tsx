@@ -319,7 +319,23 @@ export const DriverDashboardView: React.FC = () => {
             map.set(b.bookingReference || b.id, b);
           }
           for (const b of data.data) {
-            map.set(b.bookingReference || b.id, b);
+            const key = b.bookingReference || b.id;
+            const existing = map.get(key);
+            if (existing) {
+              if (
+                (existing.driverApprovalStatus === 'APPROVED' || existing.driverApprovalStatus === 'DECLINED') &&
+                b.driverApprovalStatus === 'PENDING'
+              ) {
+                b.driverApprovalStatus = existing.driverApprovalStatus;
+              }
+              if (
+                (existing.status === 'DRIVER_APPROVED' || existing.status === 'DRIVER_DECLINED') &&
+                (b.status === 'VENDOR_DISPATCHED' || b.status === 'DISPATCHED_PENDING_DRIVER_APPROVAL')
+              ) {
+                b.status = existing.status;
+              }
+            }
+            map.set(key, b);
           }
           adminBookings = Array.from(map.values());
           try {
@@ -936,19 +952,7 @@ export const DriverDashboardView: React.FC = () => {
             ) : (
               assignedBookings.map((b) => (
                 <Card key={b.id} padded style={{ background: '#fff', border: '1px solid var(--line)' }}>
-                  {b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' ? (
-                    <div style={{ background: '#ECFDF5', border: '1.5px solid #10B981', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div>
-                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#065F46' }}>
-                          ✅ Driver Trip Acceptance Confirmed!
-                        </span>
-                        <div style={{ fontSize: '11.5px', color: '#047857', marginTop: '2px' }}>
-                          You have approved and accepted this trip assignment. Admin control has been notified.
-                        </div>
-                      </div>
-                      <span className="pill green" style={{ fontSize: '11px', fontWeight: 800 }}>APPROVED BY YOU</span>
-                    </div>
-                  ) : (
+                  {b.driverApprovalStatus === 'APPROVED' || b.status === 'DRIVER_APPROVED' || b.status === 'TRIP_STARTED' || b.status === 'COMPLETED' ? null : (
                     <DriverSwipeCard
                       booking={b}
                       onApprove={handleApproveBooking}

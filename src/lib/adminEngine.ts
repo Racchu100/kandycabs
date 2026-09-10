@@ -183,9 +183,6 @@ export function getAdminBookings(): AdminBookingOverview[] {
           }
           // 2. Override/add with stored bookings
           for (const p of parsed) {
-            if (p.driverApprovalStatus === 'APPROVED' && !p.driverApprovedAt && p.status !== 'TRIP_STARTED' && p.status !== 'COMPLETED') {
-              p.driverApprovalStatus = 'PENDING';
-            }
             map.set(p.bookingReference || p.id, p);
           }
           const mergedList = Array.from(map.values());
