@@ -183,7 +183,7 @@ export const DriverDashboardView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'ASSIGNED' | 'AVAILABLE' | 'COMPLETED' | 'PROFILE'>('ASSIGNED');
   const [driverUser, setDriverUser] = useState<any | null>(null);
   const [isAccountDeleted, setIsAccountDeleted] = useState(false);
-  const [allDrivers] = useState(getAllDriverAccounts());
+  const [allDrivers, setAllDrivers] = useState<any[]>([]);
   const [assignedBookings, setAssignedBookings] = useState<AdminBookingOverview[]>([]);
   const [invoiceBooking, setInvoiceBooking] = useState<any | null>(null);
   const [onlinePaymentBooking, setOnlinePaymentBooking] = useState<any | null>(null);
@@ -268,6 +268,9 @@ export const DriverDashboardView: React.FC = () => {
 
   // Sync assigned customer bookings from Persistent Storage & Supabase DB
   const loadDriverTrips = async () => {
+    const liveAccounts = getAllDriverAccounts();
+    setAllDrivers(liveAccounts);
+
     let identifierToVerify: string | null = null;
 
     if (typeof window !== 'undefined') {
@@ -310,6 +313,7 @@ export const DriverDashboardView: React.FC = () => {
       if (typeof window !== 'undefined') {
         try {
           localStorage.removeItem('kc_driver_user');
+          localStorage.removeItem('kc_driver_token');
         } catch {}
       }
       setDriverUser(null);

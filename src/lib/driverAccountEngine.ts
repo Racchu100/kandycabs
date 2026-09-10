@@ -80,81 +80,6 @@ const driverStore: DriverAccountRecord[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
-  {
-    id: 'driver_ganesh',
-    fullName: 'Ganesh Poojary',
-    phone: '9740556677',
-    username: 'ganesh',
-    password: 'driver123',
-    vehicleRegistration: 'KA 19 B 1204',
-    vehicleModel: 'Innova Crysta',
-    licenseNumber: 'KA19-2020-00781',
-    vendorAgencyName: 'Coastal Mookambika Cabs',
-    vendorId: 'vnd_mookambika',
-    verificationStatus: 'APPROVED',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'driver_ramesh_kumar',
-    fullName: 'Ramesh Kumar',
-    phone: '9845011223',
-    username: 'rameshkumar',
-    password: 'driver123',
-    vehicleRegistration: 'KA 19 C 4856',
-    vehicleModel: 'Swift Dzire (AC Sedan)',
-    licenseNumber: 'KA19-2021-00882',
-    vendorAgencyName: 'Sri Durga Travels & Cab Service',
-    vendorId: 'vnd_durga',
-    verificationStatus: 'APPROVED',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'driver_praveen_naik',
-    fullName: 'Praveen Naik',
-    phone: '9740223344',
-    username: 'praveennaik',
-    password: 'driver123',
-    vehicleRegistration: 'KA 19 C 4868',
-    vehicleModel: 'Toyota Innova Crysta',
-    licenseNumber: 'KA19-2021-00878',
-    vendorAgencyName: 'Kudla Wheels Travel Desk',
-    vendorId: 'vnd_kudla',
-    verificationStatus: 'APPROVED',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'driver_sathish_poojary',
-    fullName: 'Sathish Poojary',
-    phone: '9900334455',
-    username: 'sathishpoojary',
-    password: 'driver123',
-    vehicleRegistration: 'KA 19 C 4898',
-    vehicleModel: 'Toyota Etios (AC Sedan)',
-    licenseNumber: 'KA19-2021-00828',
-    vendorAgencyName: 'Coastal Mookambika Cabs',
-    vendorId: 'vnd_mookambika',
-    verificationStatus: 'APPROVED',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'driver_akshath',
-    fullName: 'akshath',
-    phone: '8088313517',
-    username: 'akshath',
-    password: 'driver123',
-    vehicleRegistration: 'KA 19 C 4885',
-    vehicleModel: 'Swift Dzire (AC Sedan)',
-    licenseNumber: 'KA19-2021-00825',
-    vendorAgencyName: 'Sri Durga Travels & Cab Service',
-    vendorId: 'vnd_durga',
-    verificationStatus: 'APPROVED',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
 ];
 
 /**
@@ -167,6 +92,24 @@ function saveDriverAccounts(list: DriverAccountRecord[]) {
       window.dispatchEvent(new Event('storage'));
     } catch {}
   }
+}
+
+/**
+ * Helper to get list of deleted driver identifiers from localStorage
+ */
+export function getDeletedDriverIds(): string[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('kc_deleted_driver_ids');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return parsed.map((x) => String(x).toLowerCase().trim());
+        }
+      }
+    } catch {}
+  }
+  return [];
 }
 
 /**
@@ -183,18 +126,41 @@ export function getAllDriverAccounts(): DriverAccountRecord[] {
 
       let modified = false;
 
-      // Filter out explicitly deleted drivers by ID or phone
+      // Filter out explicitly deleted drivers by ID, phone, username, or fullName
       const initialLen = parsed.length;
       parsed = parsed.filter((d) => {
         const cleanP = (d.phone || '').replace(/\D/g, '').slice(-10);
-        return !deletedIds.includes(d.id) && (!cleanP || !deletedIds.includes(cleanP));
+        const dId = (d.id || '').toLowerCase().trim();
+        const dPhone = (d.phone || '').toLowerCase().trim();
+        const dUser = (d.username || '').toLowerCase().trim();
+        const dName = (d.fullName || '').toLowerCase().trim();
+
+        const isDeleted =
+          (dId && deletedIds.includes(dId)) ||
+          (cleanP && deletedIds.includes(cleanP)) ||
+          (dPhone && deletedIds.includes(dPhone)) ||
+          (dUser && deletedIds.includes(dUser)) ||
+          (dName && deletedIds.includes(dName));
+
+        return !isDeleted;
       });
       if (parsed.length !== initialLen) modified = true;
 
-      // Merge seed drivers from driverStore if not present in parsed
+      // Merge seed drivers from driverStore if not present in parsed and not deleted
       driverStore.forEach((seed) => {
         const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
-        const isSeedDeleted = deletedIds.includes(seed.id) || (cleanSeedP && deletedIds.includes(cleanSeedP));
+        const seedId = seed.id.toLowerCase().trim();
+        const seedPhone = seed.phone.toLowerCase().trim();
+        const seedUser = seed.username.toLowerCase().trim();
+        const seedName = seed.fullName.toLowerCase().trim();
+
+        const isSeedDeleted =
+          deletedIds.includes(seedId) ||
+          (cleanSeedP && deletedIds.includes(cleanSeedP)) ||
+          deletedIds.includes(seedPhone) ||
+          deletedIds.includes(seedUser) ||
+          deletedIds.includes(seedName);
+
         if (!isSeedDeleted) {
           const exists = parsed.some(
             (p) => p.id === seed.id || (cleanSeedP && p.phone.replace(/\D/g, '').slice(-10) === cleanSeedP)
@@ -214,9 +180,15 @@ export function getAllDriverAccounts(): DriverAccountRecord[] {
         }
       });
 
-      // Fallback: If localStorage was missing seed drivers like akshath, populate with driverStore
+      // Fallback: If localStorage was empty, populate with non-deleted seed drivers
       if (parsed.length === 0) {
-        parsed = [...driverStore];
+        parsed = driverStore.filter((seed) => {
+          const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
+          return (
+            !deletedIds.includes(seed.id.toLowerCase()) &&
+            (!cleanSeedP || !deletedIds.includes(cleanSeedP))
+          );
+        });
         modified = true;
       }
 
@@ -226,21 +198,39 @@ export function getAllDriverAccounts(): DriverAccountRecord[] {
       return parsed;
     } catch {}
   }
-  return [...driverStore];
+  return driverStore.filter((seed) => {
+    const cleanSeedP = seed.phone.replace(/\D/g, '').slice(-10);
+    return (
+      !deletedIds.includes(seed.id.toLowerCase()) &&
+      (!cleanSeedP || !deletedIds.includes(cleanSeedP))
+    );
+  });
 }
 
 /**
  * Find driver account by phone, username or ID
  */
 export function getDriverByPhoneOrUsername(identifier: string): DriverAccountRecord | undefined {
+  if (!identifier) return undefined;
+  const rawId = identifier.trim().toLowerCase();
   const cleanId = identifier.trim().replace(/\D/g, '');
+  const deletedIds = getDeletedDriverIds();
+
+  if (
+    deletedIds.includes(rawId) ||
+    (cleanId.length >= 10 && deletedIds.includes(cleanId.slice(-10)))
+  ) {
+    return undefined;
+  }
+
   const allDrivers = getAllDriverAccounts();
   return allDrivers.find(
     (d) =>
-      d.phone === identifier.trim() ||
+      d.id.toLowerCase() === rawId ||
+      d.phone.trim() === identifier.trim() ||
       (cleanId.length >= 10 && d.phone.replace(/\D/g, '').slice(-10) === cleanId.slice(-10)) ||
-      d.username.toLowerCase() === identifier.trim().toLowerCase() ||
-      d.id === identifier.trim()
+      (d.username && d.username.toLowerCase() === rawId) ||
+      (d.fullName && d.fullName.toLowerCase() === rawId)
   );
 }
 
@@ -380,31 +370,29 @@ export function addDriverAccount(
   return record;
 }
 
-/**
- * Helper to get list of deleted driver identifiers from localStorage
- */
-export function getDeletedDriverIds(): string[] {
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('kc_deleted_driver_ids');
-      if (stored) return JSON.parse(stored);
-    } catch {}
-  }
-  return [];
-}
 
 /**
- * Helper to record a deleted driver ID/phone to prevent re-merging or unauthorized access
+ * Helper to record a deleted driver ID/phone/username/name to prevent re-merging or unauthorized access
  */
-function recordDeletedDriverId(id: string, phone?: string) {
+function recordDeletedDriverId(id: string, phone?: string, username?: string, fullName?: string) {
   if (typeof window !== 'undefined') {
     try {
       const current = getDeletedDriverIds();
-      if (id && !current.includes(id)) current.push(id);
+      const addIfNew = (val?: string) => {
+        if (!val) return;
+        const clean = val.toLowerCase().trim();
+        if (clean && !current.includes(clean)) current.push(clean);
+      };
+
+      addIfNew(id);
+      addIfNew(phone);
       if (phone) {
         const cleanP = phone.replace(/\D/g, '').slice(-10);
-        if (cleanP && !current.includes(cleanP)) current.push(cleanP);
+        if (cleanP) addIfNew(cleanP);
       }
+      addIfNew(username);
+      addIfNew(fullName);
+
       localStorage.setItem('kc_deleted_driver_ids', JSON.stringify(current));
     } catch {}
   }
@@ -484,7 +472,18 @@ export function deleteDriverAccount(
   adminName: string = 'Super Admin'
 ): { success: boolean; error?: string } {
   let allDrivers = getAllDriverAccounts();
-  const idx = allDrivers.findIndex((d) => d.id === driverId || d.phone === driverId);
+  const searchId = driverId.trim().toLowerCase();
+  const cleanSearchPhone = driverId.replace(/\D/g, '').slice(-10);
+
+  const idx = allDrivers.findIndex(
+    (d) =>
+      d.id.toLowerCase() === searchId ||
+      d.phone.trim() === driverId.trim() ||
+      (cleanSearchPhone.length >= 10 && d.phone.replace(/\D/g, '').slice(-10) === cleanSearchPhone) ||
+      (d.username && d.username.toLowerCase() === searchId) ||
+      (d.fullName && d.fullName.toLowerCase() === searchId)
+  );
+
   if (idx === -1) {
     return { success: false, error: 'Driver account not found.' };
   }
@@ -497,8 +496,8 @@ export function deleteDriverAccount(
     driverStore.splice(seedIdx, 1);
   }
 
-  // Record deleted driver identifier to prevent re-merging or access
-  recordDeletedDriverId(removed.id, removed.phone);
+  // Record deleted driver identifiers to prevent re-merging or unauthorized access
+  recordDeletedDriverId(removed.id, removed.phone, removed.username, removed.fullName);
 
   saveDriverAccounts(allDrivers);
 
@@ -508,16 +507,22 @@ export function deleteDriverAccount(
       const currentSession = localStorage.getItem('kc_driver_user');
       if (currentSession) {
         const parsed = JSON.parse(currentSession);
+        const pCleanP = (parsed.phone || '').replace(/\D/g, '').slice(-10);
+        const rCleanP = (removed.phone || '').replace(/\D/g, '').slice(-10);
+
         if (
           parsed.id === removed.id ||
           parsed.phone === removed.phone ||
-          (parsed.username && parsed.username.toLowerCase() === removed.username.toLowerCase())
+          (pCleanP && rCleanP && pCleanP === rCleanP) ||
+          (parsed.username && removed.username && parsed.username.toLowerCase() === removed.username.toLowerCase()) ||
+          (parsed.fullName && removed.fullName && parsed.fullName.toLowerCase() === removed.fullName.toLowerCase())
         ) {
           localStorage.removeItem('kc_driver_user');
+          localStorage.removeItem('kc_driver_token');
         }
       }
       window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new CustomEvent('driver_account_deleted', { detail: { id: removed.id, phone: removed.phone } }));
+      window.dispatchEvent(new CustomEvent('driver_account_deleted', { detail: { id: removed.id, phone: removed.phone, name: removed.fullName } }));
     } catch {}
   }
 
