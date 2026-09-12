@@ -1,0 +1,385 @@
+// Prisma Schema for Kandy Cabs
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  CUSTOMER
+  DRIVER
+  ADMIN
+}
+
+enum DriverStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DEACTIVATED
+}
+
+enum DriverApplicationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum VehicleCategory {
+  HATCHBACK
+  SEDAN
+  SUV
+  SUV_PREMIUM
+  TEMPO_TRAVELER
+}
+
+enum TripType {
+  ONEWAY
+  ROUND
+  LOCAL
+  AIRPORT
+  PACKAGE
+}
+
+enum CouponType {
+  FLAT
+  PERCENTAGE
+}
+
+enum BookingStatus {
+  PENDING_ADMIN
+  DISPATCHED
+  DRIVER_ACCEPTED
+  DRIVER_EN_ROUTE
+  TRIP_STARTED
+  TRIP_COMPLETED
+  CANCELLED
+}
+
+enum DispatchResponse {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum TripEventType {
+  DRIVER_ASSIGNED
+  DRIVER_ARRIVED
+  OTP_VERIFIED
+  TRIP_STARTED
+  TRIP_ENDED
+  TOLL_ADDED
+  CONTACT_RELEASED
+}
+
+enum TripMediaType {
+  START_ODOMETER
+  END_ODOMETER
+  INTERIOR_CHECK
+  TOLL_RECEIPT
+}
+
+enum PaymentType {
+  ADVANCE
+  BALANCE
+}
+
+enum PaymentGateway {
+  RAZORPAY
+  MANUAL_UPI
+}
+
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum WhatsAppStatus {
+  SENT
+  FAILED
+}
+
+model User {
+  id        String     @id @default(cuid())
+  phone     String     @unique
+  fullName  String
+  roles     UserRole[] @default([CUSTOMER])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  customer Customer?
+  driver   Driver?
+
+  @@index([phone])
+}
+
+model Customer {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  fullName       String
+  email          String?
+  savedAddresses String? // JSON string of saved pickup/drop addresses
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+}
+
+model Driver {
+  id                String       @id @default(cuid())
+  userId            String       @unique
+  fullName          String
+  licenseNumber     String?
+  licenseDocUrl     String?
+  rcDocUrl          String?
+  insuranceDocUrl   String?
+  vehiclePhotos     String[]     @default([])
+  assignedVehicleId String?
+  isActive          Boolean      @default(false)
+  isVerifiedByAdmin Boolean      @default(false)
+  status            DriverStatus @default(PENDING)
+  rejectionReason   String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedVehicle Vehicle?           @relation(fields: [assignedVehicleId], references: [id], onDelete: SetNull)
+  dispatches      BookingDispatch[]
+  assignedTrips   Booking[]          @relation("DriverBookings")
+  tripMedia       TripMedia[]
+  tripTracking    TripTracking[]
+}
+
+model DriverApplication {
+  id           String                  @id @default(cuid())
+  name         String
+  phone        String
+  email        String?
+  city         String
+  vehicleOwned String
+  message      String?
+  status       DriverApplicationStatus @default(PENDING)
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime                @default(now())
+}
+
+model Vehicle {
+  id                        String          @id @default(cuid())
+  category                  VehicleCategory
+  name                      String
+  seatCount                 Int
+  images                    String[]        @default([])
+  baseFarePerKm             Float
+  includedKmForLocalPackages Int             @default(80)
+  extraKmRate               Float           @default(15)
+  driverAllowance           Float           @default(300)
+  nightChargeRules          String?         // JSON description of night rules
+  isActive                  Boolean         @default(true)
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+
+  drivers  Driver[]
+  bookings Booking[]
+}
+
+model FareRule {
+  id                    String          @id @default(cuid())
+  tripType              TripType
+  vehicleCategory       VehicleCategory
+  perKmRate             Float
+  minimumKm             Float           @default(250)
+  driverAllowancePerDay Float           @default(300)
+  nightChargeWindow     String          @default("10:00 PM - 06:00 AM")
+  nightChargeAmount     Float           @default(250)
+  tollPolicy            String          @default("At actuals, collected at trip end")
+  gstPercent            Float           @default(5.0)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@unique([tripType, vehicleCategory])
+}
+
+model Package {
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  description    String
+  destination    String
+  durationDays   Int
+  durationNights Int
+  itinerary      String   // JSON string of daily itinerary
+  inclusions     String[] @default([])
+  exclusions     String[] @default([])
+  price          Float
+  images         String[] @default([])
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Coupon {
+  id         String     @id @default(cuid())
+  code       String     @unique
+  type       CouponType
+  value      Float
+  validFrom  DateTime
+  validTo    DateTime
+  usageLimit Int        @default(100)
+  usedCount  Int        @default(0)
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+
+  bookings Booking[]
+}
+
+model Booking {
+  id                   String        @id @default(cuid())
+  humanReadableRef     String        @unique
+  customerId           String
+  tripType             TripType
+  pickupAddress        String
+  pickupLat            Float
+  pickupLng            Float
+  dropAddress          String
+  dropLat              Float
+  dropLng              Float
+  scheduledAt          DateTime
+  vehicleId            String
+  distanceKm           Float
+  estimatedFare        Float
+  couponId             String?
+  discountAmount       Float         @default(0)
+  advanceAmount        Float         // 25% of estimated fare
+  advancePaymentStatus PaymentStatus @default(CREATED)
+  balanceAmount        Float
+  balancePaymentStatus PaymentStatus @default(CREATED)
+  tollAmount           Float         @default(0)
+  status               BookingStatus @default(PENDING_ADMIN)
+  assignedDriverId     String?
+  customerPhoneReleased Boolean       @default(false)
+  pickupOtp            String?
+  cancellationReason   String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  customer       Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle        Vehicle           @relation(fields: [vehicleId], references: [id])
+  coupon         Coupon?           @relation(fields: [couponId], references: [id])
+  assignedDriver Driver?           @relation("DriverBookings", fields: [assignedDriverId], references: [id])
+  dispatches     BookingDispatch[]
+  tripEvents     TripEvent[]
+  tripMedia      TripMedia[]
+  tripTracking   TripTracking[]
+  payments       Payment[]
+  whatsappMsgs   WhatsAppMessage[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([assignedDriverId])
+}
+
+model BookingDispatch {
+  id          String           @id @default(cuid())
+  bookingId   String
+  driverId    String
+  offeredAt   DateTime         @default(now())
+  respondedAt DateTime?
+  response    DispatchResponse @default(PENDING)
+  createdAt   DateTime         @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driver  Driver  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, driverId])
+}
+
+model TripEvent {
+  id        String        @id @default(cuid())
+  bookingId String
+  type      TripEventType
+  payload   String?       // JSON metadata
+  createdAt DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model TripMedia {
+  id          String        @id @default(cuid())
+  bookingId   String
+  driverId    String
+  type        TripMediaType
+  imageUrl    String
+  capturedAt  DateTime      @default(now())
+  latitude    Float
+  longitude   Float
+  gpsAccuracy Float?
+  createdAt   DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driver  Driver  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+}
+
+model TripTracking {
+  id             String   @id @default(cuid())
+  bookingId      String
+  driverId       String
+  latitude       Float
+  longitude      Float
+  speedKmh       Float
+  headingDegrees Float?
+  accuracy       Float?
+  recordedAt     DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driver  Driver  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, recordedAt])
+}
+
+model Payment {
+  // Balance or Advance payment record
+  id                 String         @id @default(cuid())
+  bookingId          String
+  type               PaymentType
+  gateway            PaymentGateway @default(RAZORPAY)
+  razorpayOrderId    String?
+  razorpayPaymentId  String?
+  signature          String?
+  amount             Float
+  status             PaymentStatus  @default(CREATED)
+  confirmedByAdminId String?
+  createdAt          DateTime       @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppMessage {
+  id              String         @id @default(cuid())
+  bookingId       String
+  templateName    String
+  payloadSnapshot String         // JSON of data passed to WhatsApp template
+  sentBy          String?        // Admin user ID
+  status          WhatsAppStatus @default(SENT)
+  sentAt          DateTime       @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  beforeJson String?
+  afterJson  String?
+  createdAt  DateTime @default(now())
+}
