@@ -4,7 +4,13 @@
     "slug": "kandy-cabs-customer",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#111827"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -12,7 +18,11 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.kandycabs.customerapp"
+      "package": "com.kandycabs.customerapp",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F59E0B"
+      }
     },
     "extra": {
       "eas": {
