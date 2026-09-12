@@ -10,7 +10,7 @@ import {
   Alert,
   StatusBar,
 } from 'react-native';
-import { KANDY_THEME } from '@kandycabs/shared';
+import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
 
 export default function App() {
