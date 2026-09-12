@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@kandycabs/shared'],
+  transpilePackages: ['@kandycabs/shared', 'styled-jsx'],
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client'],
   },
