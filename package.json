@@ -6,6 +6,16 @@
     "apps/*",
     "packages/*"
   ],
+  "overrides": {
+    "react": "$react",
+    "react-dom": "$react-dom",
+    "styled-jsx": "$styled-jsx"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "styled-jsx": "^5.1.1"
+  },
   "scripts": {
     "dev:web": "npm run dev --workspace=apps/web",
     "build:web": "npm run build --workspace=apps/web",
