@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Kandy Cabs Customer",
+    "slug": "kandy-cabs-customer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.kandycabs.customerapp"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4b5c4ef1-0362-4f69-90be-2e7705d28122"
+      }
+    },
+    "owner": "rakshithms-team"
+  }
+}

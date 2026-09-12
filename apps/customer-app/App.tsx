@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,12 +11,22 @@ import {
   StatusBar,
 } from 'react-native';
 import { KANDY_THEME } from '@kandycabs/shared';
+import { testSupabaseConnection } from './services/supabase';
 
 export default function App() {
   const [phone, setPhone] = useState('9876543210');
   const [otp, setOtp] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [dbStatus, setDbStatus] = useState<string>('Supabase Connection: Testing...');
+  const [dbConnected, setDbConnected] = useState<boolean>(false);
+
+  useEffect(() => {
+    testSupabaseConnection().then((res) => {
+      setDbStatus(res.message);
+      setDbConnected(res.success);
+    });
+  }, []);
 
   // Active Trip State
   const [activeTrip] = useState({
@@ -58,6 +68,15 @@ export default function App() {
           <Text style={styles.headerTitle}>KANDY CABS</Text>
           <Text style={styles.headerSubtitle}>Customer Mobile App</Text>
         </View>
+      </View>
+
+      {/* Expo Go Test Banner */}
+      <View style={styles.testBanner}>
+        <Text style={styles.testBannerTitle}>Mobile App Running Successfully</Text>
+        <Text style={styles.testBannerSubtitle}>Expo + React Native Connected</Text>
+        <Text style={[styles.testBannerDb, { color: dbConnected ? '#059669' : '#D97706' }]}>
+          {dbStatus}
+        </Text>
       </View>
 
       {!isLoggedIn ? (
@@ -376,5 +395,28 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '800',
     fontSize: 13,
+  },
+  testBanner: {
+    backgroundColor: '#FEF3C7',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  testBannerTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#92400E',
+  },
+  testBannerSubtitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B45309',
+    marginTop: 1,
+  },
+  testBannerDb: {
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 4,
   },
 });
