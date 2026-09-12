@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && npx next build"
+  "buildCommand": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/kandycabs?schema=public\" DIRECT_URL=\"postgresql://postgres:postgres@localhost:5432/kandycabs?schema=public\" npx prisma generate && npx next build"
 }
