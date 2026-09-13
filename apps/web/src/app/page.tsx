@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { BookingWidget } from '@/components/BookingWidget';
-import { ShieldCheck, Award, Users, MapPin, ArrowRight, CheckCircle2, PhoneCall, Sparkles } from 'lucide-react';
+import { ShieldCheck, Award, Users, User, MapPin, ArrowRight, CheckCircle2, PhoneCall, Sparkles } from 'lucide-react';
 
 const FLEET_TEASER = [
   {
@@ -85,45 +85,41 @@ export default function HomePage() {
           {/* Card Booking Widget */}
           <BookingWidget />
 
-          {/* Mobile 4-Trust-Badges Grid (2x2 Grid matching reference screenshot) */}
-          <div className="grid grid-cols-2 gap-2.5 mt-4 sm:hidden">
-            <div className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-gray-100/90 shadow-xs">
-              <div className="w-9 h-9 bg-orange-50 text-[#FF6B1A] rounded-xl flex items-center justify-center shrink-0">
+          {/* Mobile 4-Trust-Badges Grid (2x2 Grid strictly matching reference screenshot) */}
+          <div className="grid grid-cols-2 gap-3 mt-5 sm:hidden">
+            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
+              <div className="w-9 h-9 bg-orange-100/80 text-[#FF6B1A] rounded-full flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-black text-kandy-ink uppercase tracking-tight leading-tight">Verified Chauffeurs</h4>
-                <p className="text-[9px] text-kandy-muted font-semibold leading-tight mt-0.5">Background checked</p>
+                <h4 className="text-[11px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">VERIFIED CHAUFFEURS</h4>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-gray-100/90 shadow-xs">
-              <div className="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
+              <div className="w-9 h-9 bg-emerald-100/80 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-black text-kandy-ink uppercase tracking-tight leading-tight">25% Advance Only</h4>
-                <p className="text-[9px] text-kandy-muted font-semibold leading-tight mt-0.5">Rest after trip</p>
+                <h4 className="text-[11px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">25% ADVANCE ONLY</h4>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-gray-100/90 shadow-xs">
-              <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
-                <Award className="w-5 h-5" />
+            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
+              <div className="w-9 h-9 bg-blue-100/80 text-blue-600 rounded-full flex items-center justify-center shrink-0">
+                <User className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-black text-kandy-ink uppercase tracking-tight leading-tight">Transparent Billing</h4>
-                <p className="text-[9px] text-kandy-muted font-semibold leading-tight mt-0.5">Zero hidden costs</p>
+                <h4 className="text-[11px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">TRANSPARENT BILLING</h4>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-gray-100/90 shadow-xs">
-              <div className="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
+              <div className="w-9 h-9 bg-amber-100/80 text-amber-600 rounded-full flex items-center justify-center shrink-0">
                 <PhoneCall className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-black text-kandy-ink uppercase tracking-tight leading-tight">24x7 Ops Support</h4>
-                <p className="text-[9px] text-kandy-muted font-semibold leading-tight mt-0.5">Live assistance</p>
+                <h4 className="text-[11px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">24X7 OPS SUPPORT</h4>
               </div>
             </div>
           </div>
@@ -178,34 +174,34 @@ export default function HomePage() {
       </section>
 
       {/* Fleet Showcase Section */}
-      <section className="relative py-4 sm:py-6 lg:py-10 overflow-hidden">
+      <section className="relative py-6 sm:py-8 lg:py-12 overflow-hidden">
         {/* Scenic Fleet Background Banner Image (Right side matching reference screenshot) */}
-        <div className="absolute top-0 right-0 w-full sm:w-1/2 h-44 sm:h-56 opacity-15 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-0 right-0 w-full sm:w-1/2 h-full opacity-25 pointer-events-none overflow-hidden z-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://images.unsplash.com/photo-1506015391300-4802dc74de2e?w=1200&auto=format&fit=crop&q=80"
             alt="Scenic Mountain Road"
             className="w-full h-full object-cover object-right"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-kandy-bg via-kandy-bg/80 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-kandy-bg via-kandy-bg/85 to-transparent"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 gap-2 sm:gap-4">
             <div>
-              <span className="text-xs font-bold text-kandy-orange uppercase tracking-widest block mb-0.5">
+              <span className="text-xs font-black text-[#FF6B1A] uppercase tracking-wider block mb-0.5">
                 OUR VEHICLE FLEET
               </span>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-kandy-ink tracking-tight">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#1E293B] tracking-tight">
                 Choose the Right Cab for Your Journey
               </h2>
+              <div className="w-12 h-1 bg-[#FF6B1A] rounded-full mt-1.5 mb-1"></div>
             </div>
             <Link
               href="/fleet"
-              className="text-xs font-bold text-kandy-orange hover:text-kandy-orangeHover flex items-center gap-1.5 uppercase tracking-wider"
+              className="text-xs font-black text-[#FF6B1A] hover:text-orange-600 flex items-center gap-1 uppercase tracking-wider transition"
             >
-              <span>View Full Fleet & Rate Chart</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>VIEW FULL FLEET & RATE CHART →</span>
             </Link>
           </div>
 

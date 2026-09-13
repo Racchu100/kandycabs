@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, MinusCircle, PlusCircle, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Loader2, MinusCircle, PlusCircle, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
 import { searchLocations, SelectedLocation } from '@/lib/locationProvider';
 
 interface LocationSearchInputProps {
@@ -146,8 +146,9 @@ export function LocationSearchInput({
   return (
     <div ref={containerRef} className="w-full">
       {label && (
-        <div className="flex items-center justify-between mb-0.5">
-          <label className="block text-[9px] sm:text-[11px] font-black uppercase text-gray-700 tracking-wider">
+        <div className="flex items-center gap-1.5 mb-1">
+          <MapPin className="w-3.5 h-3.5 text-[#FF6B1A] shrink-0" />
+          <label className="block text-[10px] sm:text-[11px] font-black uppercase text-[#1E293B] tracking-wider">
             {label}
           </label>
         </div>
@@ -155,10 +156,10 @@ export function LocationSearchInput({
 
       {/* Input Box & Dropdown Wrapper */}
       <div className="relative">
-        <div className={`relative flex items-center bg-[#F8F9FA] hover:bg-white focus-within:bg-white border-2 transition rounded-xl px-3 py-2 sm:px-2.5 sm:py-1 md:px-3 md:py-1 min-h-[42px] sm:min-h-[36px] lg:min-h-[40px] shadow-2xs ${
-          validationError && !value.isSelected ? 'border-red-400 focus-within:border-red-500' : 'border-gray-200/90 focus-within:border-kandy-orange focus-within:ring-2 focus-within:ring-kandy-orange/20'
+        <div className={`relative flex items-center bg-[#F8F9FA] hover:bg-white focus-within:bg-white border transition rounded-2xl px-3.5 py-2.5 sm:px-3 sm:py-2 min-h-[46px] sm:min-h-[42px] shadow-2xs ${
+          validationError && !value.isSelected ? 'border-red-400 focus-within:border-red-500' : 'border-gray-200/90 focus-within:border-[#FF6B1A] focus-within:ring-2 focus-within:ring-[#FF6B1A]/20'
         }`}>
-          <Search className="w-4 h-4 sm:w-4 sm:h-4 text-kandy-orange shrink-0 mr-2" />
+          <Search className="w-4 h-4 text-[#FF6B1A] shrink-0 mr-2.5" />
 
           <input
             type="text"
@@ -166,7 +167,7 @@ export function LocationSearchInput({
             onChange={handleInputChange}
             onFocus={handleFocus}
             placeholder={placeholder}
-            className="w-full bg-transparent text-[11px] sm:text-xs lg:text-sm font-bold text-gray-900 focus:outline-none placeholder-gray-400"
+            className="w-full bg-transparent text-xs sm:text-xs lg:text-sm font-semibold text-[#1E293B] focus:outline-none placeholder-gray-400"
           />
 
           {value.isSelected && (
