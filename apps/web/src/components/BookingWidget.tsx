@@ -143,8 +143,6 @@ export function BookingWidget() {
   return (
     <>
       <div className="w-full max-w-5xl mx-auto bg-white rounded-3xl sm:rounded-2xl shadow-[0_14px_45px_rgba(0,0,0,0.07)] border border-gray-100/90 relative z-30 p-4 sm:p-6 lg:p-8">
-        {/* Top-left Orange Corner Accent Badge (Matching Reference Screenshot) */}
-        <div className="absolute -top-1 -left-1 w-12 h-6 bg-[#FF6B1A] rounded-tl-3xl rounded-br-2xl pointer-events-none z-10"></div>
 
         {/* TRIP TYPE TAB SELECTOR (Desktop & Tablet - Mobile uses Sticky Bottom Bar) */}
         <div className="hidden sm:block mb-1.5 sm:mb-1.5 md:mb-2 lg:mb-6">

@@ -46,9 +46,6 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="relative pt-3 sm:pt-6 md:pt-8 lg:pt-10 pb-4 sm:pb-8 md:pb-10 lg:pb-12 bg-gradient-to-b from-white via-orange-50/20 to-kandy-bg border-b border-kandy-border">
-        {/* Bottom Orange Accent Curve (Visible at bottom left behind top edge of booking card) */}
-        <div className="absolute bottom-0 left-0 w-3/4 sm:w-1/2 h-8 sm:h-12 bg-gradient-to-r from-[#FF6B1A] via-[#FF8C38] to-transparent rounded-tr-full opacity-80 z-0"></div>
-
         <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="text-left max-w-2xl mb-4 sm:mb-6">
             {/* White Pill Badge with Orange Accent */}
