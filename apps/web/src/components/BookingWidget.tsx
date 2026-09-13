@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { TripType } from '@kandycabs/shared';
 import { PlaneTakeoff, PlaneLanding, AlertCircle, ArrowLeftRight, ArrowUpDown, Car, RefreshCw, MapPin, Plane, Calendar, Clock } from 'lucide-react';
@@ -9,6 +10,11 @@ import { SelectedLocation } from '@/lib/locationProvider';
 
 export function BookingWidget() {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const [tripType, setTripType] = useState<TripType>(TripType.ONEWAY);
   const [airportTripMode, setAirportTripMode] = useState<'PICKUP' | 'DROP'>('PICKUP');
 
@@ -451,74 +457,78 @@ export function BookingWidget() {
         </form>
       </div>
 
-      {/* Mobile Sticky Bottom Trip Navigation Bar (Guaranteed top stacking priority with zIndex: 999999) */}
-      <div
-        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] py-2.5 px-3 rounded-t-3xl sm:hidden"
-        style={{ zIndex: 999999 }}
-      >
-        <div className="grid grid-cols-4 gap-2 max-w-md mx-auto">
-          <button
-            type="button"
-            onClick={() => {
-              setTripType(TripType.ONEWAY);
-              setFormError(null);
-            }}
-            className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
-              tripType === TripType.ONEWAY
-                ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
-                : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
-            }`}
+      {/* Mobile Sticky Bottom Trip Navigation Bar (Mounted directly to document.body via Portal for 100% top z-index priority) */}
+      {isMounted &&
+        createPortal(
+          <div
+            className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] py-2.5 px-3 rounded-t-3xl sm:hidden"
+            style={{ zIndex: 999999 }}
           >
-            <Car className="w-4.5 h-4.5 shrink-0" />
-            <span>ONE WAY</span>
-          </button>
+            <div className="grid grid-cols-4 gap-2 max-w-md mx-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setTripType(TripType.ONEWAY);
+                  setFormError(null);
+                }}
+                className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
+                  tripType === TripType.ONEWAY
+                    ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
+                    : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
+                }`}
+              >
+                <Car className="w-4.5 h-4.5 shrink-0" />
+                <span>ONE WAY</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setTripType(TripType.ROUND);
-              setFormError(null);
-            }}
-            className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
-              tripType === TripType.ROUND
-                ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
-                : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
-            }`}
-          >
-            <RefreshCw className="w-4.5 h-4.5 shrink-0" />
-            <span>ROUND TRIP</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTripType(TripType.ROUND);
+                  setFormError(null);
+                }}
+                className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
+                  tripType === TripType.ROUND
+                    ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
+                    : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
+                }`}
+              >
+                <RefreshCw className="w-4.5 h-4.5 shrink-0" />
+                <span>ROUND TRIP</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setTripType(TripType.LOCAL);
-              setFormError(null);
-            }}
-            className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
-              tripType === TripType.LOCAL
-                ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
-                : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
-            }`}
-          >
-            <MapPin className="w-4.5 h-4.5 shrink-0" />
-            <span>LOCAL</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTripType(TripType.LOCAL);
+                  setFormError(null);
+                }}
+                className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
+                  tripType === TripType.LOCAL
+                    ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
+                    : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
+                }`}
+              >
+                <MapPin className="w-4.5 h-4.5 shrink-0" />
+                <span>LOCAL</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={handleSelectAirportTab}
-            className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
-              tripType === TripType.AIRPORT
-                ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
-                : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
-            }`}
-          >
-            <Plane className="w-4.5 h-4.5 shrink-0" />
-            <span>AIRPORT</span>
-          </button>
-        </div>
-      </div>
+              <button
+                type="button"
+                onClick={handleSelectAirportTab}
+                className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
+                  tripType === TripType.AIRPORT
+                    ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
+                    : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
+                }`}
+              >
+                <Plane className="w-4.5 h-4.5 shrink-0" />
+                <span>AIRPORT</span>
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }
