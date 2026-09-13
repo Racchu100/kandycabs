@@ -21,7 +21,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-export function Navbar() {
+interface NavbarProps {
+  transparentOnTop?: boolean;
+}
+
+export function Navbar({ transparentOnTop = false }: NavbarProps = {}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, logout: handleLogout } = useAuth();
@@ -53,8 +57,12 @@ export function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 bg-white transition-all duration-200 ${
-        isScrolled ? 'shadow-md border-b border-gray-100/80' : 'shadow-none border-b-0'
+      className={`sticky top-0 z-50 transition-all duration-200 ${
+        isScrolled
+          ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-gray-100/80'
+          : transparentOnTop
+          ? 'bg-transparent shadow-none border-b-0'
+          : 'bg-white shadow-none border-b-0'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

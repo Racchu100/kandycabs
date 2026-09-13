@@ -50,30 +50,33 @@ const FLEET_TEASER = [
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-kandy-bg pb-28 sm:pb-0">
-      <Navbar />
-
-      {/* Hero Section */}
-      <section className="relative pt-4 sm:pt-8 md:pt-10 lg:pt-12 pb-6 sm:pb-10 md:pb-12 lg:pb-16 overflow-hidden border-b border-kandy-border">
-        {/* Scenic Mountain Road Background Image */}
+      {/* Top Header & Hero Container with Seamless Mountain Road Background starting from very top */}
+      <div className="relative overflow-hidden border-b border-kandy-border">
+        {/* Scenic Mountain Road Background Image starting from very top */}
         <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transform scale-105"
           style={{ backgroundImage: "url('/hero-bg.jpg')" }}
         />
-        {/* Soft White/Light Gradient Overlay for High Text Contrast */}
+        {/* Soft White/Light Gradient Overlay for High Text & Header Contrast */}
         <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/95 via-white/85 to-white/50 md:via-white/75 md:to-white/25" />
 
-        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full relative z-10">
-          <div className="text-left max-w-2xl mb-4 sm:mb-6">
-            {/* Main Headline */}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#0F172A] tracking-tight leading-tight mb-2.5 drop-shadow-xs">
-              Travel with confidence with <span className="text-[#FF6B1A]">Kandy Cabs</span>
-            </h1>
+        {/* Top Header Navbar with Transparent Background */}
+        <Navbar transparentOnTop={true} />
 
-            {/* Subtitle */}
-            <h2 className="text-xs sm:text-sm md:text-base text-[#334155] font-bold leading-relaxed max-w-xl drop-shadow-xs">
-              Safe, reliable, and hassle-free rides for local, airport, and outstation journeys
-            </h2>
-          </div>
+        {/* Hero Section Content */}
+        <section className="relative pt-2 sm:pt-4 md:pt-6 lg:pt-8 pb-6 sm:pb-10 md:pb-12 lg:pb-16 z-10">
+          <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full">
+            <div className="text-left max-w-2xl mb-4 sm:mb-6">
+              {/* Main Headline */}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#0F172A] tracking-tight leading-tight mb-2.5 drop-shadow-xs">
+                Travel with confidence with <span className="text-[#FF6B1A]">Kandy Cabs</span>
+              </h1>
+
+              {/* Subtitle */}
+              <h2 className="text-xs sm:text-sm md:text-base text-[#334155] font-bold leading-relaxed max-w-xl drop-shadow-xs">
+                Safe, reliable, and hassle-free rides for local, airport, and outstation journeys
+              </h2>
+            </div>
 
           {/* Card Booking Widget */}
           <BookingWidget />
@@ -118,6 +121,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+    </div>
 
       {/* Desktop Standalone Trust Badges Strip */}
       <section className="hidden lg:block bg-white py-4 lg:py-6 border-b border-kandy-border shadow-sm">
