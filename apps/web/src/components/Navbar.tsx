@@ -29,18 +29,35 @@ interface NavbarProps {
 export function Navbar({ transparentOnTop = false }: NavbarProps = {}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = React.useRef(0);
   const { user, logout: handleLogout } = useAuth();
   const pathname = usePathname();
 
   React.useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 10) {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY > 20) {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
       }
+
+      if (currentScrollY <= 20) {
+        setIsVisible(true);
+      } else if (currentScrollY < lastScrollY.current - 5) {
+        // Scrolling UP -> show fixed header
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY.current + 5) {
+        // Scrolling DOWN -> hide header
+        setIsVisible(false);
+      }
+
+      lastScrollY.current = currentScrollY;
     };
-    window.addEventListener('scroll', handleScroll);
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -60,7 +77,9 @@ export function Navbar({ transparentOnTop = false }: NavbarProps = {}) {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-200 ${
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        isVisible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
+      } ${
         isScrolled
           ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-gray-100/80'
           : transparentOnTop
