@@ -676,7 +676,7 @@ export default function DriverDashboardPage() {
                   {/* Right: Driver Status Pill */}
                   <div className="bg-emerald-950/80 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2 self-stretch sm:self-auto justify-center">
                     <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
-                    <span className="text-emerald-300 font-extrabold text-[11px] sm:text-xs tracking-wide">Driver Online / Ready for ride</span>
+                    <span className="text-emerald-300 font-extrabold text-[11px] sm:text-xs tracking-wide">Driver Online</span>
                   </div>
                 </div>
 
