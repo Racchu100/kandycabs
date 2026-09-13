@@ -172,7 +172,7 @@ export function Navbar() {
           />
 
           {/* Slideable Right Drawer Panel */}
-          <div className="relative ml-auto w-80 max-w-[88vw] bg-white h-dvh max-h-screen shadow-2xl z-[1000000] flex flex-col justify-between p-3 sm:p-4 overflow-y-auto animate-in slide-in-from-right duration-300">
+          <div className="relative ml-auto w-80 sm:w-[420px] md:w-[460px] max-w-[92vw] bg-white h-dvh max-h-screen shadow-2xl z-[1000000] flex flex-col justify-between p-3.5 sm:p-5 overflow-y-auto animate-in slide-in-from-right duration-300">
             <div className="space-y-2">
               {/* Drawer Header */}
               <div className="flex items-center justify-between border-b border-gray-100 pb-2">
