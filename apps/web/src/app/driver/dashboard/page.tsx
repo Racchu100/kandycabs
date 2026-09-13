@@ -654,9 +654,18 @@ export default function DriverDashboardPage() {
                   {/* Left: Driver Avatar & Details */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="relative shrink-0">
-                      <div className="w-11 h-11 sm:w-13 sm:h-13 bg-gradient-to-tr from-kandy-orange to-amber-400 text-white rounded-full flex items-center justify-center font-black text-lg sm:text-xl shadow-md border-2 border-white/20">
-                        {(driver?.fullName || user?.fullName || 'Ranju').charAt(0)}
-                      </div>
+                      {storedDocPaths.driverPhotoUrl || driver?.driverPhotoUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.driverPhotoUrl || driver?.driverPhotoUrl)}`}
+                          alt={driver?.fullName || user?.fullName || 'Driver'}
+                          className="w-11 h-11 sm:w-13 sm:h-13 rounded-full object-cover shadow-md border-2 border-white/20"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 sm:w-13 sm:h-13 bg-gradient-to-tr from-kandy-orange to-amber-400 text-white rounded-full flex items-center justify-center font-black text-lg sm:text-xl shadow-md border-2 border-white/20">
+                          {(driver?.fullName || user?.fullName || 'Ranju').charAt(0)}
+                        </div>
+                      )}
                       <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#0B132B] rounded-full" title="Online"></span>
                     </div>
 
