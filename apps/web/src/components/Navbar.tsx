@@ -69,32 +69,32 @@ export function Navbar() {
             />
           </Link>
 
-          {/* Desktop & Tablet Navigation Links */}
-          <nav className="hidden md:flex items-center gap-3 md:gap-4 lg:gap-8 text-xs lg:text-sm font-semibold text-kandy-ink">
-            <Link href="/" className="hover:text-kandy-orange transition whitespace-nowrap">
+          {/* Desktop Navigation Links (Visible on Large Desktop Screens >= 1024px) */}
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold text-kandy-ink">
+            <Link href="/" className="hover:text-kandy-orange transition">
               Home
             </Link>
-            <Link href="/booking" className="hover:text-kandy-orange transition whitespace-nowrap">
+            <Link href="/booking" className="hover:text-kandy-orange transition">
               Book Cab
             </Link>
-            <Link href="/fleet" className="hover:text-kandy-orange transition whitespace-nowrap">
+            <Link href="/fleet" className="hover:text-kandy-orange transition">
               Fleet & Rates
             </Link>
-            <Link href="/about" className="hover:text-kandy-orange transition whitespace-nowrap">
+            <Link href="/about" className="hover:text-kandy-orange transition">
               About Us
             </Link>
-            <Link href="/contact" className="hover:text-kandy-orange transition whitespace-nowrap">
+            <Link href="/contact" className="hover:text-kandy-orange transition">
               Contact
             </Link>
           </nav>
 
-          {/* Right Action Controls (Desktop & Tablet) */}
-          <div className="hidden md:flex items-center gap-2 lg:gap-3">
+          {/* Right Action Controls */}
+          <div className="hidden lg:flex items-center gap-3">
             <a
               href="tel:+919876543210"
-              className="flex items-center gap-1.5 lg:gap-2 text-[11px] lg:text-xs font-bold text-kandy-ink bg-kandy-bg px-2.5 lg:px-3.5 py-1.5 lg:py-2.5 rounded-lg hover:bg-gray-200 transition whitespace-nowrap"
+              className="flex items-center gap-2 text-xs font-bold text-kandy-ink bg-kandy-bg px-3.5 py-2.5 rounded-lg hover:bg-gray-200 transition"
             >
-              <Phone className="w-3.5 h-3.5 text-kandy-orange shrink-0" />
+              <Phone className="w-3.5 h-3.5 text-kandy-orange" />
               <span>+91 98765 43210</span>
             </a>
 
@@ -102,20 +102,20 @@ export function Navbar() {
               /* SINGLE UNIFIED SIGN IN BUTTON WHEN LOGGED OUT */
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 lg:gap-2 text-[11px] lg:text-xs font-black text-white bg-gradient-to-r from-kandy-orange to-orange-600 hover:from-orange-600 hover:to-kandy-orange px-3.5 lg:px-6 py-1.5 lg:py-2.5 rounded-lg transition shadow-md border-b-2 border-orange-800 whitespace-nowrap"
+                className="flex items-center gap-2 text-xs font-black text-white bg-gradient-to-r from-kandy-orange to-orange-600 hover:from-orange-600 hover:to-kandy-orange px-6 py-2.5 rounded-lg transition shadow-md border-b-2 border-orange-800"
               >
-                <LogIn className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-white shrink-0" />
+                <LogIn className="w-4 h-4 text-white" />
                 <span>SIGN IN →</span>
               </Link>
             ) : (
               /* Role-aware Navigation for Logged-In Users */
-              <div className="flex items-center gap-2 lg:gap-3">
+              <div className="flex items-center gap-3">
                 {isAdmin && (
                   <Link
                     href="/admin"
-                    className="flex items-center gap-1.5 text-[11px] lg:text-xs font-black text-white bg-kandy-orange px-2.5 lg:px-3.5 py-1.5 lg:py-2.5 rounded-lg hover:bg-kandy-orangeHover transition shadow-md whitespace-nowrap"
+                    className="flex items-center gap-1.5 text-xs font-black text-white bg-kandy-orange px-3.5 py-2.5 rounded-lg hover:bg-kandy-orangeHover transition shadow-md"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                    <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Admin Console</span>
                   </Link>
                 )}
@@ -123,25 +123,25 @@ export function Navbar() {
                 {isApprovedDriver && (
                   <Link
                     href="/driver/dashboard"
-                    className="flex items-center gap-1.5 lg:gap-2 text-[11px] lg:text-xs font-extrabold text-white bg-kandy-ink hover:bg-black px-3 lg:px-4 py-1.5 lg:py-2.5 rounded-lg transition shadow-md whitespace-nowrap"
+                    className="flex items-center gap-2 text-xs font-extrabold text-white bg-kandy-ink hover:bg-black px-4 py-2.5 rounded-lg transition shadow-md"
                   >
-                    <Car className="w-3.5 h-3.5 text-kandy-orange shrink-0" />
+                    <Car className="w-3.5 h-3.5 text-kandy-orange" />
                     <span>Driver Portal</span>
                   </Link>
                 )}
 
                 <Link
                   href="/customer/dashboard"
-                  className="flex items-center gap-1.5 lg:gap-2 text-[11px] lg:text-xs font-extrabold text-kandy-orange border-2 border-kandy-orange bg-white px-3 lg:px-4 py-1.5 lg:py-2.5 rounded-lg hover:bg-orange-50 transition shadow-sm whitespace-nowrap"
+                  className="flex items-center gap-2 text-xs font-extrabold text-kandy-orange border-2 border-kandy-orange bg-white px-4 py-2.5 rounded-lg hover:bg-orange-50 transition shadow-sm"
                 >
-                  <User className="w-3.5 h-3.5 text-kandy-orange shrink-0" />
+                  <User className="w-3.5 h-3.5 text-kandy-orange" />
                   <span>My Account</span>
                 </Link>
 
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="px-2.5 lg:px-3.5 py-1.5 lg:py-2.5 bg-red-600 hover:bg-red-700 text-white text-[11px] lg:text-xs font-bold rounded-lg transition shadow-sm cursor-pointer whitespace-nowrap"
+                  className="px-3.5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition shadow-sm cursor-pointer"
                 >
                   Logout
                 </button>
@@ -149,8 +149,8 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button (Hidden on tablet and desktop) */}
-          <div className="md:hidden">
+          {/* Mobile & Tablet Hamburger Menu Button */}
+          <div className="lg:hidden">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -162,9 +162,9 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Slideable Navigation Drawer (Matching Reference Mockup) */}
+      {/* Mobile & Tablet Slideable Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-[999999] flex">
+        <div className="lg:hidden fixed inset-0 z-[999999] flex">
           {/* Backdrop Blur Overlay */}
           <div
             onClick={() => setMobileMenuOpen(false)}
