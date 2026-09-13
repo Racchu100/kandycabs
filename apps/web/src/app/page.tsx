@@ -63,8 +63,8 @@ export default function HomePage() {
         {/* Top Header Navbar with Transparent Background */}
         <Navbar transparentOnTop={true} />
 
-        {/* Hero Section Content */}
-        <section className="relative pt-2 sm:pt-4 md:pt-6 lg:pt-8 pb-6 sm:pb-10 md:pb-12 lg:pb-16 z-10">
+        {/* Hero Section Content (Pushed down with top padding to clear fixed header height) */}
+        <section className="relative pt-16 sm:pt-20 md:pt-24 lg:pt-28 pb-6 sm:pb-10 md:pb-12 lg:pb-16 z-10">
           <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full">
             <div className="text-left max-w-2xl mb-4 sm:mb-6">
               {/* Main Headline */}
