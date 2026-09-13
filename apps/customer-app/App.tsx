@@ -11,6 +11,7 @@ import {
   StatusBar,
   Linking,
   Modal,
+  Image,
 } from 'react-native';
 import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
@@ -245,18 +246,22 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={KANDY_THEME.colors.ink} />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* HEADER NAVBAR (Matching Image 2 Web Header) */}
+      {/* HEADER NAVBAR (Matching Web Header Image 1 & 2) */}
       <View style={styles.navbar}>
-        <TouchableOpacity style={styles.brandContainer} onPress={() => { setActiveTab('HOME'); setCurrentStep('SEARCH'); }}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoBadgeText}>KC</Text>
-          </View>
-          <View>
-            <Text style={styles.brandTitle}>KANDY CABS</Text>
-            <Text style={styles.brandSubtitle}>Safe • Reliable • Hassle-Free</Text>
-          </View>
+        <TouchableOpacity
+          style={styles.brandContainer}
+          onPress={() => {
+            setActiveTab('HOME');
+            setCurrentStep('SEARCH');
+          }}
+        >
+          <Image
+            source={require('./assets/kandycabs-logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
 
         {/* Hamburger Menu Icon (☰) */}
@@ -265,69 +270,115 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* DRAWER / HAMBURGER SLIDE-OUT MENU MODAL */}
-      <Modal visible={menuOpen} animationType="slide" transparent={true}>
+      {/* DRAWER / HAMBURGER SLIDE-OUT MENU MODAL (Matching Web Drawer Image 3) */}
+      <Modal visible={menuOpen} animationType="fade" transparent={true}>
         <View style={styles.menuOverlay}>
+          <TouchableOpacity style={styles.menuBackdrop} activeOpacity={1} onPress={() => setMenuOpen(false)} />
           <View style={styles.menuDrawer}>
             <View style={styles.menuHeader}>
-              <Text style={styles.menuHeaderTitle}>KANDY CABS NAVIGATION</Text>
-              <TouchableOpacity onPress={() => setMenuOpen(false)}>
-                <Text style={styles.menuCloseBtn}>✕</Text>
+              <Image
+                source={require('./assets/kandycabs-logo.png')}
+                style={styles.menuLogoImage}
+                resizeMode="contain"
+              />
+              <TouchableOpacity style={styles.menuCloseCircle} onPress={() => setMenuOpen(false)}>
+                <Text style={styles.menuCloseBtnText}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setActiveTab('HOME');
-                setCurrentStep('SEARCH');
-                setMenuOpen(false);
-              }}
-            >
-              <Text style={styles.menuItemText}>🚗 Book Intercity Cab</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setActiveTab('TRIPS');
-                setMenuOpen(false);
-              }}
-            >
-              <Text style={styles.menuItemText}>📍 My Trips & Active Tracking</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setActiveTab('FLEET');
-                setMenuOpen(false);
-              }}
-            >
-              <Text style={styles.menuItemText}>🚘 Fleet & Rate Card</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem} onPress={() => handleCallSupport('9876543210')}>
-              <Text style={styles.menuItemText}>📞 24x7 Customer Support Helpline</Text>
-            </TouchableOpacity>
-
-            {!isLoggedIn ? (
+            <ScrollView style={styles.menuContent} showsVerticalScrollIndicator={false}>
               <TouchableOpacity
-                style={[styles.menuItem, styles.menuItemAuth]}
+                style={styles.menuLinkRow}
                 onPress={() => {
+                  setActiveTab('HOME');
+                  setCurrentStep('SEARCH');
                   setMenuOpen(false);
-                  setAuthModalOpen(true);
                 }}
               >
-                <Text style={styles.menuItemAuthText}>👤 Customer Login / Signup</Text>
+                <Text style={styles.menuLinkText}>Home</Text>
               </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={[styles.menuItem, styles.menuItemAuth]} onPress={handleLogout}>
-                <Text style={[styles.menuItemAuthText, { color: KANDY_THEME.colors.danger }]}>
-                  🚪 Logout ({customerName})
-                </Text>
+
+              <TouchableOpacity
+                style={styles.menuLinkRow}
+                onPress={() => {
+                  setActiveTab('HOME');
+                  setCurrentStep('SEARCH');
+                  setMenuOpen(false);
+                }}
+              >
+                <Text style={styles.menuLinkText}>Book Cab</Text>
               </TouchableOpacity>
-            )}
+
+              <TouchableOpacity
+                style={styles.menuLinkRow}
+                onPress={() => {
+                  setActiveTab('FLEET');
+                  setMenuOpen(false);
+                }}
+              >
+                <Text style={styles.menuLinkText}>Fleet & Rates</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuLinkRow}
+                onPress={() => {
+                  setMenuOpen(false);
+                  Alert.alert('About Kandy Cabs', 'South India’s premier intercity taxi & outstation cab service provider.');
+                }}
+              >
+                <Text style={styles.menuLinkText}>About Us</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuLinkRow}
+                onPress={() => {
+                  setMenuOpen(false);
+                  handleCallSupport('9876543210');
+                }}
+              >
+                <Text style={styles.menuLinkText}>Contact</Text>
+              </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+
+              <Text style={styles.menuUserLabel}>
+                LOGGED IN AS: <Text style={{ fontWeight: '900', color: '#0F172A' }}>{isLoggedIn ? customerName.toUpperCase() : 'GUEST USER'}</Text>
+              </Text>
+
+              <TouchableOpacity
+                style={styles.driverPortalBtn}
+                onPress={() => {
+                  setMenuOpen(false);
+                  Alert.alert('Driver Portal', 'Driver app portal functionality.');
+                }}
+              >
+                <Text style={styles.driverPortalBtnText}>🚗 Driver Portal</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.customerPortalBtn}
+                onPress={() => {
+                  setMenuOpen(false);
+                  if (!isLoggedIn) {
+                    setAuthModalOpen(true);
+                  } else {
+                    setActiveTab('ACCOUNT');
+                  }
+                }}
+              >
+                <Text style={styles.customerPortalBtnText}>👤 Customer Portal (My Account)</Text>
+              </TouchableOpacity>
+
+              {isLoggedIn && (
+                <TouchableOpacity style={styles.logoutDrawerBtn} onPress={handleLogout}>
+                  <Text style={styles.logoutDrawerBtnText}>🚪 LOGOUT</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={styles.supportCallBtn} onPress={() => handleCallSupport('9876543210')}>
+                <Text style={styles.supportCallBtnText}>📞 Call 24×7 Support: +91 98765 43210</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -569,6 +620,43 @@ export default function App() {
               </View>
             </View>
           </View>
+
+          {/* OUR VEHICLE FLEET SECTION (Matching Image 1) */}
+          {currentStep === 'SEARCH' && (
+            <View style={styles.homeFleetSection}>
+              <Text style={styles.homeFleetTag}>OUR VEHICLE FLEET</Text>
+              <Text style={styles.homeFleetTitle}>Choose the Right Cab for Your Journey</Text>
+              <TouchableOpacity onPress={() => setActiveTab('FLEET')}>
+                <Text style={styles.homeFleetAction}>VIEW FULL FLEET & RATE CHART →</Text>
+              </TouchableOpacity>
+
+              {FLEET_CATEGORIES.slice(0, 3).map((v) => (
+                <TouchableOpacity
+                  key={v.id}
+                  style={styles.fleetPreviewCard}
+                  onPress={() => {
+                    setSelectedVehicle(v);
+                    setCurrentStep('VEHICLES');
+                  }}
+                >
+                  <View style={styles.fleetHeader}>
+                    <Text style={styles.fleetTitle}>{v.name}</Text>
+                    <Text style={styles.fleetTag}>{v.tag}</Text>
+                  </View>
+                  <Text style={styles.fleetSub}>{v.description}</Text>
+                  <View style={styles.fleetFeatureRow}>
+                    <Text style={styles.fleetFeature}>👥 {v.capacity}</Text>
+                    <Text style={styles.fleetFeature}>🧳 {v.luggage}</Text>
+                    <Text style={styles.fleetFeature}>❄️ AC Cab</Text>
+                  </View>
+                  <View style={styles.fleetRateRow}>
+                    <Text style={styles.fleetRateText}>₹{v.ratePerKm}/km</Text>
+                    <Text style={styles.fleetBaseText}>Base Fare: ₹{v.baseFare}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           {/* STEP 2: VEHICLE CATEGORY SELECTION & RATES */}
           {currentStep === 'VEHICLES' && (
@@ -1011,103 +1099,200 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   navbar: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   brandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
   },
-  logoBadge: {
-    width: 38,
-    height: 38,
-    backgroundColor: KANDY_THEME.colors.primary,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoBadgeText: {
-    color: '#FFF',
-    fontWeight: '900',
-    fontSize: 18,
-  },
-  brandTitle: {
-    color: '#FFF',
-    fontSize: 17,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  brandSubtitle: {
-    color: '#94A3B8',
-    fontSize: 10,
-    fontWeight: '700',
+  logoImage: {
+    width: 145,
+    height: 40,
   },
   hamburgerBtn: {
     padding: 6,
-    borderRadius: 6,
-    backgroundColor: '#334155',
+    borderRadius: 8,
   },
   hamburgerIcon: {
-    color: '#FFF',
-    fontSize: 20,
+    color: '#0F172A',
+    fontSize: 24,
     fontWeight: '900',
   },
   menuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-start',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  menuBackdrop: {
+    flex: 1,
   },
   menuDrawer: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
+    width: '85%',
+    maxWidth: 340,
+    height: '100%',
     padding: 20,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
   },
   menuHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-    paddingBottom: 10,
+    borderBottomColor: '#F1F5F9',
+    marginBottom: 10,
   },
-  menuHeaderTitle: {
-    color: KANDY_THEME.colors.primary,
-    fontSize: 14,
+  menuLogoImage: {
+    width: 130,
+    height: 36,
+  },
+  menuCloseCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuCloseBtnText: {
+    color: '#475569',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  menuContent: {
+    flex: 1,
+  },
+  menuLinkRow: {
+    paddingVertical: 14,
+  },
+  menuLinkText: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 16,
+  },
+  menuUserLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    marginBottom: 14,
+    letterSpacing: 0.5,
+  },
+  driverPortalBtn: {
+    backgroundColor: '#0F172A',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  driverPortalBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  customerPortalBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#EA580C',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  customerPortalBtnText: {
+    color: '#EA580C',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  logoutDrawerBtn: {
+    backgroundColor: '#EF4444',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  logoutDrawerBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '900',
   },
   menuCloseBtn: {
-    color: '#FFF',
+    color: '#0F172A',
     fontSize: 18,
     fontWeight: '900',
   },
-  menuItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+  supportCallBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  menuItemText: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  menuItemAuth: {
-    marginTop: 10,
-    borderBottomWidth: 0,
-    backgroundColor: '#334155',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-  },
-  menuItemAuthText: {
-    color: KANDY_THEME.colors.primary,
-    fontSize: 14,
+  supportCallBtnText: {
+    color: '#0F172A',
+    fontSize: 12,
     fontWeight: '800',
+  },
+  fleetTag: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#EA580C',
+    backgroundColor: '#FFEDD5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  homeFleetSection: {
+    marginVertical: 16,
+  },
+  homeFleetTag: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#EA580C',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  homeFleetTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  homeFleetAction: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#EA580C',
+    marginBottom: 14,
+  },
+  fleetPreviewCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   modalOverlay: {
     flex: 1,
