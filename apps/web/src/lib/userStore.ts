@@ -6,6 +6,7 @@ export interface StoredUser {
   phone: string;
   fullName: string;
   roles: string[];
+  isNewUser?: boolean;
   customer?: { fullName: string; email?: string | null } | null;
   driver?: { fullName: string; status: string; isVerifiedByAdmin: boolean } | null;
 }
@@ -194,6 +195,7 @@ export async function saveUser(
     phone: last10,
     fullName,
     roles,
+    isNewUser: true,
     customer: { fullName, email: email || null },
     driver: null,
   };

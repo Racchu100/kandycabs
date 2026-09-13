@@ -205,7 +205,9 @@ export function Navbar() {
                       <User className="w-4 h-4 text-[#FF6B1A]" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-semibold text-gray-500 block leading-tight">Hello,</span>
+                      <span className="text-[10px] font-semibold text-gray-500 block leading-tight">
+                        {user.isNewUser ? 'Welcome,' : 'Welcome back,'}
+                      </span>
                       <span className="text-xs font-black text-gray-900 flex items-center gap-0.5 leading-tight group-hover:text-[#FF6B1A] transition">
                         {user.fullName || user.phone || 'User'}
                         <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-[#FF6B1A] transition" />

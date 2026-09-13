@@ -252,7 +252,7 @@ export default function CustomerDashboardPage() {
                   </div>
                   <div>
                     <h1 className="text-base sm:text-xl md:text-2xl font-black text-kandy-ink">
-                      Welcome back, {user.fullName}!
+                      {user.isNewUser ? `Welcome, ${user.fullName}!` : `Welcome back, ${user.fullName}!`}
                     </h1>
                     <p className="text-[11px] sm:text-xs text-kandy-muted">
                       +91 {user.phone} • Customer Account

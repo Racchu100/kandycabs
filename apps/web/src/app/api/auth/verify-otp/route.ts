@@ -40,16 +40,20 @@ export async function POST(req: Request) {
       });
     }
 
+    const wasNewlyCreated = !isRegistered || !!user?.isNewUser;
+    let { isRegistered: finalIsRegistered, user: finalUser } = await getUserByPhone(last10);
+    if (!finalUser && user) finalUser = user;
+
     const isAdmin =
       last10 === '9481086058' ||
       last10 === '9999999999' ||
-      (Array.isArray(user?.roles) && user?.roles.includes('ADMIN'));
+      (Array.isArray(finalUser?.roles) && finalUser?.roles.includes('ADMIN'));
 
     const isApprovedDriver =
       last10 === '8888888888' ||
-      user?.driver?.status === 'APPROVED' ||
-      user?.driver?.isVerifiedByAdmin === true ||
-      (Array.isArray(user?.roles) && user?.roles.includes('DRIVER'));
+      finalUser?.driver?.status === 'APPROVED' ||
+      finalUser?.driver?.isVerifiedByAdmin === true ||
+      (Array.isArray(finalUser?.roles) && finalUser?.roles.includes('DRIVER'));
 
     let redirectTo = '/customer/dashboard';
     if (loginType === 'driver' || referer.includes('/driver')) {
@@ -62,12 +66,12 @@ export async function POST(req: Request) {
       redirectTo = '/admin';
     }
 
-    const userId = user?.id || `u_${last10}`;
+    const userId = finalUser?.id || `u_${last10}`;
     const userFullName =
-      user?.fullName ||
+      finalUser?.fullName ||
       (isAdmin ? 'Admin Operations' : isApprovedDriver ? 'Ramesh Kumar (Demo Driver)' : 'Valued Customer');
     const userRoles =
-      user?.roles ||
+      finalUser?.roles ||
       (isAdmin ? ['ADMIN', 'CUSTOMER'] : isApprovedDriver ? ['DRIVER', 'CUSTOMER'] : ['CUSTOMER']);
 
     const tokenPayload = {
@@ -75,18 +79,26 @@ export async function POST(req: Request) {
       phone: last10,
       fullName: userFullName,
       roles: userRoles,
+      isNewUser: wasNewlyCreated,
     };
 
     const token = signToken(tokenPayload);
 
-    const userObj = user || {
-      id: userId,
-      phone: last10,
-      fullName: userFullName,
-      roles: userRoles,
-      customer: { fullName: userFullName },
-      driver: isApprovedDriver ? { status: 'APPROVED', isVerifiedByAdmin: true } : null,
+    const userObj = {
+      ...(finalUser || {
+        id: userId,
+        phone: last10,
+        fullName: userFullName,
+        roles: userRoles,
+        customer: { fullName: userFullName },
+        driver: isApprovedDriver ? { status: 'APPROVED', isVerifiedByAdmin: true } : null,
+      }),
+      isNewUser: wasNewlyCreated,
     };
+
+    const responseMessage = wasNewlyCreated
+      ? `Welcome, ${userFullName}!`
+      : `Welcome back, ${userFullName}!`;
 
     const response = NextResponse.json({
       isRegistered: true,
@@ -95,7 +107,7 @@ export async function POST(req: Request) {
       redirectTo,
       user: userObj,
       token,
-      message: `Welcome back, ${userFullName}!`,
+      message: responseMessage,
     });
 
     response.cookies.set('kandy_session', token, {

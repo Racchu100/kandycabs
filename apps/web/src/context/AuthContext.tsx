@@ -7,6 +7,7 @@ export interface UserSession {
   phone: string;
   fullName: string;
   roles: string[];
+  isNewUser?: boolean;
   customer?: { fullName: string; email?: string | null } | null;
   driver?: { id?: string; fullName: string; status: string; isVerifiedByAdmin: boolean } | null;
 }
