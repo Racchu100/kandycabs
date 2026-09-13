@@ -650,12 +650,12 @@ export default function DriverDashboardPage() {
                       <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#0B132B] rounded-full" title="Online"></span>
                     </div>
 
-                    <div className="space-y-0.5">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <h1 className="text-base sm:text-lg font-black text-white">
-                          {driver?.fullName || user?.fullName || 'Ranju'}
-                        </h1>
-                        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <div className="space-y-1">
+                      <h1 className="text-base sm:text-lg font-black text-white leading-none">
+                        {driver?.fullName || user?.fullName || 'Ranju'}
+                      </h1>
+                      <div>
+                        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block">
                           APPROVED BY ADMIN
                         </span>
                       </div>
