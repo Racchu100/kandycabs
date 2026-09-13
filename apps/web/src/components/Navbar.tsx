@@ -69,8 +69,8 @@ export function Navbar() {
             />
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-kandy-ink">
+          {/* Desktop Navigation Links (Only on Large Screens) */}
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold text-kandy-ink">
             <Link href="/" className="hover:text-kandy-orange transition">
               Home
             </Link>
@@ -149,8 +149,8 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden">
+          {/* Mobile & Tablet menu button */}
+          <div className="lg:hidden">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -162,9 +162,9 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Slideable Navigation Drawer (Matching Reference Mockup) */}
+      {/* Mobile & Tablet Slideable Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-[999999] flex">
+        <div className="lg:hidden fixed inset-0 z-[999999] flex">
           {/* Backdrop Blur Overlay */}
           <div
             onClick={() => setMobileMenuOpen(false)}
