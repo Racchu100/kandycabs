@@ -794,7 +794,7 @@ function BookingContent() {
                                     e.stopPropagation();
                                     setExpandedInclusionsCategory((prev) => (prev === v.category ? null : v.category));
                                   }}
-                                  className="w-full bg-[#F0F6FF] hover:bg-blue-100/70 border border-blue-100/90 rounded-xl p-2.5 px-3.5 flex items-center justify-between transition cursor-pointer"
+                                  className="w-full bg-[#F0F6FF] hover:bg-blue-100/70 border border-blue-100/90 rounded-xl p-1.5 px-2.5 sm:p-2.5 sm:px-3.5 flex items-center justify-between transition cursor-pointer"
                                 >
                                   <div className="flex items-center gap-2">
                                     <div className="w-5 h-5 rounded-full bg-[#0F52BA] text-white flex items-center justify-center shrink-0">
@@ -836,11 +836,11 @@ function BookingContent() {
                           </div>
 
                           {/* Right: Pricing Box & SELECT CAR CTA Button (Matching reference screenshot) */}
-                          <div className="px-3 pb-3 sm:p-0 shrink-0 space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-3 md:pt-0 md:pl-6 w-full md:w-64">
+                          <div className="px-2 pb-2.5 sm:p-0 shrink-0 space-y-2 sm:space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-2.5 md:pt-0 md:pl-6 w-full md:w-64">
                             {isAvailable ? (
-                              <div className="space-y-3">
+                              <div className="space-y-2 sm:space-y-3">
                                 {/* Sky Blue Rounded Pricing Box */}
-                                <div className="bg-[#F0F7FF] border border-sky-100/90 rounded-2xl p-3.5 text-left space-y-1">
+                                <div className="bg-[#F0F7FF] border border-sky-100/90 rounded-2xl p-2.5 sm:p-3.5 text-left space-y-1">
                                   {/* Discount & Strikethrough Row */}
                                   <div className="flex items-center gap-2">
                                     <span className="text-[11px] font-black text-[#059669] bg-[#E6F9F0] px-2 py-0.5 rounded-lg border border-[#BFF2D9]">
@@ -869,7 +869,7 @@ function BookingContent() {
                                     setSelectedCategory(v.category);
                                     setStep(2);
                                   }}
-                                  className="w-full py-3.5 px-6 bg-[#FF6B1A] hover:bg-orange-600 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
+                                  className="w-full py-2.5 px-4 sm:py-3.5 sm:px-6 bg-[#FF6B1A] hover:bg-orange-600 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
                                 >
                                   <span>SELECT CAR →</span>
                                 </button>
