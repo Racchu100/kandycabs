@@ -27,8 +27,9 @@ import {
   Map,
   Compass,
   AlertCircle,
-  Headphones,
-  Ban,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 const INITIAL_VEHICLE_OPTIONS = [
@@ -533,38 +534,26 @@ function BookingContent() {
       <main className="flex-1 pt-1 sm:pt-2 pb-6">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
 
-          {/* Trust Banner (100% Fit Non-Scrollable Responsive Layout) */}
-          <div className="bg-[#EBF6FF] border border-[#D0EAFF] rounded-2xl py-2 px-1.5 sm:py-2.5 sm:px-4 mb-3 sm:mb-4 shadow-xs grid grid-cols-[1fr_1.2fr_1fr] items-center">
-            {/* Item 1: Book Now at Zero Cost */}
-            <div className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 min-w-0 pr-1">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#0088FF] text-white rounded-full flex items-center justify-center text-xs sm:text-sm font-black shrink-0 shadow-2xs">
-                ₹
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-[10.5px] sm:text-xs font-extrabold text-[#0F172A] leading-tight whitespace-nowrap">Book Now</h4>
-                <p className="text-[8.5px] sm:text-[10px] font-medium text-[#64748B] leading-none mt-0.5 whitespace-nowrap">at Zero Cost</p>
+          {/* Trust Banner (1 single row, compact padding & spacing) */}
+          <div className="bg-gradient-to-r from-sky-500 to-sky-700 text-white rounded-lg sm:rounded-xl py-1.5 px-2 sm:py-2 sm:px-4 mb-2.5 sm:mb-3.5 shadow-md flex items-center justify-between gap-1.5 sm:gap-4 text-[9.5px] sm:text-xs font-extrabold tracking-tight overflow-x-auto whitespace-nowrap">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <span className="text-xs sm:text-base">₹</span>
+              <div>
+                <div className="leading-tight text-[9.5px] sm:text-xs font-black">Book Now</div>
+                <div className="text-[8px] sm:text-[10px] font-medium text-sky-100 leading-none">at Zero Cost</div>
               </div>
             </div>
-
-            {/* Item 2: Free Cancellation Upto 1 Hour (With vertical border dividers) */}
-            <div className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 border-x border-sky-200/80 px-1 sm:px-3 min-w-0">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-tr from-red-500 to-rose-500 text-white rounded-full flex items-center justify-center shrink-0 shadow-2xs">
-                <Ban className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-[10.5px] sm:text-xs font-extrabold text-[#0F172A] leading-tight whitespace-nowrap">Free Cancellation</h4>
-                <p className="text-[8.5px] sm:text-[10px] font-medium text-[#64748B] leading-none mt-0.5 whitespace-nowrap">Upto 1 Hour</p>
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <span className="text-xs sm:text-base">🚫</span>
+              <div>
+                <div className="leading-tight text-[9.5px] sm:text-xs font-black">Free Cancellations</div>
+                <div className="text-[8px] sm:text-[10px] font-medium text-sky-100 leading-none">Upto 1 Hour</div>
               </div>
             </div>
-
-            {/* Item 3: 24x7 Support */}
-            <div className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 min-w-0 pl-1">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#0088FF] text-white rounded-full flex items-center justify-center shrink-0 shadow-2xs">
-                <Headphones className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-[10.5px] sm:text-xs font-extrabold text-[#0F172A] leading-tight whitespace-nowrap">24x7 Support</h4>
-                <p className="text-[8.5px] sm:text-[10px] font-medium text-[#64748B] leading-none mt-0.5 whitespace-nowrap">Always Ready</p>
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <span className="text-xs sm:text-base">🎧</span>
+              <div>
+                <div className="leading-tight text-[9.5px] sm:text-xs font-black">24x7 Support</div>
               </div>
             </div>
           </div>
@@ -797,26 +786,35 @@ function BookingContent() {
                                 </div>
                               )}
 
-                              {/* Toggle Inclusions & Exclusions */}
-                              <div className="pt-1">
+                              {/* Toggle Inclusions & Exclusions Pill Button (Matching reference screenshot) */}
+                              <div className="pt-2">
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setExpandedInclusionsCategory((prev) => (prev === v.category ? null : v.category));
                                   }}
-                                  className="text-[11px] sm:text-xs font-bold text-sky-600 hover:text-sky-800 flex items-center gap-1 cursor-pointer"
+                                  className="w-full bg-[#F0F6FF] hover:bg-blue-100/70 border border-blue-100/90 rounded-xl p-2.5 px-3.5 flex items-center justify-between transition cursor-pointer"
                                 >
-                                  <span>Inclusions and Exclusions</span>
-                                  <span className="text-[10px]">{expandedInclusionsCategory === v.category ? '▲' : '▼'}</span>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-full bg-[#0F52BA] text-white flex items-center justify-center shrink-0">
+                                      <ShieldCheck className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span className="text-xs font-bold text-[#1E3A8A]">Inclusions and Exclusions</span>
+                                  </div>
+                                  {expandedInclusionsCategory === v.category ? (
+                                    <ChevronUp className="w-4 h-4 text-[#0073E6] shrink-0" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4 text-[#0073E6] shrink-0" />
+                                  )}
                                 </button>
                               </div>
 
-                              {/* Mobile Expandable Inclusions (Appears ABOVE Fare Cost & CTA on Mobile) */}
+                              {/* Expandable Inclusions & Exclusions Content List */}
                               {expandedInclusionsCategory === v.category && (
-                                <div className="block sm:hidden mt-2 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                                <div className="mt-2.5 bg-[#F8FAFC] border border-blue-100 rounded-xl p-3.5 space-y-2">
                                   <h4 className="text-xs font-black text-gray-900 mb-1.5">
-                                    Inclusions and Exclusions
+                                    Inclusions & Exclusions Details
                                   </h4>
                                   <ul className="space-y-1.5 text-[11px] font-bold text-gray-800">
                                     {vFare.inclusions?.map((inc, i) => (
@@ -837,36 +835,45 @@ function BookingContent() {
                             </div>
                           </div>
 
-                          {/* Right: Pricing & CTA Button */}
-                          <div className="px-3 pb-3 sm:p-0 text-center md:text-right shrink-0 space-y-2 border-t md:border-t-0 md:border-l border-gray-200 pt-3 md:pt-0 md:pl-6 w-full md:w-auto">
+                          {/* Right: Pricing Box & SELECT CAR CTA Button (Matching reference screenshot) */}
+                          <div className="px-3 pb-3 sm:p-0 shrink-0 space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-3 md:pt-0 md:pl-6 w-full md:w-64">
                             {isAvailable ? (
-                              <>
-                                <div className="flex items-center justify-center md:justify-end gap-1.5 text-[11px] sm:text-xs">
-                                  <span className="text-emerald-600 font-black bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                    {discountPercent}% OFF
-                                  </span>
-                                  <span className="line-through text-gray-400 font-bold">
-                                    ₹{originalPrice.toLocaleString()}
-                                  </span>
-                                </div>
-                                <div className="text-2xl sm:text-3xl font-black text-sky-600">
-                                  ₹{vFare.finalPrice.toLocaleString()}
-                                </div>
-                                <div className="text-[10px] sm:text-[11px] text-gray-500 font-semibold">
-                                  + ₹{taxesAmount.toLocaleString()} Charges and Taxes
+                              <div className="space-y-3">
+                                {/* Sky Blue Rounded Pricing Box */}
+                                <div className="bg-[#F0F7FF] border border-sky-100/90 rounded-2xl p-3.5 text-left space-y-1">
+                                  {/* Discount & Strikethrough Row */}
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-black text-[#059669] bg-[#E6F9F0] px-2 py-0.5 rounded-lg border border-[#BFF2D9]">
+                                      {discountPercent}% OFF
+                                    </span>
+                                    <span className="line-through text-gray-400 font-semibold text-xs">
+                                      ₹{originalPrice.toLocaleString()}
+                                    </span>
+                                  </div>
+
+                                  {/* Main Blue Price Text */}
+                                  <div className="text-2xl sm:text-3xl font-extrabold text-[#0073E6] tracking-tight pt-0.5">
+                                    ₹{vFare.finalPrice.toLocaleString()}
+                                  </div>
+
+                                  {/* Taxes Subtext */}
+                                  <div className="text-[11px] text-[#64748B] font-semibold">
+                                    + ₹{taxesAmount.toLocaleString()} Charges and Taxes
+                                  </div>
                                 </div>
 
+                                {/* Prominent Gradient Orange CTA Button (SELECT CAR →) */}
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setSelectedCategory(v.category);
                                     setStep(2);
                                   }}
-                                  className="w-full md:w-auto px-6 py-2 sm:px-8 sm:py-2.5 bg-kandy-orange hover:bg-orange-600 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-lg shadow-md hover:shadow-lg transition transform active:scale-95 cursor-pointer"
+                                  className="w-full py-3.5 px-6 bg-[#FF6B1A] hover:bg-orange-600 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
                                 >
-                                  SELECT CAR
+                                  <span>SELECT CAR →</span>
                                 </button>
-                              </>
+                              </div>
                             ) : (
                               <div className="space-y-1.5 py-1">
                                 <div className="text-[11px] sm:text-xs font-black text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded">
