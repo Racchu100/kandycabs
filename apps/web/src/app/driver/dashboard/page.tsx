@@ -29,6 +29,8 @@ import {
   User,
   LogOut,
 } from 'lucide-react';
+import { DriverHeader } from '@/components/DriverHeader';
+import { DriverBookingCard, DriverBookingItem } from '@/components/DriverBookingCard';
 
 export default function DriverDashboardPage() {
   const auth = useAuth();
@@ -36,6 +38,7 @@ export default function DriverDashboardPage() {
   const [driver, setDriver] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dispatches, setDispatches] = useState<any[]>([]);
+  const [isOnline, setIsOnline] = useState(true);
   const [activeTripModalBooking, setActiveTripModalBooking] = useState<any | null>(null);
   const fetchedDriverRef = useRef<string | null>(null);
 
@@ -647,320 +650,124 @@ export default function DriverDashboardPage() {
             </div>
           ) : (
             /* Approved Driver Dashboard */
-            <div className="space-y-4">
-              {/* Dark Profile Header Card */}
-              <div className="bg-[#0B132B] text-white p-3.5 sm:p-4.5 rounded-2xl shadow-lg space-y-3 border border-slate-800">
-                <div className="flex items-start justify-between gap-3 w-full">
-                  {/* Left: Driver Avatar & Details */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="relative shrink-0">
-                      {storedDocPaths.driverPhotoUrl || driver?.driverPhotoUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.driverPhotoUrl || driver?.driverPhotoUrl)}`}
-                          alt={driver?.fullName || user?.fullName || 'Driver'}
-                          className="w-11 h-11 sm:w-13 sm:h-13 rounded-full object-cover shadow-md border-2 border-white/20"
-                        />
+            <div className="space-y-6">
+              {/* Driver Profile Header */}
+              <DriverHeader
+                driverName={driver?.fullName || user?.fullName || 'Ranju'}
+                driverPhone={user?.phone || '9481086058'}
+                vehicleName={driver?.assignedVehicle?.name || docVehicleName || 'Swift Dzire Sedan'}
+                photoUrl={storedDocPaths.driverPhotoUrl || driver?.driverPhotoUrl}
+                isOnline={isOnline}
+                onToggleOnline={() => setIsOnline(!isOnline)}
+                hasPendingDocs={hasPendingDocs}
+                pendingCount={pendingCount}
+                onOpenDocModal={() => {
+                  setIsVehicleChangedMode(false);
+                  setShowDocModal(true);
+                  setDocSuccess(null);
+                }}
+              />
+
+              {/* Dispatches Partitioning */}
+              {(() => {
+                const currentDriverId = driver?.id || user?.id || 'd_1';
+                const availableDispatches = dispatches.filter((disp) => {
+                  const status = disp.booking?.status || disp.status || 'DISPATCHED';
+                  return status === 'DISPATCHED' || status === 'PENDING';
+                });
+
+                const recentDispatches = dispatches.filter((disp) => {
+                  const status = disp.booking?.status || disp.status || 'DISPATCHED';
+                  return status !== 'DISPATCHED' && status !== 'PENDING';
+                });
+
+                const mapToBookingItem = (disp: any): DriverBookingItem => ({
+                  id: disp.booking?.id || disp.bookingId || disp.id,
+                  humanReadableRef: disp.booking?.humanReadableRef || 'KC29264',
+                  tripType: disp.booking?.tripType || 'ONEWAY',
+                  pickupAddress: disp.booking?.pickupAddress || 'Pickup address',
+                  dropAddress: disp.booking?.dropAddress || 'Drop address',
+                  scheduledAt: disp.booking?.scheduledAt || '',
+                  distanceKm: disp.booking?.distanceKm,
+                  estimatedFare: disp.booking?.estimatedFare || 0,
+                  advanceAmount: disp.booking?.advanceAmount || 0,
+                  advancePaymentStatus: disp.booking?.advancePaymentStatus || 'PENDING',
+                  balanceAmount: disp.booking?.balanceAmount || 0,
+                  balancePaymentStatus: disp.booking?.balancePaymentStatus || 'PENDING',
+                  tollAmount: disp.booking?.tollAmount || 0,
+                  status: disp.booking?.status || disp.status || 'DISPATCHED',
+                  customerPhoneReleased: !!disp.booking?.customerPhoneReleased,
+                  customer: disp.booking?.customer,
+                  assignedDriver: disp.booking?.assignedDriver || (disp.assignedDriverId ? { id: disp.assignedDriverId } : undefined),
+                });
+
+                return (
+                  <div className="space-y-6">
+                    {/* Available Trip Dispatches Section */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center">
+                            <Radio className="w-3.5 h-3.5 text-kandy-orange animate-pulse" />
+                          </div>
+                          <div>
+                            <h2 className="text-base font-black text-slate-900">Available Dispatches</h2>
+                            <p className="text-[11px] text-slate-500 font-medium">First accept wins broadcast</p>
+                          </div>
+                        </div>
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                          Live Feed
+                        </span>
+                      </div>
+
+                      {availableDispatches.length === 0 ? (
+                        <div className="bg-white p-6 text-center rounded-2xl border border-slate-200/90 text-xs text-slate-500 shadow-2xs space-y-1.5">
+                          <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                            <Radio className="w-5 h-5" />
+                          </div>
+                          <p className="font-extrabold text-slate-700">No active dispatches available right now.</p>
+                          <p className="text-slate-400 text-[11px]">Stay online to receive instant notifications when new rides are dispatched!</p>
+                        </div>
                       ) : (
-                        <div className="w-11 h-11 sm:w-13 sm:h-13 bg-gradient-to-tr from-kandy-orange to-amber-400 text-white rounded-full flex items-center justify-center font-black text-lg sm:text-xl shadow-md border-2 border-white/20">
-                          {(driver?.fullName || user?.fullName || 'Ranju').charAt(0)}
+                        <div className="space-y-3">
+                          {availableDispatches.map((disp) => (
+                            <DriverBookingCard
+                              key={disp.id}
+                              booking={mapToBookingItem(disp)}
+                              currentDriverId={currentDriverId}
+                              onAccept={(bookingId) => handleAcceptDispatch(disp.id, bookingId)}
+                              onOpenTripModal={(b) => setActiveTripModalBooking(b)}
+                            />
+                          ))}
                         </div>
                       )}
-                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#0B132B] rounded-full" title="Online"></span>
                     </div>
 
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-4 w-full">
-                        <h1 className="text-base sm:text-lg font-black text-white leading-none">
-                          {driver?.fullName || user?.fullName || 'Ranju'}
-                        </h1>
-                        <div className="bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 shrink-0 ml-auto">
-                          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
-                          <span className="text-emerald-300 font-extrabold text-[10px] sm:text-[11px] tracking-wide">Driver Online</span>
+                    {/* Recent Activity Section (Taken / Completed / Cancelled) */}
+                    {recentDispatches.length > 0 && (
+                      <div className="space-y-3 pt-2 border-t border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <h2 className="text-sm font-black text-slate-800 uppercase tracking-wide">Recent Activity & Trips</h2>
+                          <span className="text-[11px] font-bold text-slate-400">{recentDispatches.length} Trips</span>
+                        </div>
+
+                        <div className="space-y-3">
+                          {recentDispatches.map((disp) => (
+                            <DriverBookingCard
+                              key={disp.id}
+                              booking={mapToBookingItem(disp)}
+                              currentDriverId={currentDriverId}
+                              onAccept={(bookingId) => handleAcceptDispatch(disp.id, bookingId)}
+                              onOpenTripModal={(b) => setActiveTripModalBooking(b)}
+                            />
+                          ))}
                         </div>
                       </div>
-
-                      <div>
-                        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block">
-                          APPROVED BY ADMIN
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-300">
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-slate-400" />
-                          <span>{user?.phone ? `+91 ${user.phone}` : '+91 94810 86058'}</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Car className="w-3 h-3 text-slate-400" />
-                          <span>{driver?.assignedVehicle?.name || 'Swift Dzire Sedan'}</span>
-                        </span>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                </div>
-
-                {/* Header Action Buttons */}
-                <div className="space-y-2 pt-2.5 border-t border-slate-800/80">
-                  <div>
-                    <button
-                      onClick={() => {
-                        setIsVehicleChangedMode(true);
-                        setShowDocModal(true);
-                        setDocSuccess(null);
-                      }}
-                      className={`w-full sm:w-auto px-3.5 py-2 text-white text-[11px] sm:text-xs font-black rounded-xl transition shadow flex items-center justify-center gap-1.5 ${
-                        hasPendingDocs
-                          ? 'bg-amber-500 hover:bg-amber-600 animate-pulse border border-amber-300'
-                          : 'bg-kandy-orange hover:bg-kandy-orangeHover'
-                      }`}
-                    >
-                      {hasPendingDocs ? (
-                        <>
-                          <AlertTriangle className="w-3.5 h-3.5 text-white animate-bounce shrink-0" />
-                          <span>{pendingCount} PENDING DOCS / UPLOAD NOW &gt;</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-3.5 h-3.5 shrink-0" />
-                          <span>🔄 Vehicle Changed / Upload Docs</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <Link
-                      href="/customer/dashboard"
-                      className="px-3.5 py-1.5 bg-white text-slate-900 text-[11px] sm:text-xs font-extrabold rounded-xl hover:bg-slate-100 transition shadow flex items-center gap-1.5"
-                    >
-                      <span>Switch to Customer Mode</span>
-                      <span>🚘</span>
-                    </Link>
-
-                    <button
-                      onClick={() => {
-                        fetch('/api/auth/logout', { method: 'POST' }).then(() => {
-                          localStorage.removeItem('kandy_user');
-                          localStorage.removeItem('kandy_token');
-                          window.location.href = '/';
-                        });
-                      }}
-                      className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] sm:text-xs font-extrabold rounded-full transition shadow flex items-center gap-1.5"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Logout</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Available Trip Dispatches Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                      <Radio className="w-4 h-4 text-kandy-orange animate-pulse" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                        Available Trip Dispatches
-                      </h2>
-                      <p className="text-xs text-slate-500 font-medium">First Accept Wins</p>
-                    </div>
-                  </div>
-                  <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                    Live Updates
-                  </span>
-                </div>
-
-                {dispatches.length === 0 ? (
-                  <div className="bg-white p-8 text-center rounded-3xl border border-slate-200 text-xs text-slate-500 shadow-sm space-y-2">
-                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                      <Radio className="w-6 h-6" />
-                    </div>
-                    <p className="font-bold text-slate-700">No active dispatches right now.</p>
-                    <p className="text-slate-400">Stay online on this screen to automatically receive incoming ride broadcasts!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {dispatches.map((disp) => {
-                      const bStatus = disp.booking?.status || disp.status || 'DISPATCHED';
-                      const assignedDriverId = disp.assignedDriverId || disp.booking?.assignedDriverId || disp.booking?.assignedDriver?.id;
-                      const assignedPhone = disp.booking?.assignedDriver?.user?.phone || disp.booking?.assignedDriver?.phone || '';
-
-                      const currentDriverId = driver?.id || user?.id || '';
-                      const currentPhone = user?.phone || '';
-
-                      const isAcceptedByMe =
-                        (bStatus === 'DRIVER_ACCEPTED' || bStatus === 'TRIP_STARTED' || bStatus === 'TRIP_COMPLETED') &&
-                        ((assignedDriverId && assignedDriverId === currentDriverId) ||
-                          (assignedPhone && currentPhone && assignedPhone.includes(currentPhone.slice(-10))) ||
-                          (!assignedDriverId && !assignedPhone));
-
-                      const isTakenByOther =
-                        (bStatus === 'DRIVER_ACCEPTED' || bStatus === 'TRIP_STARTED' || bStatus === 'TRIP_COMPLETED') &&
-                        !isAcceptedByMe;
-
-                      const isCancelled = bStatus === 'CANCELLED';
-
-                      return (
-                        <div
-                          key={disp.id}
-                          className={`rounded-3xl border-2 transition-all p-5 sm:p-6 space-y-4 shadow-md ${
-                            isAcceptedByMe
-                              ? 'bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-200'
-                              : isTakenByOther
-                              ? 'bg-slate-50 border-slate-300 opacity-75'
-                              : isCancelled
-                              ? 'bg-red-50/50 border-red-200 opacity-75'
-                              : 'bg-white border-orange-200 hover:border-orange-300'
-                          }`}
-                        >
-                          {/* Top Row: Ref, Trip Type, Status */}
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="bg-orange-500 text-white text-xs font-black px-3 py-1 rounded-full shadow-sm">
-                                Booking Ref: {disp.booking?.humanReadableRef}
-                              </span>
-                              <span className="bg-slate-900 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                {disp.booking?.tripType || 'ONEWAY'}
-                              </span>
-                            </div>
-
-                            {/* Status Pill */}
-                            {isAcceptedByMe ? (
-                              <span className="bg-emerald-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> ACCEPTED BY YOU
-                              </span>
-                            ) : isTakenByOther ? (
-                              <span className="bg-slate-200 text-slate-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-                                <XCircle className="w-3.5 h-3.5 text-slate-500 shrink-0" /> TAKEN BY OTHER DRIVER
-                              </span>
-                            ) : isCancelled ? (
-                              <span className="bg-red-100 text-red-800 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                ❌ CANCELLED
-                              </span>
-                            ) : (
-                              <span className="bg-amber-100 text-amber-900 border border-amber-300/60 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse">
-                                Dispatched (Available)
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Details Grid */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
-                            <div className="space-y-1">
-                              <div className="text-slate-400 font-bold text-[11px] uppercase tracking-wider">Customer Name</div>
-                              <div className="font-black text-slate-900 text-sm flex items-center gap-1.5">
-                                <User className="w-3.5 h-3.5 text-slate-400" />
-                                <span>{disp.booking?.customer?.fullName || 'Ranju'}</span>
-                              </div>
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="text-slate-400 font-bold text-[11px] uppercase tracking-wider">Contact Phone</div>
-                              {disp.booking?.customerPhoneReleased && disp.booking?.customer?.phone ? (
-                                <a
-                                  href={`tel:+91${disp.booking.customer.phone}`}
-                                  className="inline-flex items-center gap-1 font-black text-emerald-700 bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-lg hover:bg-emerald-200 transition"
-                                >
-                                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>+91 {disp.booking.customer.phone} (Call)</span>
-                                </a>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg text-[11px]">
-                                  <Lock className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>Contact Hidden (Pending Admin Release)</span>
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="text-slate-400 font-bold text-[11px] uppercase tracking-wider">Pickup Location</div>
-                              <div className="font-bold text-slate-800 flex items-start gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                                <span>{disp.booking?.pickupAddress || 'Pickup address'}</span>
-                              </div>
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="text-slate-400 font-bold text-[11px] uppercase tracking-wider">Drop Location</div>
-                              <div className="font-bold text-slate-800 flex items-start gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                                <span>{disp.booking?.dropAddress || 'Drop address'}</span>
-                              </div>
-                            </div>
-
-                            <div className="sm:col-span-2 pt-1 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
-                              <span className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-orange-500" />
-                                <span>Pickup Time: <strong>{disp.booking?.scheduledAt ? new Date(disp.booking.scheduledAt).toLocaleString('en-IN') : 'As Soon As Possible'}</strong></span>
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Swipe to Accept or Action Button */}
-                          <div className="pt-2">
-                            {isAcceptedByMe ? (
-                              bStatus === 'DRIVER_ACCEPTED' ? (
-                                <button
-                                  onClick={() => setActiveTripModalBooking(disp.booking || disp)}
-                                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition shadow-lg flex items-center justify-center gap-2 animate-pulse"
-                                >
-                                  <CheckCircle2 className="w-4 h-4" />
-                                  <span>START TRIP NOW (LIFECYCLE) →</span>
-                                </button>
-                              ) : bStatus === 'TRIP_STARTED' ? (
-                                <button
-                                  onClick={() => setActiveTripModalBooking(disp.booking || disp)}
-                                  className="w-full py-3.5 bg-kandy-orange hover:bg-kandy-orangeHover text-white font-black text-xs uppercase tracking-wider rounded-2xl transition shadow-lg flex items-center justify-center gap-2 animate-pulse"
-                                >
-                                  <Radio className="w-4 h-4" />
-                                  <span>TRIP IN PROGRESS (MANAGE) →</span>
-                                </button>
-                              ) : (
-                                <div className="w-full py-3 bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider rounded-2xl text-center border border-emerald-300">
-                                  ✓ TRIP COMPLETED
-                                </div>
-                              )
-                            ) : isTakenByOther ? (
-                              <button
-                                disabled
-                                className="w-full py-3.5 bg-slate-200 text-slate-500 font-black text-xs uppercase tracking-wider rounded-2xl border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2 opacity-80"
-                              >
-                                <XCircle className="w-4 h-4 text-slate-400" />
-                                <span>NOT AVAILABLE (TAKEN BY OTHER DRIVER)</span>
-                              </button>
-                            ) : isCancelled ? (
-                              <button
-                                disabled
-                                className="w-full py-3.5 bg-slate-200 text-slate-500 font-black text-xs uppercase tracking-wider rounded-2xl border border-slate-300 cursor-not-allowed text-center"
-                              >
-                                ❌ CANCELLED
-                              </button>
-                            ) : (
-                              <div className="w-full">
-                                <SwipeToAcceptButton
-                                  onAccept={() =>
-                                    handleAcceptDispatch(
-                                      disp.id,
-                                      disp.bookingId || disp.booking?.id,
-                                    )
-                                  }
-                                  label="SWIPE TO ACCEPT"
-                                  successLabel="DISPATCH ACCEPTED ✓"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
           )}
         </div>
