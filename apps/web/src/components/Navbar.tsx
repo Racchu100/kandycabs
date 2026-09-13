@@ -145,7 +145,7 @@ export function Navbar() {
 
       {/* Mobile Slideable Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-[100] flex">
+        <div className="md:hidden fixed inset-0 z-[999999] flex">
           {/* Backdrop Blur Overlay */}
           <div
             onClick={() => setMobileMenuOpen(false)}
@@ -153,7 +153,7 @@ export function Navbar() {
           />
 
           {/* Slideable Right Drawer Panel */}
-          <div className="relative ml-auto w-80 max-w-[85vw] bg-white h-dvh min-h-screen shadow-2xl z-[101] flex flex-col justify-between p-5 overflow-y-auto pb-20 animate-in slide-in-from-right duration-300">
+          <div className="relative ml-auto w-80 max-w-[85vw] bg-white h-dvh min-h-screen shadow-2xl z-[1000000] flex flex-col justify-between p-5 overflow-y-auto pb-20 animate-in slide-in-from-right duration-300">
             {/* Top Navigation Links */}
             <div className="space-y-4">
               {/* Drawer Header */}

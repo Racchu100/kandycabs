@@ -455,12 +455,12 @@ export function BookingWidget() {
         </form>
       </div>
 
-      {/* Mobile Sticky Bottom Trip Navigation Bar (Mounted directly to document.body via Portal for 100% top z-index priority) */}
+      {/* Mobile Sticky Bottom Trip Navigation Bar (Mounted directly to document.body via Portal) */}
       {isMounted &&
         createPortal(
           <div
-            className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] py-2.5 px-3 rounded-t-3xl sm:hidden"
-            style={{ zIndex: 999999 }}
+            className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] py-2.5 px-3 rounded-t-3xl sm:hidden z-40"
+            style={{ zIndex: 40 }}
           >
             <div className="grid grid-cols-4 gap-2 max-w-md mx-auto">
               <button
