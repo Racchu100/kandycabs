@@ -80,10 +80,10 @@ const FLEET_FULL = [
 
 export default function FleetPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-kandy-bg">
+    <div className="min-h-screen flex flex-col bg-kandy-bg pb-[calc(var(--bottom-bar-height,0px)+2.5rem)] sm:pb-0">
       <Navbar />
 
-      <main className="flex-1 pt-2 sm:pt-4 pb-8">
+      <main className="flex-1 pt-4 sm:pt-6 pb-[calc(var(--bottom-bar-height,0px)+2.5rem)] sm:pb-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-4 sm:mb-6">
             <span className="text-xs font-bold text-kandy-orange uppercase tracking-widest block mb-0.5">

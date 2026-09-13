@@ -54,7 +54,7 @@ const FLEET_TEASER = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-kandy-bg pb-28 sm:pb-0">
+    <div className="min-h-screen flex flex-col bg-kandy-bg pb-[calc(var(--bottom-bar-height,0px)+2.5rem)] sm:pb-0">
       {/* Top Header & Hero Container with Seamless Mountain Road Background starting from very top */}
       <div className="relative overflow-hidden border-b border-kandy-border">
         {/* Scenic Mountain Road Background Image starting from very top */}
@@ -69,7 +69,7 @@ export default function HomePage() {
         <Navbar transparentOnTop={true} />
 
         {/* Hero Section Content (Pushed down with top padding to clear fixed header height) */}
-        <section className="relative pt-16 sm:pt-20 md:pt-24 lg:pt-28 pb-6 sm:pb-10 md:pb-12 lg:pb-16 z-10">
+        <section className="relative pt-[calc(var(--header-height,64px)+1rem)] sm:pt-20 md:pt-24 lg:pt-28 pb-6 sm:pb-10 md:pb-12 lg:pb-16 z-10">
           <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full">
             <div className="text-left max-w-2xl mb-4 sm:mb-6">
               {/* Main Headline */}
@@ -176,7 +176,7 @@ export default function HomePage() {
       </section>
 
       {/* Fleet Showcase Section */}
-      <section className="relative py-6 sm:py-8 lg:py-12 bg-kandy-bg">
+      <section id="fleet" className="relative py-6 sm:py-8 lg:py-12 bg-kandy-bg scroll-mt-[calc(var(--header-height,64px)+1rem)] pb-[calc(var(--bottom-bar-height,0px)+2.5rem)] sm:pb-12">
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 gap-2 sm:gap-4">

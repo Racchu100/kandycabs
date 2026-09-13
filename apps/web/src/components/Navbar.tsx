@@ -31,8 +31,27 @@ export function Navbar({ transparentOnTop = false }: NavbarProps = {}) {
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, logout: handleLogout } = useAuth();
   const pathname = usePathname();
+  const headerRef = React.useRef<HTMLElement>(null);
 
   React.useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        const height = headerRef.current.offsetHeight;
+        if (height > 0) {
+          document.documentElement.style.setProperty('--header-height', `${height}px`);
+        }
+      }
+    };
+
+    updateHeaderHeight();
+    window.addEventListener('resize', updateHeaderHeight);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && headerRef.current) {
+      observer = new ResizeObserver(updateHeaderHeight);
+      observer.observe(headerRef.current);
+    }
+
     const handleScroll = () => {
       if (window.scrollY > 10) {
         setIsScrolled(true);
@@ -42,7 +61,11 @@ export function Navbar({ transparentOnTop = false }: NavbarProps = {}) {
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('resize', updateHeaderHeight);
+      window.removeEventListener('scroll', handleScroll);
+      if (observer) observer.disconnect();
+    };
   }, []);
 
   const isAdmin = Boolean(
@@ -62,6 +85,7 @@ export function Navbar({ transparentOnTop = false }: NavbarProps = {}) {
   return (
     <>
       <header
+        ref={headerRef}
         className={`fixed top-0 inset-x-0 z-50 transition-all duration-200 ${
           isScrolled
             ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-gray-100/80'
@@ -189,7 +213,11 @@ export function Navbar({ transparentOnTop = false }: NavbarProps = {}) {
 
       {/* Spacer when not transparentOnTop to preserve page layout */}
       {!transparentOnTop && (
-        <div className="h-14 sm:h-14 md:h-16 lg:h-20 shrink-0" aria-hidden="true" />
+        <div
+          style={{ height: 'var(--header-height, 64px)' }}
+          className="shrink-0 transition-[height] duration-150"
+          aria-hidden="true"
+        />
       )}
     </>
   );

@@ -10,6 +10,8 @@
   --ink: #15171C;
   --bg: #F1F2F4;
   --card: #FFFFFF;
+  --header-height: 64px;
+  --bottom-bar-height: 0px;
 }
 
 body {

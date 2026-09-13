@@ -11,10 +11,41 @@ import { SelectedLocation } from '@/lib/locationProvider';
 export function BookingWidget() {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
+  const bottomBarRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const updateBottomBarHeight = () => {
+      if (bottomBarRef.current && window.innerWidth < 640) {
+        const height = bottomBarRef.current.offsetHeight;
+        if (height > 0) {
+          document.documentElement.style.setProperty('--bottom-bar-height', `${height}px`);
+        }
+      } else {
+        document.documentElement.style.setProperty('--bottom-bar-height', '0px');
+      }
+    };
+
+    updateBottomBarHeight();
+    window.addEventListener('resize', updateBottomBarHeight);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && bottomBarRef.current) {
+      observer = new ResizeObserver(updateBottomBarHeight);
+      observer.observe(bottomBarRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateBottomBarHeight);
+      if (observer) observer.disconnect();
+      document.documentElement.style.setProperty('--bottom-bar-height', '0px');
+    };
+  }, [isMounted]);
   const [tripType, setTripType] = useState<TripType>(TripType.ONEWAY);
   const [airportTripMode, setAirportTripMode] = useState<'PICKUP' | 'DROP'>('PICKUP');
 
@@ -459,6 +490,7 @@ export function BookingWidget() {
       {isMounted &&
         createPortal(
           <div
+            ref={bottomBarRef}
             className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] py-1.5 px-2.5 rounded-t-2xl sm:hidden z-40"
             style={{ zIndex: 40 }}
           >
