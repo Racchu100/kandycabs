@@ -962,9 +962,12 @@ export default function DriverDashboardPage() {
           <div className="bg-white rounded-2xl sm:rounded-widget border border-kandy-border max-w-2xl w-full max-h-[92vh] overflow-y-auto p-3 sm:p-6 shadow-2xl space-y-2.5 sm:space-y-4 my-2 sm:my-8">
             <div className="flex items-center justify-between border-b border-kandy-border pb-2 sm:pb-3">
               <div className="flex items-center gap-2 sm:gap-2.5">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-kandy-orangeLight text-kandy-orange rounded-lg flex items-center justify-center font-bold border border-orange-200 shrink-0">
-                  <Car className="w-4 h-4 sm:w-6 sm:h-6" />
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/kandycabs-logo.png"
+                  alt="Kandy Cabs Logo"
+                  className="h-8 sm:h-10 w-auto object-contain shrink-0"
+                />
                 <div>
                   <h3 className="text-sm sm:text-lg font-black text-kandy-ink leading-tight">
                     {isVehicleChangedMode ? '🔄 Vehicle Change & Document Update' : '🚘 Driver & Vehicle Necessary Documents'}
