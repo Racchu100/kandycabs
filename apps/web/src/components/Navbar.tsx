@@ -194,16 +194,20 @@ export function Navbar() {
               </div>
 
               {/* User Greeting / Profile Card */}
-              <div className="relative overflow-hidden bg-gradient-to-r from-orange-50/90 via-orange-100/40 to-orange-50/70 border border-orange-100/90 rounded-xl p-2 px-2.5 flex items-center justify-between shadow-2xs">
+              <Link
+                href={user ? '/customer/dashboard' : '/login'}
+                onClick={() => setMobileMenuOpen(false)}
+                className="relative overflow-hidden bg-gradient-to-r from-orange-50/90 via-orange-100/40 to-orange-50/70 border border-orange-100/90 rounded-xl p-2 px-2.5 flex items-center justify-between shadow-2xs group cursor-pointer"
+              >
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-[#FF6B1A]/15 text-[#FF6B1A] flex items-center justify-center shrink-0">
                     <User className="w-4 h-4 text-[#FF6B1A]" />
                   </div>
                   <div>
                     <span className="text-[10px] font-semibold text-gray-500 block leading-tight">Hello,</span>
-                    <span className="text-xs font-black text-gray-900 flex items-center gap-0.5 leading-tight">
-                      {user ? (user.fullName || user.phone || 'User') : 'RANJU'}
-                      <ChevronRight className="w-3 h-3 text-gray-400" />
+                    <span className="text-xs font-black text-gray-900 flex items-center gap-0.5 leading-tight group-hover:text-[#FF6B1A] transition">
+                      {user ? (user.fullName || user.phone || 'User') : 'Guest'}
+                      <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-[#FF6B1A] transition" />
                     </span>
                   </div>
                 </div>
@@ -213,7 +217,7 @@ export function Navbar() {
                   alt="Car illustration"
                   className="w-14 h-9 object-contain shrink-0 opacity-90 drop-shadow-xs"
                 />
-              </div>
+              </Link>
 
               {/* Navigation Menu Items with Custom Icons & Active Indicator */}
               <nav className="space-y-1">
@@ -265,31 +269,35 @@ export function Navbar() {
 
             {/* Bottom Actions Section: User Status + Portals + Logout + Support Call */}
             <div className="pt-2 space-y-2 mt-2 shrink-0">
-              {/* User Logged-in Header Badge */}
-              <div className="flex items-center gap-1.5 px-1 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">
-                <User className="w-3 h-3 text-gray-400 shrink-0" />
-                <span>
-                  LOGGED IN AS: <strong className="text-gray-900 font-black">{user ? (user.fullName || user.phone || 'USER') : 'RANJU'}</strong>
-                </span>
-              </div>
+              {/* User Logged-in Header Badge (Only shown when user is authenticated) */}
+              {user && (
+                <div className="flex items-center gap-1.5 px-1 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">
+                  <User className="w-3 h-3 text-gray-400 shrink-0" />
+                  <span>
+                    LOGGED IN AS: <strong className="text-gray-900 font-black">{user.fullName || user.phone || 'USER'}</strong>
+                  </span>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="space-y-1.5">
-                {/* Driver Portal Button (Charcoal Dark Card) */}
-                <Link
-                  href="/driver/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full bg-[#232731] hover:bg-slate-900 text-white rounded-xl py-2 px-3 flex items-center justify-between font-extrabold text-xs shadow-xs transition cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Car className="w-4 h-4 text-[#FF6B1A] shrink-0" />
-                    <span>Driver Portal</span>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                </Link>
+                {/* Driver Portal Button (Charcoal Dark Card - ONLY shown if approved driver) */}
+                {user && isApprovedDriver && (
+                  <Link
+                    href="/driver/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full bg-[#232731] hover:bg-slate-900 text-white rounded-xl py-2 px-3 flex items-center justify-between font-extrabold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Car className="w-4 h-4 text-[#FF6B1A] shrink-0" />
+                      <span>Driver Portal</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  </Link>
+                )}
 
-                {/* Admin Console Button (if admin) */}
-                {isAdmin && (
+                {/* Admin Console Button (ONLY shown if admin) */}
+                {user && isAdmin && (
                   <Link
                     href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
@@ -303,20 +311,22 @@ export function Navbar() {
                   </Link>
                 )}
 
-                {/* Customer Portal Button (White Card with Orange Border) */}
-                <Link
-                  href="/customer/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full bg-white border-2 border-[#FF6B1A] text-[#FF6B1A] hover:bg-orange-50/80 rounded-xl py-2 px-3 flex items-center justify-between font-extrabold text-xs shadow-2xs transition cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <User className="w-4 h-4 text-[#FF6B1A] shrink-0" />
-                    <span>Customer Portal (My Account)</span>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-[#FF6B1A] shrink-0" />
-                </Link>
+                {/* Customer Portal Button (White Card with Orange Border - ONLY shown if logged in) */}
+                {user && (
+                  <Link
+                    href="/customer/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full bg-white border-2 border-[#FF6B1A] text-[#FF6B1A] hover:bg-orange-50/80 rounded-xl py-2 px-3 flex items-center justify-between font-extrabold text-xs shadow-2xs transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <User className="w-4 h-4 text-[#FF6B1A] shrink-0" />
+                      <span>Customer Portal (My Account)</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#FF6B1A] shrink-0" />
+                  </Link>
+                )}
 
-                {/* Logout Button (Solid Red Rounded Card) */}
+                {/* Logout or Sign In Button */}
                 {user ? (
                   <button
                     type="button"
