@@ -136,7 +136,7 @@ export function BookingWidget() {
 
   return (
     <>
-      <div className="w-full max-w-5xl mx-auto bg-white rounded-xl sm:rounded-2xl shadow-xl sm:shadow-2xl border border-gray-100 relative z-30 p-2 sm:p-2.5 md:p-3 lg:p-8">
+      <div className="w-full max-w-5xl mx-auto bg-white rounded-3xl sm:rounded-2xl shadow-[0_12px_35px_rgba(0,0,0,0.08)] sm:shadow-2xl border border-gray-100 relative z-30 p-4 sm:p-6 lg:p-8">
         {/* TRIP TYPE TAB SELECTOR (Desktop & Tablet - Mobile uses Sticky Bottom Bar) */}
         <div className="hidden sm:block mb-1.5 sm:mb-1.5 md:mb-2 lg:mb-6">
           {/* Tablet & Desktop View: 1 Single Row Bar */}
@@ -215,12 +215,12 @@ export function BookingWidget() {
         )}
 
         {/* Main Dynamic Booking Form */}
-        <form onSubmit={handleSearch} className="space-y-1 sm:space-y-1.5 md:space-y-2 lg:space-y-5">
+        <form onSubmit={handleSearch} className="space-y-3 sm:space-y-3 lg:space-y-5">
           {/* ROUTE LOCATION INPUTS CONTAINER */}
-          <div className="relative bg-gray-50/80 p-1.5 sm:p-2 md:p-2.5 lg:p-5 rounded-lg sm:rounded-2xl border border-gray-200 space-y-1 sm:space-y-1 md:space-y-1.5 lg:space-y-4">
+          <div className="relative bg-gray-50/80 p-2.5 sm:p-3 lg:p-5 rounded-2xl border border-gray-200/90 space-y-2 sm:space-y-2 lg:space-y-4">
             {/* Dedicated Airport Transfer Direction Toggle (Positioned right above Pickup Location) */}
             {tripType === TripType.AIRPORT && (
-              <div className="flex items-center justify-center gap-0.5 sm:gap-2 bg-orange-50/90 p-0 sm:p-1.5 rounded-md sm:rounded-xl border border-orange-200 text-xs font-bold mb-1 sm:mb-2">
+              <div className="flex items-center justify-center gap-1 sm:gap-2 bg-orange-50/90 p-1 sm:p-1.5 rounded-xl border border-orange-200 text-xs font-bold mb-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -240,13 +240,13 @@ export function BookingWidget() {
                       isSelected: false,
                     });
                   }}
-                  className={`flex-1 px-1.5 py-1 sm:px-4 sm:py-2 rounded-md sm:rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 transition text-[10px] sm:text-xs ${
+                  className={`flex-1 px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg flex items-center justify-center gap-1.5 transition text-[11px] sm:text-xs ${
                     airportTripMode === 'PICKUP'
-                      ? 'bg-kandy-orange text-white shadow-sm font-extrabold'
+                      ? 'bg-[#FF6B1A] text-white shadow-sm font-extrabold'
                       : 'text-kandy-ink hover:bg-white bg-white/70'
                   }`}
                 >
-                  <PlaneLanding className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  <PlaneLanding className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                   <span>Pickup from Airport</span>
                 </button>
 
@@ -269,13 +269,13 @@ export function BookingWidget() {
                       isSelected: false,
                     });
                   }}
-                  className={`flex-1 px-1.5 py-1 sm:px-4 sm:py-2 rounded-md sm:rounded-lg flex items-center justify-center gap-1 sm:gap-1.5 transition text-[10px] sm:text-xs ${
+                  className={`flex-1 px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg flex items-center justify-center gap-1.5 transition text-[11px] sm:text-xs ${
                     airportTripMode === 'DROP'
-                      ? 'bg-kandy-orange text-white shadow-sm font-extrabold'
+                      ? 'bg-[#FF6B1A] text-white shadow-sm font-extrabold'
                       : 'text-kandy-ink hover:bg-white bg-white/70'
                   }`}
                 >
-                  <PlaneTakeoff className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                  <PlaneTakeoff className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                   <span>Drop to Airport</span>
                 </button>
               </div>
@@ -289,7 +289,7 @@ export function BookingWidget() {
                     ? 'Enter City name'
                     : tripType === TripType.AIRPORT && airportTripMode === 'PICKUP'
                     ? 'Select Airport Location'
-                    : 'Enter Pickup Place, Landmark, Railway Station...'
+                    : 'Enter Pickup Place, Landmark, Railway Stat...'
                 }
                 value={pickupLocation}
                 onChange={(loc) => {
@@ -330,9 +330,9 @@ export function BookingWidget() {
                 </div>
               ))}
 
-            {/* SWAP BUTTON (Floating between FROM and TO for non-local trips) */}
+            {/* SWAP BUTTON (Floating on the right edge between FROM and TO) */}
             {tripType !== TripType.LOCAL && (
-              <div className="flex justify-center -my-1 sm:-my-1 relative z-20">
+              <div className="flex justify-end pr-2 -my-2.5 sm:-my-1 relative z-20">
                 <button
                   type="button"
                   onClick={() => {
@@ -341,9 +341,9 @@ export function BookingWidget() {
                     setDropLocation(temp);
                   }}
                   title="Swap Pickup & Drop Locations"
-                  className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-white hover:bg-orange-50 text-kandy-orange border-2 border-kandy-orange/30 shadow-md flex items-center justify-center transition transform active:scale-90 hover:rotate-180 cursor-pointer"
+                  className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-[#FF6B1A] text-white border-2 border-white shadow-md flex items-center justify-center transition transform active:scale-90 hover:rotate-180 cursor-pointer"
                 >
-                  <ArrowLeftRight className="w-3 h-3 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 rotate-90" />
+                  <ArrowLeftRight className="w-4 h-4 rotate-90" />
                 </button>
               </div>
             )}
@@ -380,10 +380,10 @@ export function BookingWidget() {
             )}
           </div>
 
-          {/* DATE & TIME SELECTORS GRID (2-column grid on mobile & tablet) */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 md:gap-3 lg:gap-4">
+          {/* DATE & TIME SELECTORS GRID (2-column grid side-by-side on mobile matching reference image) */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 lg:gap-4">
             {/* PICK UP DATE */}
-            <div className="bg-gray-50 p-1.5 sm:p-2 md:p-2.5 lg:p-3.5 rounded-md sm:rounded-xl border border-gray-200">
+            <div className="bg-[#F8F9FA] p-2.5 sm:p-3 rounded-2xl border border-gray-200/90">
               <label className="block text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase text-gray-700 tracking-wider mb-0.5">
                 PICK UP DATE
               </label>
@@ -391,14 +391,14 @@ export function BookingWidget() {
                 type="date"
                 value={pickupDate}
                 onChange={(e) => setPickupDate(e.target.value)}
-                className="w-full bg-transparent text-[11px] sm:text-xs md:text-sm font-bold text-gray-900 focus:outline-none min-h-[26px] sm:min-h-[30px] md:min-h-[34px] lg:min-h-[36px]"
+                className="w-full bg-transparent text-xs sm:text-xs md:text-sm font-bold text-gray-900 focus:outline-none min-h-[30px]"
                 required
               />
             </div>
 
             {/* RETURN DATE (FOR ROUND TRIP) */}
             {tripType === TripType.ROUND && (
-              <div className="bg-gray-50 p-1.5 sm:p-2 md:p-2.5 lg:p-3.5 rounded-md sm:rounded-xl border border-gray-200">
+              <div className="bg-[#F8F9FA] p-2.5 sm:p-3 rounded-2xl border border-gray-200/90">
                 <label className="block text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase text-gray-700 tracking-wider mb-0.5">
                   RETURN DATE
                 </label>
@@ -406,14 +406,14 @@ export function BookingWidget() {
                   type="date"
                   value={returnDate}
                   onChange={(e) => setReturnDate(e.target.value)}
-                  className="w-full bg-transparent text-[11px] sm:text-xs md:text-sm font-bold text-gray-900 focus:outline-none min-h-[26px] sm:min-h-[30px] md:min-h-[34px] lg:min-h-[36px]"
+                  className="w-full bg-transparent text-xs sm:text-xs md:text-sm font-bold text-gray-900 focus:outline-none min-h-[30px]"
                   required
                 />
               </div>
             )}
 
             {/* PICK UP TIME */}
-            <div className="bg-gray-50 p-1.5 sm:p-2 md:p-2.5 lg:p-3.5 rounded-md sm:rounded-xl border border-gray-200">
+            <div className="bg-[#F8F9FA] p-2.5 sm:p-3 rounded-2xl border border-gray-200/90">
               <label className="block text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase text-gray-700 tracking-wider mb-0.5">
                 PICK UP TIME
               </label>
@@ -421,17 +421,17 @@ export function BookingWidget() {
                 type="time"
                 value={pickupTime}
                 onChange={(e) => setPickupTime(e.target.value)}
-                className="w-full bg-transparent text-[11px] sm:text-xs md:text-sm font-bold text-gray-900 focus:outline-none min-h-[26px] sm:min-h-[30px] md:min-h-[34px] lg:min-h-[36px]"
+                className="w-full bg-transparent text-xs sm:text-xs md:text-sm font-bold text-gray-900 focus:outline-none min-h-[30px]"
                 required
               />
             </div>
           </div>
 
-          {/* Prominent High-Contrast CTA Button */}
+          {/* Prominent High-Contrast Gradient Orange CTA Button */}
           <div className="pt-1">
             <button
               type="submit"
-              className="w-full py-2 sm:py-2.5 md:py-3 lg:py-4 px-4 sm:px-6 md:px-8 bg-gradient-to-r from-kandy-orange via-orange-500 to-amber-500 hover:from-orange-600 hover:to-kandy-orange text-white font-black text-xs sm:text-xs md:text-sm uppercase tracking-widest rounded-lg sm:rounded-xl shadow-md sm:shadow-lg hover:shadow-2xl transition transform active:scale-98 border-b-2 sm:border-b-3 lg:border-b-4 border-orange-800 flex items-center justify-center gap-1.5 sm:gap-2 min-h-[38px] sm:min-h-[40px] md:min-h-[44px] lg:min-h-[52px]"
+              className="w-full py-3.5 sm:py-4 px-6 bg-gradient-to-r from-[#FF5500] via-[#FF6B1A] to-[#FFA000] hover:from-orange-600 hover:to-orange-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer min-h-[48px] sm:min-h-[52px]"
             >
               <span>EXPLORE CABS & RATES →</span>
             </button>
@@ -439,8 +439,8 @@ export function BookingWidget() {
         </form>
       </div>
 
-    {/* Sticky Bottom Trip Type Bar for Mobile Devices (1 Row, Medium Icon, Small Font) */}
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.12)] p-2 sm:hidden">
+    {/* Sticky Bottom Trip Type Bar for Mobile Devices (1 Row, Matching Reference Image) */}
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200/80 shadow-[0_-4px_25px_rgba(0,0,0,0.12)] p-2 sm:hidden">
       <div className="grid grid-cols-4 gap-1.5 max-w-md mx-auto">
         <button
           type="button"
@@ -450,11 +450,11 @@ export function BookingWidget() {
           }}
           className={`py-2 px-1 rounded-xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
             tripType === TripType.ONEWAY
-              ? 'bg-kandy-orange text-white shadow-md font-black'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-gradient-to-r from-[#FF5500] to-[#FF6B1A] text-white shadow-md font-black'
+              : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <Car className="w-5 h-5 shrink-0" />
+          <Car className="w-4.5 h-4.5 shrink-0" />
           <span>One Way</span>
         </button>
 
@@ -466,11 +466,11 @@ export function BookingWidget() {
           }}
           className={`py-2 px-1 rounded-xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
             tripType === TripType.ROUND
-              ? 'bg-kandy-orange text-white shadow-md font-black'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-gradient-to-r from-[#FF5500] to-[#FF6B1A] text-white shadow-md font-black'
+              : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <RefreshCw className="w-5 h-5 shrink-0" />
+          <RefreshCw className="w-4.5 h-4.5 shrink-0" />
           <span>Round Trip</span>
         </button>
 
@@ -482,11 +482,11 @@ export function BookingWidget() {
           }}
           className={`py-2 px-1 rounded-xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
             tripType === TripType.LOCAL
-              ? 'bg-kandy-orange text-white shadow-md font-black'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-gradient-to-r from-[#FF5500] to-[#FF6B1A] text-white shadow-md font-black'
+              : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <MapPin className="w-5 h-5 shrink-0" />
+          <MapPin className="w-4.5 h-4.5 shrink-0" />
           <span>Local</span>
         </button>
 
@@ -495,11 +495,11 @@ export function BookingWidget() {
           onClick={handleSelectAirportTab}
           className={`py-2 px-1 rounded-xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
             tripType === TripType.AIRPORT
-              ? 'bg-kandy-orange text-white shadow-md font-black'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-gradient-to-r from-[#FF5500] to-[#FF6B1A] text-white shadow-md font-black'
+              : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <Plane className="w-5 h-5 shrink-0" />
+          <Plane className="w-4.5 h-4.5 shrink-0" />
           <span>Airport</span>
         </button>
       </div>

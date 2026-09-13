@@ -47,61 +47,61 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative pt-1.5 sm:pt-3 md:pt-4 lg:pt-8 pb-1 sm:pb-6 md:pb-8 lg:pb-12 bg-gradient-to-b from-white via-gray-50 to-kandy-bg border-b border-kandy-border">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 md:px-6 lg:px-8 w-full pb-1.5 sm:pb-0">
-          <div className="text-center max-w-3xl mx-auto mb-1.5 sm:mb-2 md:mb-3">
-            <div className="inline-flex items-center gap-1 bg-kandy-orangeLight text-kandy-orange px-2.5 py-0.5 rounded-full text-[9.5px] sm:text-[10px] md:text-xs font-black uppercase tracking-wider mb-1 border border-orange-200 shadow-xs">
-              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <div className="text-center max-w-3xl mx-auto mb-3 sm:mb-4">
+            <div className="inline-flex items-center gap-1.5 bg-[#FFF4ED] text-[#FF6B1A] px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider mb-2 border border-[#FFE0D1] shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5" />
               <span>South India&apos;s Premium Intercity Cab Service</span>
             </div>
-            <h1 className="text-base sm:text-lg md:text-xl lg:text-5xl font-black text-kandy-ink tracking-tight leading-tight mb-1">
-              Book Outstation & Local Cabs with <span className="text-kandy-orange">Transparent Fares</span>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-kandy-ink tracking-tight leading-tight mb-2">
+              Book Outstation & Local Cabs with <span className="text-[#FF6B1A]">Transparent Fares</span>
             </h1>
-            <p className="text-[11px] sm:text-xs md:text-sm lg:text-base text-kandy-muted font-semibold max-w-sm sm:max-w-xl mx-auto mb-1">
+            <p className="text-xs sm:text-sm lg:text-base text-kandy-muted font-semibold max-w-md sm:max-w-xl mx-auto">
               Pay 25% advance only. Clean sanitized cabs, courteous verified drivers, and doorstep pickup.
             </p>
           </div>
 
-          {/* Savaari-Style Card Booking Widget */}
+          {/* Card Booking Widget */}
           <BookingWidget />
 
-          {/* Mobile & Tablet Embedded Bigger 4-Trust-Badges Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 md:gap-3 mt-3 sm:mt-3.5 md:mt-4 lg:hidden">
-            <div className="flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 md:p-3.5 bg-white rounded-xl border border-gray-200 shadow-sm">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-kandy-orangeLight text-kandy-orange rounded-lg flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          {/* Mobile 4-Trust-Badges Grid (2x2 Grid matching reference screenshot) */}
+          <div className="grid grid-cols-2 gap-2.5 mt-4 sm:hidden">
+            <div className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-gray-100/90 shadow-xs">
+              <div className="w-9 h-9 bg-orange-50 text-[#FF6B1A] rounded-xl flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[10px] sm:text-[11px] md:text-xs font-black text-kandy-ink uppercase tracking-tight leading-snug">Verified Chauffeurs</h4>
-                <p className="text-[9.5px] sm:text-[10px] text-kandy-muted font-semibold leading-tight mt-0.5 hidden sm:block">Background-checked</p>
+                <h4 className="text-[11px] font-black text-kandy-ink uppercase tracking-tight leading-tight">Verified Chauffeurs</h4>
+                <p className="text-[9px] text-kandy-muted font-semibold leading-tight mt-0.5">Background checked</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 md:p-3.5 bg-white rounded-xl border border-gray-200 shadow-sm">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            <div className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-gray-100/90 shadow-xs">
+              <div className="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[10px] sm:text-[11px] md:text-xs font-black text-kandy-ink uppercase tracking-tight leading-snug">25% Advance Only</h4>
-                <p className="text-[9.5px] sm:text-[10px] text-kandy-muted font-semibold leading-tight mt-0.5 hidden sm:block">Rest after trip</p>
+                <h4 className="text-[11px] font-black text-kandy-ink uppercase tracking-tight leading-tight">25% Advance Only</h4>
+                <p className="text-[9px] text-kandy-muted font-semibold leading-tight mt-0.5">Rest after trip</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 md:p-3.5 bg-white rounded-xl border border-gray-200 shadow-sm">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
-                <Award className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            <div className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-gray-100/90 shadow-xs">
+              <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                <Award className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[10px] sm:text-[11px] md:text-xs font-black text-kandy-ink uppercase tracking-tight leading-snug">Transparent Billing</h4>
-                <p className="text-[9.5px] sm:text-[10px] text-kandy-muted font-semibold leading-tight mt-0.5 hidden sm:block">Zero hidden costs</p>
+                <h4 className="text-[11px] font-black text-kandy-ink uppercase tracking-tight leading-tight">Transparent Billing</h4>
+                <p className="text-[9px] text-kandy-muted font-semibold leading-tight mt-0.5">Zero hidden costs</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 md:p-3.5 bg-white rounded-xl border border-gray-200 shadow-sm">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center shrink-0">
-                <PhoneCall className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            <div className="flex items-center gap-2.5 p-3 bg-white rounded-2xl border border-gray-100/90 shadow-xs">
+              <div className="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+                <PhoneCall className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[10px] sm:text-[11px] md:text-xs font-black text-kandy-ink uppercase tracking-tight leading-snug">24x7 Ops Support</h4>
-                <p className="text-[9.5px] sm:text-[10px] text-kandy-muted font-semibold leading-tight mt-0.5 hidden sm:block">Live assistance</p>
+                <h4 className="text-[11px] font-black text-kandy-ink uppercase tracking-tight leading-tight">24x7 Ops Support</h4>
+                <p className="text-[9px] text-kandy-muted font-semibold leading-tight mt-0.5">Live assistance</p>
               </div>
             </div>
           </div>

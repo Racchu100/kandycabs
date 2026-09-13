@@ -155,10 +155,10 @@ export function LocationSearchInput({
 
       {/* Input Box & Dropdown Wrapper */}
       <div className="relative">
-        <div className={`relative flex items-center bg-gray-50 hover:bg-white focus-within:bg-white border-2 transition rounded-md sm:rounded-lg lg:rounded-xl px-2 py-0.5 sm:px-2.5 sm:py-1 md:px-3 md:py-1 min-h-[32px] sm:min-h-[34px] md:min-h-[36px] lg:min-h-[38px] shadow-xs ${
-          validationError && !value.isSelected ? 'border-red-400 focus-within:border-red-500' : 'border-gray-200 focus-within:border-kandy-orange focus-within:ring-2 focus-within:ring-kandy-orange/20'
+        <div className={`relative flex items-center bg-[#F8F9FA] hover:bg-white focus-within:bg-white border-2 transition rounded-xl px-3 py-2 sm:px-2.5 sm:py-1 md:px-3 md:py-1 min-h-[42px] sm:min-h-[36px] lg:min-h-[40px] shadow-2xs ${
+          validationError && !value.isSelected ? 'border-red-400 focus-within:border-red-500' : 'border-gray-200/90 focus-within:border-kandy-orange focus-within:ring-2 focus-within:ring-kandy-orange/20'
         }`}>
-          <Search className="w-3 h-3 sm:w-3.5 sm:h-4 text-kandy-orange shrink-0 mr-1.5" />
+          <Search className="w-4 h-4 sm:w-4 sm:h-4 text-kandy-orange shrink-0 mr-2" />
 
           <input
             type="text"

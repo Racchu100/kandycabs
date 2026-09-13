@@ -36,11 +36,11 @@
         "ACCESS_BACKGROUND_LOCATION"
       ]
     },
+    "owner": "rakshithms-team",
     "extra": {
       "eas": {
-        "projectId": "4b5c4ef1-0362-4f69-90be-2e7705d28122"
+        "projectId": "3531192b-873f-4196-b679-f5d1517365e9"
       }
-    },
-    "owner": "rakshithms-team"
+    }
   }
 }
