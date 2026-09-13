@@ -651,9 +651,16 @@ export default function DriverDashboardPage() {
                     </div>
 
                     <div className="space-y-1">
-                      <h1 className="text-base sm:text-lg font-black text-white leading-none">
-                        {driver?.fullName || user?.fullName || 'Ranju'}
-                      </h1>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="text-base sm:text-lg font-black text-white leading-none">
+                          {driver?.fullName || user?.fullName || 'Ranju'}
+                        </h1>
+                        <div className="bg-emerald-950/80 border border-emerald-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 inline-flex">
+                          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
+                          <span className="text-emerald-300 font-extrabold text-[10px] sm:text-[11px] tracking-wide">Driver Online</span>
+                        </div>
+                      </div>
+
                       <div>
                         <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider inline-block">
                           APPROVED BY ADMIN
@@ -671,12 +678,6 @@ export default function DriverDashboardPage() {
                         </span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Right: Driver Status Pill */}
-                  <div className="bg-emerald-950/80 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2 self-stretch sm:self-auto justify-center">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping"></span>
-                    <span className="text-emerald-300 font-extrabold text-[11px] sm:text-xs tracking-wide">Driver Online</span>
                   </div>
                 </div>
 
