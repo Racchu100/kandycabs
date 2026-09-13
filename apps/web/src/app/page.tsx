@@ -41,12 +41,24 @@ const FLEET_TEASER = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-kandy-bg">
+    <div className="min-h-screen flex flex-col bg-kandy-bg pb-20 sm:pb-0">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative pt-1.5 sm:pt-3 md:pt-4 lg:pt-8 pb-1 sm:pb-6 md:pb-8 lg:pb-12 bg-gradient-to-b from-white via-gray-50 to-kandy-bg border-b border-kandy-border">
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-4 md:px-6 lg:px-8 w-full pb-1.5 sm:pb-0">
+      <section className="relative pt-1.5 sm:pt-3 md:pt-4 lg:pt-8 pb-1 sm:pb-6 md:pb-8 lg:pb-12 bg-gradient-to-b from-white via-gray-50 to-kandy-bg border-b border-kandy-border overflow-hidden">
+        {/* Scenic Background Banner Image (Top right matching reference screenshot) */}
+        <div className="absolute top-0 right-0 w-full sm:w-2/3 h-56 sm:h-full opacity-20 sm:opacity-30 pointer-events-none overflow-hidden z-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1200&auto=format&fit=crop&q=80"
+            alt="Scenic Coastal Highway"
+            className="w-full h-full object-cover object-right-top"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-white"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-4 md:px-6 lg:px-8 w-full pb-1.5 sm:pb-0 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-3 sm:mb-4">
             <div className="inline-flex items-center gap-1.5 bg-[#FFF4ED] text-[#FF6B1A] px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider mb-2 border border-[#FFE0D1] shadow-2xs">
               <Sparkles className="w-3.5 h-3.5" />
@@ -156,8 +168,19 @@ export default function HomePage() {
       </section>
 
       {/* Fleet Showcase Section */}
-      <section className="py-4 sm:py-6 lg:py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-4 sm:py-6 lg:py-10 overflow-hidden">
+        {/* Scenic Fleet Background Banner Image (Right side matching reference screenshot) */}
+        <div className="absolute top-0 right-0 w-full sm:w-1/2 h-44 sm:h-56 opacity-15 pointer-events-none overflow-hidden z-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://images.unsplash.com/photo-1506015391300-4802dc74de2e?w=1200&auto=format&fit=crop&q=80"
+            alt="Scenic Mountain Road"
+            className="w-full h-full object-cover object-right"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-kandy-bg via-kandy-bg/80 to-transparent"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 gap-2 sm:gap-4">
             <div>
               <span className="text-xs font-bold text-kandy-orange uppercase tracking-widest block mb-0.5">
