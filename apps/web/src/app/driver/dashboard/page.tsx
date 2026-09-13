@@ -652,11 +652,8 @@ export default function DriverDashboardPage() {
 
                     <div className="space-y-0.5">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <h1 className="text-base sm:text-lg font-black text-white flex items-center gap-1">
-                          <span>{driver?.fullName || user?.fullName || 'Ranju'}</span>
-                          <span className="inline-flex items-center justify-center w-4.5 h-4.5 bg-blue-500 text-white text-[10px] font-bold rounded-full" title="Verified Driver">
-                            ✓
-                          </span>
+                        <h1 className="text-base sm:text-lg font-black text-white">
+                          {driver?.fullName || user?.fullName || 'Ranju'}
                         </h1>
                         <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
                           APPROVED BY ADMIN
