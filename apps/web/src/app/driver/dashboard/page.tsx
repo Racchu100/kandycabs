@@ -640,9 +640,9 @@ export default function DriverDashboardPage() {
             <div className="space-y-4">
               {/* Dark Profile Header Card */}
               <div className="bg-[#0B132B] text-white p-3.5 sm:p-4.5 rounded-2xl shadow-lg space-y-3 border border-slate-800">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-start justify-between gap-3 w-full">
                   {/* Left: Driver Avatar & Details */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="relative shrink-0">
                       <div className="w-11 h-11 sm:w-13 sm:h-13 bg-gradient-to-tr from-kandy-orange to-amber-400 text-white rounded-full flex items-center justify-center font-black text-lg sm:text-xl shadow-md border-2 border-white/20">
                         {(driver?.fullName || user?.fullName || 'Ranju').charAt(0)}
@@ -650,12 +650,12 @@ export default function DriverDashboardPage() {
                       <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#0B132B] rounded-full" title="Online"></span>
                     </div>
 
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-4 w-full">
                         <h1 className="text-base sm:text-lg font-black text-white leading-none">
                           {driver?.fullName || user?.fullName || 'Ranju'}
                         </h1>
-                        <div className="bg-emerald-950/80 border border-emerald-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 inline-flex">
+                        <div className="bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5 shrink-0 ml-auto">
                           <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
                           <span className="text-emerald-300 font-extrabold text-[10px] sm:text-[11px] tracking-wide">Driver Online</span>
                         </div>
