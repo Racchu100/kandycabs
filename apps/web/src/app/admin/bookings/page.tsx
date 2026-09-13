@@ -53,6 +53,7 @@ interface AdminBooking {
   overrideByAdminId?: string;
   customer: {
     fullName: string;
+    phone?: string;
     user?: { phone: string };
   };
   vehicle?: { name: string };
@@ -427,7 +428,7 @@ export default function AdminBookingsPage() {
                     <td className="p-2 sm:p-3 font-bold whitespace-nowrap">
                       {b.customer?.fullName}
                       <span className="block text-[10px] text-kandy-muted">
-                        +91 {b.customerPhoneReleased ? (b.customer?.user?.phone || '9876543210') : 'XXXXX-XXXXX'}
+                        +91 {b.customer?.user?.phone || b.customer?.phone || '9876543210'}
                       </span>
                     </td>
                     <td className="p-2 sm:p-3 whitespace-nowrap">
@@ -605,7 +606,7 @@ export default function AdminBookingsPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs bg-kandy-bg p-4 rounded-card border border-kandy-border">
               <div><strong>Status:</strong> <span className="font-extrabold text-kandy-orange">{selectedBooking.status}</span></div>
               <div><strong>Trip Type:</strong> {selectedBooking.tripType}</div>
-              <div><strong>Customer:</strong> {selectedBooking.customer?.fullName} (+91 {selectedBooking.customerPhoneReleased ? (selectedBooking.customer?.user?.phone || '9876543210') : 'XXXXX-XXXXX'})</div>
+              <div><strong>Customer:</strong> {selectedBooking.customer?.fullName} (+91 {selectedBooking.customer?.user?.phone || selectedBooking.customer?.phone || '9876543210'})</div>
               <div className="col-span-2"><strong>Pickup:</strong> {selectedBooking.pickupAddress}</div>
               <div><strong>Drop:</strong> {selectedBooking.dropAddress}</div>
               <div><strong>Est. Fare:</strong> ₹{selectedBooking.estimatedFare}</div>
