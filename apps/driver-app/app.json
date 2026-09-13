@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Kandy Cabs Driver",
+    "slug": "kandy-cabs-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#111827"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kandycabs.driver",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Kandy Cabs Driver app requires access to your camera to take trip start and end odometer photos for trip verification.",
+        "NSLocationWhenInUseUsageDescription": "Kandy Cabs Driver app requires your location for real-time trip GPS tracking and odometer evidence stamping.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Kandy Cabs Driver app requires background location tracking while on active trip to update live location for customer and admin."
+      }
+    },
+    "android": {
+      "package": "com.kandycabs.driver",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F59E0B"
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4b5c4ef1-0362-4f69-90be-2e7705d28122"
+      }
+    },
+    "owner": "rakshithms-team"
+  }
+}
