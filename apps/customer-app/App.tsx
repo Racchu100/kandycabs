@@ -10,15 +10,38 @@ import {
   Alert,
   StatusBar,
   Linking,
+  Modal,
 } from 'react-native';
 import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
 
-// Types
-type TabType = 'BOOKING' | 'TRIPS' | 'FLEET' | 'ACCOUNT';
-type TripType = 'ONEWAY' | 'ROUNDTRIP' | 'RENTAL' | 'AIRPORT';
+// Types & Data Schemas
+type TripType = 'ONEWAY' | 'ROUNDTRIP' | 'LOCAL' | 'AIRPORT';
+type WizardStep = 'SEARCH' | 'VEHICLES' | 'CONFIRMATION' | 'SUCCESS';
 
-interface VehicleOption {
+interface LocationItem {
+  name: string;
+  address: string;
+  city: string;
+}
+
+const POPULAR_LOCATIONS: LocationItem[] = [
+  { name: 'Bangalore, KA', address: 'Kempegowda / MG Road, Bengaluru', city: 'Bangalore' },
+  { name: 'Kempegowda Intl Airport (BLR)', address: 'Devanahalli, Bengaluru', city: 'Bangalore' },
+  { name: 'Coorg (Madikeri), KA', address: 'Madikeri Town, Coorg, Karnataka', city: 'Coorg' },
+  { name: 'Mysore (Mysuru), KA', address: 'Palace Grounds, Mysuru, Karnataka', city: 'Mysore' },
+  { name: 'Mangaluru (Mangalore), KA', address: 'Hampankatta, Mangaluru', city: 'Mangalore' },
+  { name: 'Mangalore Intl Airport (IXE)', address: 'Bajpe, Mangaluru', city: 'Mangalore' },
+  { name: 'Chikmagalur, KA', address: 'Mullayanagiri Road, Chikmagalur', city: 'Chikmagalur' },
+  { name: 'Ooty, TN', address: 'Charing Cross, Ooty, Tamil Nadu', city: 'Ooty' },
+  { name: 'Chennai, TN', address: 'Anna Salai, Chennai, Tamil Nadu', city: 'Chennai' },
+  { name: 'Colombo, Sri Lanka', address: 'Fort / Cinnamon Gardens, Colombo', city: 'Colombo' },
+  { name: 'Bandaranaike Intl Airport (CMB)', address: 'Katunayake, Colombo', city: 'Colombo' },
+  { name: 'Kandy, Sri Lanka', address: 'Temple of the Tooth, Kandy', city: 'Kandy' },
+  { name: 'Galle, Sri Lanka', address: 'Dutch Fort, Galle', city: 'Galle' },
+];
+
+interface VehicleCategory {
   id: string;
   name: string;
   category: string;
@@ -27,9 +50,10 @@ interface VehicleOption {
   ratePerKm: number;
   baseFare: number;
   tag: string;
+  description: string;
 }
 
-const VEHICLE_OPTIONS: VehicleOption[] = [
+const FLEET_CATEGORIES: VehicleCategory[] = [
   {
     id: 'sedan',
     name: 'Sedan (Dzire / Etios)',
@@ -39,6 +63,7 @@ const VEHICLE_OPTIONS: VehicleOption[] = [
     ratePerKm: 14,
     baseFare: 2800,
     tag: 'MOST POPULAR',
+    description: 'Clean AC sedan suitable for up to 4 passengers with 2 medium luggage bags.',
   },
   {
     id: 'ertiga',
@@ -49,6 +74,7 @@ const VEHICLE_OPTIONS: VehicleOption[] = [
     ratePerKm: 18,
     baseFare: 3600,
     tag: 'FAMILY CHOICE',
+    description: 'Spacious 6-seater MUV with extra legroom & trunk space for family trips.',
   },
   {
     id: 'innova',
@@ -59,6 +85,7 @@ const VEHICLE_OPTIONS: VehicleOption[] = [
     ratePerKm: 24,
     baseFare: 4800,
     tag: 'LUXURY AC',
+    description: 'Premium executive captain-seat luxury AC cab for maximum comfort & highway stability.',
   },
   {
     id: 'tempo',
@@ -69,37 +96,55 @@ const VEHICLE_OPTIONS: VehicleOption[] = [
     ratePerKm: 32,
     baseFare: 6400,
     tag: 'LARGE GROUP',
+    description: '12-seater pushback AC minibus for large group tours, weddings & corporate outings.',
   },
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('BOOKING');
-  const [dbStatus, setDbStatus] = useState<string>('Connecting...');
+  // Navigation State
+  const [currentStep, setCurrentStep] = useState<WizardStep>('SEARCH');
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'HOME' | 'TRIPS' | 'FLEET' | 'ACCOUNT'>('HOME');
+
+  // Backend / Database Status
+  const [dbStatus, setDbStatus] = useState<string>('App Connected (Demo Mode)');
   const [dbConnected, setDbConnected] = useState<boolean>(true);
 
   // Authentication State
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [customerName, setCustomerName] = useState<string>('Rakshith M');
   const [phone, setPhone] = useState<string>('9876543210');
   const [otp, setOtp] = useState<string>('');
   const [otpSent, setOtpSent] = useState<boolean>(false);
-  const [customerName, setCustomerName] = useState<string>('Rakshith M');
 
-  // Booking Wizard State
+  // Booking Form State
   const [tripType, setTripType] = useState<TripType>('ONEWAY');
-  const [pickupCity, setPickupCity] = useState<string>('Bangalore, KA');
-  const [dropCity, setDropCity] = useState<string>('Coorg (Madikeri), KA');
-  const [pickupDate, setPickupDate] = useState<string>('Tomorrow, 06:00 AM');
-  const [selectedVehicle, setSelectedVehicle] = useState<VehicleOption>(VEHICLE_OPTIONS[0]);
+  const [pickupInput, setPickupInput] = useState<string>('Bangalore, KA');
+  const [dropInput, setDropInput] = useState<string>('Coorg (Madikeri), KA');
+  const [pickupDate, setPickupDate] = useState<string>('15-09-2026');
+  const [pickupTime, setPickupTime] = useState<string>('07:00');
+
+  // Location Suggestion Dropdowns
+  const [showPickupDropdown, setShowPickupDropdown] = useState<boolean>(false);
+  const [showDropDropdown, setShowDropDropdown] = useState<boolean>(false);
+
+  // Selected Vehicle & Distance
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleCategory>(FLEET_CATEGORIES[0]);
   const [estimatedDistanceKm] = useState<number>(250);
 
-  // Active Bookings List State
+  // Customer Contact Info for Booking
+  const [customerEmail, setCustomerEmail] = useState<string>('customer@kandycabs.com');
+  const [specialNotes, setSpecialNotes] = useState<string>('');
+
+  // Active Trips & Bookings Database
   const [userBookings, setUserBookings] = useState([
     {
       id: 'KC73744',
       status: 'DRIVER EN ROUTE',
       pickup: 'Bangalore, KA',
       drop: 'Coorg (Madikeri), KA',
-      date: '15 Sep 2026, 06:00 AM',
+      date: '15 Sep 2026, 07:00 AM',
       vehicleName: 'Innova Crysta (KA-01-MJ-4892)',
       totalFare: 4250,
       advancePaid: 1063,
@@ -111,8 +156,8 @@ export default function App() {
     {
       id: 'KC69820',
       status: 'COMPLETED',
-      pickup: 'Colombo',
-      drop: 'Kandy',
+      pickup: 'Colombo Fort',
+      drop: 'Kandy City',
       date: '10 Aug 2026, 08:30 AM',
       vehicleName: 'Sedan (Dzire)',
       totalFare: 3500,
@@ -131,11 +176,19 @@ export default function App() {
     });
   }, []);
 
-  // Fare Calculation
+  // Location Swap Handler (Reverse Pickup and Drop)
+  const handleSwapLocations = () => {
+    const temp = pickupInput;
+    setPickupInput(dropInput);
+    setDropInput(temp);
+  };
+
+  // Fare Calculation Rules (Matching Web Engine)
   const calculatedFare = Math.max(selectedVehicle.baseFare, estimatedDistanceKm * selectedVehicle.ratePerKm);
   const advancePayable = Math.round(calculatedFare * 0.25);
   const balancePayable = calculatedFare - advancePayable;
 
+  // Authentication Handlers
   const handleSendOtp = () => {
     if (phone.trim().length < 10) {
       Alert.alert('Invalid Phone', 'Please enter a valid 10-digit mobile number.');
@@ -148,20 +201,29 @@ export default function App() {
   const handleVerifyOtp = () => {
     if (otp === '1234' || otp === '') {
       setIsLoggedIn(true);
+      setAuthModalOpen(false);
       Alert.alert('Welcome!', `Logged in successfully as ${customerName}`);
     } else {
       Alert.alert('Error', 'Invalid OTP. Please enter 1234');
     }
   };
 
-  const handleConfirmBooking = () => {
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setOtpSent(false);
+    setOtp('');
+    Alert.alert('Logged Out', 'You have been logged out.');
+  };
+
+  // Confirm Final Booking Action
+  const handleConfirmFinalBooking = () => {
     const newRef = `KC${Math.floor(10000 + Math.random() * 90000)}`;
     const newBooking = {
       id: newRef,
       status: 'CONFIRMED',
-      pickup: pickupCity,
-      drop: dropCity,
-      date: pickupDate,
+      pickup: pickupInput,
+      drop: dropInput,
+      date: `${pickupDate}, ${pickupTime}`,
       vehicleName: selectedVehicle.name,
       totalFare: calculatedFare,
       advancePaid: advancePayable,
@@ -172,16 +234,12 @@ export default function App() {
     };
 
     setUserBookings([newBooking, ...userBookings]);
-    Alert.alert(
-      'Booking Confirmed! 🎉',
-      `Booking Ref: ${newRef}\n\nPickup: ${pickupCity}\nDrop: ${dropCity}\nVehicle: ${selectedVehicle.name}\nTotal: ₹${calculatedFare.toLocaleString()}\nAdvance Paid: ₹${advancePayable.toLocaleString()}`,
-      [{ text: 'View My Trips', onPress: () => setActiveTab('TRIPS') }]
-    );
+    setCurrentStep('SUCCESS');
   };
 
-  const handleCallDriver = (phoneNum: string) => {
-    Linking.openURL(`tel:${phoneNum}`).catch(() => {
-      Alert.alert('Call Chauffeur', `Dialing +91 ${phoneNum}`);
+  const handleCallSupport = (num: string = '9876543210') => {
+    Linking.openURL(`tel:${num}`).catch(() => {
+      Alert.alert('Customer Support', `Dialing +91 ${num}`);
     });
   };
 
@@ -189,170 +247,512 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={KANDY_THEME.colors.ink} />
 
-      {/* Header Bar */}
-      <View style={styles.header}>
-        <View style={styles.logoBadge}>
-          <Text style={styles.logoText}>KC</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>KANDY CABS</Text>
-          <Text style={styles.headerSubtitle}>Intercity Chauffeur Mobile App</Text>
-        </View>
-        <View style={[styles.statusPill, { backgroundColor: dbConnected ? '#065F46' : '#92400E' }]}>
-          <Text style={styles.statusPillText}>{dbStatus}</Text>
-        </View>
-      </View>
+      {/* HEADER NAVBAR (Matching Image 2 Web Header) */}
+      <View style={styles.navbar}>
+        <TouchableOpacity style={styles.brandContainer} onPress={() => { setActiveTab('HOME'); setCurrentStep('SEARCH'); }}>
+          <View style={styles.logoBadge}>
+            <Text style={styles.logoBadgeText}>KC</Text>
+          </View>
+          <View>
+            <Text style={styles.brandTitle}>KANDY CABS</Text>
+            <Text style={styles.brandSubtitle}>Safe • Reliable • Hassle-Free</Text>
+          </View>
+        </TouchableOpacity>
 
-      {/* Bottom/Top Tab Navigation Bar */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'BOOKING' && styles.tabItemActive]}
-          onPress={() => setActiveTab('BOOKING')}
-        >
-          <Text style={[styles.tabText, activeTab === 'BOOKING' && styles.tabTextActive]}>🚗 BOOK CAB</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'TRIPS' && styles.tabItemActive]}
-          onPress={() => setActiveTab('TRIPS')}
-        >
-          <Text style={[styles.tabText, activeTab === 'TRIPS' && styles.tabTextActive]}>📍 MY TRIPS</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'FLEET' && styles.tabItemActive]}
-          onPress={() => setActiveTab('FLEET')}
-        >
-          <Text style={[styles.tabText, activeTab === 'FLEET' && styles.tabTextActive]}>🚘 FLEET</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'ACCOUNT' && styles.tabItemActive]}
-          onPress={() => setActiveTab('ACCOUNT')}
-        >
-          <Text style={[styles.tabText, activeTab === 'ACCOUNT' && styles.tabTextActive]}>👤 ACCOUNT</Text>
+        {/* Hamburger Menu Icon (☰) */}
+        <TouchableOpacity style={styles.hamburgerBtn} onPress={() => setMenuOpen(true)}>
+          <Text style={styles.hamburgerIcon}>☰</Text>
         </TouchableOpacity>
       </View>
 
-      {/* TAB 1: CAB BOOKING WIZARD */}
-      {activeTab === 'BOOKING' && (
-        <ScrollView style={styles.scrollContent}>
-          {/* Trip Type Selector */}
-          <View style={styles.card}>
-            <Text style={styles.cardSectionTitle}>SELECT TRIP TYPE</Text>
-            <View style={styles.pillRow}>
-              {(['ONEWAY', 'ROUNDTRIP', 'RENTAL', 'AIRPORT'] as TripType[]).map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.pill, tripType === t && styles.pillActive]}
-                  onPress={() => setTripType(t)}
-                >
-                  <Text style={[styles.pillText, tripType === t && styles.pillTextActive]}>
-                    {t === 'ONEWAY'
-                      ? 'ONE-WAY'
-                      : t === 'ROUNDTRIP'
-                      ? 'ROUND TRIP'
-                      : t === 'RENTAL'
-                      ? 'LOCAL RENTAL'
-                      : 'AIRPORT TAXI'}
+      {/* DRAWER / HAMBURGER SLIDE-OUT MENU MODAL */}
+      <Modal visible={menuOpen} animationType="slide" transparent={true}>
+        <View style={styles.menuOverlay}>
+          <View style={styles.menuDrawer}>
+            <View style={styles.menuHeader}>
+              <Text style={styles.menuHeaderTitle}>KANDY CABS NAVIGATION</Text>
+              <TouchableOpacity onPress={() => setMenuOpen(false)}>
+                <Text style={styles.menuCloseBtn}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setActiveTab('HOME');
+                setCurrentStep('SEARCH');
+                setMenuOpen(false);
+              }}
+            >
+              <Text style={styles.menuItemText}>🚗 Book Intercity Cab</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setActiveTab('TRIPS');
+                setMenuOpen(false);
+              }}
+            >
+              <Text style={styles.menuItemText}>📍 My Trips & Active Tracking</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setActiveTab('FLEET');
+                setMenuOpen(false);
+              }}
+            >
+              <Text style={styles.menuItemText}>🚘 Fleet & Rate Card</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} onPress={() => handleCallSupport('9876543210')}>
+              <Text style={styles.menuItemText}>📞 24x7 Customer Support Helpline</Text>
+            </TouchableOpacity>
+
+            {!isLoggedIn ? (
+              <TouchableOpacity
+                style={[styles.menuItem, styles.menuItemAuth]}
+                onPress={() => {
+                  setMenuOpen(false);
+                  setAuthModalOpen(true);
+                }}
+              >
+                <Text style={styles.menuItemAuthText}>👤 Customer Login / Signup</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.menuItem, styles.menuItemAuth]} onPress={handleLogout}>
+                <Text style={[styles.menuItemAuthText, { color: KANDY_THEME.colors.danger }]}>
+                  🚪 Logout ({customerName})
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* AUTHENTICATION MODAL */}
+      <Modal visible={authModalOpen} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.authModalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.authModalTitle}>Customer Login / Signup</Text>
+              <TouchableOpacity onPress={() => setAuthModalOpen(false)}>
+                <Text style={styles.menuCloseBtn}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.authModalSub}>Enter your details for SMS OTP verification</Text>
+
+            <Text style={styles.inputLabel}>YOUR FULL NAME</Text>
+            <TextInput
+              style={styles.input}
+              value={customerName}
+              onChangeText={setCustomerName}
+              placeholder="e.g. Rakshith M"
+            />
+
+            <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="10-digit mobile number"
+            />
+
+            {!otpSent ? (
+              <TouchableOpacity style={styles.primaryButton} onPress={handleSendOtp}>
+                <Text style={styles.primaryButtonText}>SEND 4-DIGIT OTP →</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <View style={styles.demoOtpBox}>
+                  <Text style={styles.demoOtpText}>Demo Master OTP: 1234</Text>
+                </View>
+                <Text style={styles.inputLabel}>ENTER 4-DIGIT OTP</Text>
+                <TextInput
+                  style={[styles.input, { textAlign: 'center', fontSize: 20, letterSpacing: 6 }]}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  value={otp}
+                  onChangeText={setOtp}
+                  placeholder="1234"
+                />
+                <TouchableOpacity style={styles.primaryButton} onPress={handleVerifyOtp}>
+                  <Text style={styles.primaryButtonText}>VERIFY & LOGIN →</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* TAB 1: HOME & BOOKING WIZARD */}
+      {activeTab === 'HOME' && (
+        <ScrollView style={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          {/* HERO BANNER SECTION (Matching Image 2) */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeText}>✨ SOUTH INDIA'S PREMIUM INTERCITY CAB SERVICE</Text>
+            </View>
+            <Text style={styles.heroTitle}>
+              Book Outstation & Local Cabs with <Text style={{ color: KANDY_THEME.colors.primary }}>Transparent Fares</Text>
+            </Text>
+            <Text style={styles.heroSubtitle}>
+              Pay 25% advance only. Clean sanitized cabs, courteous verified drivers, and doorstep pickup.
+            </Text>
+          </View>
+
+          {/* STEP 1: INTERCITY CAB BOOKING WIDGET (Matching Image 2) */}
+          {currentStep === 'SEARCH' && (
+            <View style={styles.bookingCard}>
+              {/* PICKUP LOCATION WITH SEARCH DROPDOWN */}
+              <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
+              <View style={styles.inputSearchWrapper}>
+                <Text style={styles.inputIcon}>🔍</Text>
+                <TextInput
+                  style={styles.inputWithIcon}
+                  value={pickupInput}
+                  onChangeText={(val) => {
+                    setPickupInput(val);
+                    setShowPickupDropdown(true);
+                  }}
+                  onFocus={() => setShowPickupDropdown(true)}
+                  placeholder="Enter Pickup Place, Landmark, Railway Station..."
+                />
+              </View>
+              {showPickupDropdown && (
+                <View style={styles.suggestionsBox}>
+                  {POPULAR_LOCATIONS.filter(
+                    (loc) =>
+                      loc.name.toLowerCase().includes(pickupInput.toLowerCase()) ||
+                      loc.city.toLowerCase().includes(pickupInput.toLowerCase())
+                  ).map((loc, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.suggestionItem}
+                      onPress={() => {
+                        setPickupInput(loc.name);
+                        setShowPickupDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.suggestionName}>📍 {loc.name}</Text>
+                      <Text style={styles.suggestionAddr}>{loc.address}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* SWAP LOCATION BUTTON (⇅) */}
+              <View style={styles.swapContainer}>
+                <View style={styles.swapLine} />
+                <TouchableOpacity style={styles.swapCircleBtn} onPress={handleSwapLocations}>
+                  <Text style={styles.swapIcon}>⇅</Text>
+                </TouchableOpacity>
+                <View style={styles.swapLine} />
+              </View>
+
+              {/* DESTINATION LOCATION WITH SEARCH DROPDOWN */}
+              <Text style={styles.inputLabel}>DESTINATION LOCATION</Text>
+              <View style={styles.inputSearchWrapper}>
+                <Text style={styles.inputIcon}>🔍</Text>
+                <TextInput
+                  style={styles.inputWithIcon}
+                  value={dropInput}
+                  onChangeText={(val) => {
+                    setDropInput(val);
+                    setShowDropDropdown(true);
+                  }}
+                  onFocus={() => setShowDropDropdown(true)}
+                  placeholder="Enter Drop City, Hotel, Landmark..."
+                />
+              </View>
+              {showDropDropdown && (
+                <View style={styles.suggestionsBox}>
+                  {POPULAR_LOCATIONS.filter(
+                    (loc) =>
+                      loc.name.toLowerCase().includes(dropInput.toLowerCase()) ||
+                      loc.city.toLowerCase().includes(dropInput.toLowerCase())
+                  ).map((loc, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.suggestionItem}
+                      onPress={() => {
+                        setDropInput(loc.name);
+                        setShowDropDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.suggestionName}>🏁 {loc.name}</Text>
+                      <Text style={styles.suggestionAddr}>{loc.address}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* SIDE-BY-SIDE DATE & TIME PICKER GRID (Matching Image 2) */}
+              <View style={styles.dateTimeGrid}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>PICK UP DATE</Text>
+                  <View style={styles.inputSearchWrapper}>
+                    <Text style={styles.inputIcon}>📅</Text>
+                    <TextInput
+                      style={styles.inputWithIcon}
+                      value={pickupDate}
+                      onChangeText={setPickupDate}
+                      placeholder="DD-MM-YYYY"
+                    />
+                  </View>
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>PICK UP TIME</Text>
+                  <View style={styles.inputSearchWrapper}>
+                    <Text style={styles.inputIcon}>⏰</Text>
+                    <TextInput
+                      style={styles.inputWithIcon}
+                      value={pickupTime}
+                      onChangeText={setPickupTime}
+                      placeholder="HH:MM"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* BIG ORANGE ACTION BUTTON (Matching Image 2) */}
+              <TouchableOpacity
+                style={styles.exploreCabsBtn}
+                onPress={() => {
+                  if (!pickupInput || !dropInput) {
+                    Alert.alert('Required', 'Please select both pickup and destination locations.');
+                    return;
+                  }
+                  setCurrentStep('VEHICLES');
+                }}
+              >
+                <Text style={styles.exploreCabsBtnText}>EXPLORE CABS & RATES →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 4 TRUST BADGES GRID (Matching Image 2) */}
+          <View style={styles.trustBadgesGrid}>
+            <View style={styles.trustBadgeItem}>
+              <Text style={styles.trustBadgeIcon}>🛡️</Text>
+              <View>
+                <Text style={styles.trustBadgeTitle}>VERIFIED CHAUFFEURS</Text>
+                <Text style={styles.trustBadgeSub}>Background Checked</Text>
+              </View>
+            </View>
+
+            <View style={styles.trustBadgeItem}>
+              <Text style={styles.trustBadgeIcon}>🟢</Text>
+              <View>
+                <Text style={styles.trustBadgeTitle}>25% ADVANCE ONLY</Text>
+                <Text style={styles.trustBadgeSub}>Pay Rest to Driver</Text>
+              </View>
+            </View>
+
+            <View style={styles.trustBadgeItem}>
+              <Text style={styles.trustBadgeIcon}>🎗️</Text>
+              <View>
+                <Text style={styles.trustBadgeTitle}>TRANSPARENT BILLING</Text>
+                <Text style={styles.trustBadgeSub}>Zero Hidden Fees</Text>
+              </View>
+            </View>
+
+            <View style={styles.trustBadgeItem}>
+              <Text style={styles.trustBadgeIcon}>📞</Text>
+              <View>
+                <Text style={styles.trustBadgeTitle}>24X7 OPS SUPPORT</Text>
+                <Text style={styles.trustBadgeSub}>On-Road Assistance</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* STEP 2: VEHICLE CATEGORY SELECTION & RATES */}
+          {currentStep === 'VEHICLES' && (
+            <View style={{ marginBottom: 20 }}>
+              <View style={styles.stepHeaderRow}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentStep('SEARCH')}>
+                  <Text style={styles.backBtnText}>← BACK TO SEARCH</Text>
+                </TouchableOpacity>
+                <Text style={styles.stepHeaderTitle}>STEP 2: CHOOSE CAB</Text>
+              </View>
+
+              <Text style={styles.sectionHeading}>AVAILABLE CABS FOR YOUR ROUTE</Text>
+              <Text style={styles.sectionSubheading}>
+                {pickupInput} → {dropInput} (~{estimatedDistanceKm} km)
+              </Text>
+
+              {FLEET_CATEGORIES.map((v) => {
+                const isSelected = selectedVehicle.id === v.id;
+                const fare = Math.max(v.baseFare, estimatedDistanceKm * v.ratePerKm);
+                const advance = Math.round(fare * 0.25);
+                return (
+                  <View
+                    key={v.id}
+                    style={[styles.vehicleOptionCard, isSelected && styles.vehicleOptionCardSelected]}
+                  >
+                    <View style={styles.vehicleCardTopRow}>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={styles.vehicleOptionName}>{v.name}</Text>
+                          <Text style={styles.vehicleTag}>{v.tag}</Text>
+                        </View>
+                        <Text style={styles.vehicleOptionCategory}>{v.category}</Text>
+                        <Text style={styles.vehicleOptionSpecs}>
+                          👥 {v.capacity} • 🧳 {v.luggage} • ❄️ AC Cab
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={styles.vehicleOptionFare}>₹{fare.toLocaleString()}</Text>
+                        <Text style={styles.vehicleOptionFareSub}>Est. Total</Text>
+                        <Text style={styles.vehicleOptionAdvance}>₹{advance.toLocaleString()} Advance</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.vehicleDesc}>{v.description}</Text>
+
+                    <TouchableOpacity
+                      style={styles.selectVehicleBtn}
+                      onPress={() => {
+                        setSelectedVehicle(v);
+                        setCurrentStep('CONFIRMATION');
+                      }}
+                    >
+                      <Text style={styles.selectVehicleBtnText}>SELECT {v.name.toUpperCase()} →</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {/* STEP 3: BOOKING CONFIRMATION & FARE BREAKDOWN */}
+          {currentStep === 'CONFIRMATION' && (
+            <View style={{ marginBottom: 20 }}>
+              <View style={styles.stepHeaderRow}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentStep('VEHICLES')}>
+                  <Text style={styles.backBtnText}>← BACK TO CABS</Text>
+                </TouchableOpacity>
+                <Text style={styles.stepHeaderTitle}>STEP 3: CONFIRM BOOKING</Text>
+              </View>
+
+              <View style={styles.confirmationCard}>
+                <Text style={styles.cardSectionTitle}>SELECTED ROUTE & CAB</Text>
+                <View style={styles.routeBox}>
+                  <Text style={styles.routeBoxText}>📍 Pickup: {pickupInput}</Text>
+                  <Text style={styles.routeBoxText}>🏁 Destination: {dropInput}</Text>
+                  <Text style={styles.routeBoxSub}>Date & Time: {pickupDate}, {pickupTime}</Text>
+                  <Text style={styles.routeBoxSub}>Cab Selected: {selectedVehicle.name}</Text>
+                </View>
+
+                <Text style={styles.cardSectionTitle}>PASSENGER CONTACT DETAILS</Text>
+                <Text style={styles.inputLabel}>FULL NAME</Text>
+                <TextInput
+                  style={styles.input}
+                  value={customerName}
+                  onChangeText={setCustomerName}
+                  placeholder="Your Full Name"
+                />
+
+                <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="10-digit mobile number"
+                />
+
+                <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="email-address"
+                  value={customerEmail}
+                  onChangeText={setCustomerEmail}
+                  placeholder="customer@email.com"
+                />
+
+                <Text style={styles.inputLabel}>SPECIAL INSTRUCTIONS (OPTIONAL)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={specialNotes}
+                  onChangeText={setSpecialNotes}
+                  placeholder="e.g. Flight number, extra luggage space"
+                />
+
+                {/* FARE BREAKDOWN BOX */}
+                <View style={styles.fareBreakdownBox}>
+                  <Text style={styles.fareBreakdownTitle}>TRANSPARENT FARE BREAKDOWN</Text>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Route Distance:</Text>
+                    <Text style={styles.infoValue}>~{estimatedDistanceKm} km</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Cab Rate per km:</Text>
+                    <Text style={styles.infoValue}>₹{selectedVehicle.ratePerKm}/km</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Total Estimated Fare:</Text>
+                    <Text style={styles.infoValueHighlight}>₹{calculatedFare.toLocaleString()}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>25% Advance Payable Now:</Text>
+                    <Text style={[styles.infoValue, { color: KANDY_THEME.colors.primary }]}>
+                      ₹{advancePayable.toLocaleString()}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Balance Payable to Driver:</Text>
+                    <Text style={styles.infoValue}>₹{balancePayable.toLocaleString()}</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.finalBookBtn} onPress={handleConfirmFinalBooking}>
+                  <Text style={styles.finalBookBtnText}>
+                    CONFIRM & PAY ₹{advancePayable.toLocaleString()} ADVANCE →
                   </Text>
                 </TouchableOpacity>
-              ))}
+              </View>
             </View>
+          )}
 
-            {/* Location Inputs */}
-            <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
-            <TextInput
-              style={styles.input}
-              value={pickupCity}
-              onChangeText={setPickupCity}
-              placeholder="e.g. Bangalore, KA / Colombo"
-            />
-
-            <Text style={styles.inputLabel}>DROP LOCATION</Text>
-            <TextInput
-              style={styles.input}
-              value={dropCity}
-              onChangeText={setDropCity}
-              placeholder="e.g. Coorg, KA / Kandy"
-            />
-
-            <Text style={styles.inputLabel}>SCHEDULED DATE & TIME</Text>
-            <TextInput
-              style={styles.input}
-              value={pickupDate}
-              onChangeText={setPickupDate}
-              placeholder="e.g. Tomorrow, 06:00 AM"
-            />
-          </View>
-
-          {/* Vehicle Category Selector */}
-          <View style={styles.card}>
-            <Text style={styles.cardSectionTitle}>CHOOSE VEHICLE CATEGORY</Text>
-            {VEHICLE_OPTIONS.map((v) => {
-              const isSelected = selectedVehicle.id === v.id;
-              const fare = Math.max(v.baseFare, estimatedDistanceKm * v.ratePerKm);
-              return (
-                <TouchableOpacity
-                  key={v.id}
-                  style={[styles.vehicleCard, isSelected && styles.vehicleCardSelected]}
-                  onPress={() => setSelectedVehicle(v)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.vehicleHeaderRow}>
-                      <Text style={styles.vehicleTitle}>{v.name}</Text>
-                      <Text style={styles.tagText}>{v.tag}</Text>
-                    </View>
-                    <Text style={styles.vehicleSub}>
-                      {v.capacity} • {v.luggage} • AC
-                    </Text>
-                    <Text style={styles.vehicleRate}>₹{v.ratePerKm}/km (Min ₹{v.baseFare})</Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.vehicleFare}>₹{fare.toLocaleString()}</Text>
-                    <Text style={styles.vehicleFareSub}>Est. Total</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Fare Summary & Booking Action */}
-          <View style={styles.fareSummaryCard}>
-            <Text style={styles.fareSummaryTitle}>FARE ESTIMATE BREAKDOWN</Text>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Estimated Distance:</Text>
-              <Text style={styles.infoValue}>~{estimatedDistanceKm} km</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Selected Cab Rate:</Text>
-              <Text style={styles.infoValue}>₹{selectedVehicle.ratePerKm}/km</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Total Estimated Fare:</Text>
-              <Text style={styles.infoValueHighlight}>₹{calculatedFare.toLocaleString()}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>25% Advance Payable Now:</Text>
-              <Text style={[styles.infoValue, { color: KANDY_THEME.colors.primary }]}>
-                ₹{advancePayable.toLocaleString()}
+          {/* SUCCESS SCREEN */}
+          {currentStep === 'SUCCESS' && (
+            <View style={styles.successCard}>
+              <Text style={styles.successIcon}>🎉</Text>
+              <Text style={styles.successTitle}>BOOKING CONFIRMED SUCCESSFULLY!</Text>
+              <Text style={styles.successSub}>
+                Your chauffeur will be assigned 2 hours prior to your scheduled pickup time.
               </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Balance Due at Trip End:</Text>
-              <Text style={styles.infoValue}>₹{balancePayable.toLocaleString()}</Text>
-            </View>
 
-            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmBooking}>
-              <Text style={styles.confirmButtonText}>
-                CONFIRM & BOOK {selectedVehicle.name.toUpperCase()} (₹{advancePayable.toLocaleString()} ADVANCE) →
-              </Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.successDetailsBox}>
+                <Text style={styles.successRef}>Booking Ref: {userBookings[0].id}</Text>
+                <Text style={styles.successRoute}>{pickupInput} → {dropInput}</Text>
+                <Text style={styles.successDate}>Date: {pickupDate}, {pickupTime}</Text>
+                <Text style={styles.successFare}>Total Fare: ₹{calculatedFare.toLocaleString()}</Text>
+                <Text style={styles.successAdvance}>25% Advance Paid: ₹{advancePayable.toLocaleString()} (PAID)</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => {
+                  setActiveTab('TRIPS');
+                  setCurrentStep('SEARCH');
+                }}
+              >
+                <Text style={styles.primaryButtonText}>VIEW MY TRIPS & CHAUFFEUR STATUS →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       )}
 
       {/* TAB 2: MY TRIPS & LIVE TRACKING */}
       {activeTab === 'TRIPS' && (
         <ScrollView style={styles.scrollContent}>
-          <Text style={styles.pageHeading}>MY TRIPS & BOOKINGS</Text>
+          <Text style={styles.pageHeading}>MY TRIPS & CHAUFFEUR TRACKING</Text>
           {userBookings.map((b) => (
             <View key={b.id} style={styles.tripCard}>
               <View style={styles.tripHeader}>
@@ -410,7 +810,7 @@ export default function App() {
 
               {b.balanceDue > 0 && (
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Balance Due at Trip End:</Text>
+                  <Text style={styles.infoLabel}>Balance Due to Driver:</Text>
                   <Text style={[styles.infoValue, { color: KANDY_THEME.colors.primary }]}>
                     ₹{b.balanceDue.toLocaleString()}
                   </Text>
@@ -424,7 +824,7 @@ export default function App() {
                   <Text style={styles.driverName}>
                     {b.driverName} ({b.driverRating})
                   </Text>
-                  <TouchableOpacity style={styles.callButton} onPress={() => handleCallDriver(b.driverPhone)}>
+                  <TouchableOpacity style={styles.callButton} onPress={() => handleCallSupport(b.driverPhone)}>
                     <Text style={styles.callButtonText}>📞 CALL CHAUFFEUR (+91 {b.driverPhone})</Text>
                   </TouchableOpacity>
                 </View>
@@ -439,17 +839,18 @@ export default function App() {
         </ScrollView>
       )}
 
-      {/* TAB 3: FLEET & RATES */}
+      {/* TAB 3: FLEET & RATES SHOWCASE */}
       {activeTab === 'FLEET' && (
         <ScrollView style={styles.scrollContent}>
-          <Text style={styles.pageHeading}>OUR FLEET & RATES</Text>
-          {VEHICLE_OPTIONS.map((v) => (
+          <Text style={styles.pageHeading}>OUR VEHICLE FLEET & RATE CARD</Text>
+          {FLEET_CATEGORIES.map((v) => (
             <View key={v.id} style={styles.fleetCard}>
               <View style={styles.fleetHeader}>
                 <Text style={styles.fleetTitle}>{v.name}</Text>
-                <Text style={styles.tagText}>{v.tag}</Text>
+                <Text style={styles.vehicleTag}>{v.tag}</Text>
               </View>
               <Text style={styles.fleetSub}>{v.category}</Text>
+              <Text style={styles.vehicleDesc}>{v.description}</Text>
               <View style={styles.fleetFeatureRow}>
                 <Text style={styles.fleetFeature}>👥 {v.capacity}</Text>
                 <Text style={styles.fleetFeature}>🧳 {v.luggage}</Text>
@@ -457,13 +858,14 @@ export default function App() {
               </View>
               <View style={styles.fleetRateRow}>
                 <Text style={styles.fleetRateText}>Rate: ₹{v.ratePerKm}/km</Text>
-                <Text style={styles.fleetBaseText}>Min. Distance: 200 km/day</Text>
+                <Text style={styles.fleetBaseText}>Min Base Fare: ₹{v.baseFare}</Text>
               </View>
               <TouchableOpacity
                 style={styles.bookFleetBtn}
                 onPress={() => {
                   setSelectedVehicle(v);
-                  setActiveTab('BOOKING');
+                  setActiveTab('HOME');
+                  setCurrentStep('CONFIRMATION');
                 }}
               >
                 <Text style={styles.bookFleetBtnText}>BOOK THIS VEHICLE →</Text>
@@ -473,20 +875,20 @@ export default function App() {
         </ScrollView>
       )}
 
-      {/* TAB 4: ACCOUNT & LOGIN */}
+      {/* TAB 4: ACCOUNT & PROFILE */}
       {activeTab === 'ACCOUNT' && (
         <ScrollView style={styles.scrollContent}>
           {!isLoggedIn ? (
-            <View style={styles.authCard}>
+            <View style={styles.bookingCard}>
               <Text style={styles.cardTitle}>Customer Login / Signup</Text>
-              <Text style={styles.cardDesc}>Enter your 10-digit mobile number for SMS OTP verification</Text>
+              <Text style={styles.cardDesc}>Enter mobile number for SMS OTP verification</Text>
 
               <Text style={styles.inputLabel}>YOUR FULL NAME</Text>
               <TextInput
                 style={styles.input}
                 value={customerName}
                 onChangeText={setCustomerName}
-                placeholder="Enter Full Name"
+                placeholder="e.g. Rakshith M"
               />
 
               <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
@@ -500,7 +902,7 @@ export default function App() {
 
               {!otpSent ? (
                 <TouchableOpacity style={styles.primaryButton} onPress={handleSendOtp}>
-                  <Text style={styles.buttonText}>SEND 4-DIGIT OTP →</Text>
+                  <Text style={styles.primaryButtonText}>SEND 4-DIGIT OTP →</Text>
                 </TouchableOpacity>
               ) : (
                 <>
@@ -517,14 +919,14 @@ export default function App() {
                     placeholder="1234"
                   />
                   <TouchableOpacity style={styles.primaryButton} onPress={handleVerifyOtp}>
-                    <Text style={styles.buttonText}>VERIFY & LOGIN →</Text>
+                    <Text style={styles.primaryButtonText}>VERIFY & LOGIN →</Text>
                   </TouchableOpacity>
                 </>
               )}
             </View>
           ) : (
             <View style={styles.profileCard}>
-              <Text style={styles.profileTitle}>CUSTOMER PROFILE</Text>
+              <Text style={styles.profileTitle}>CUSTOMER ACCOUNT PROFILE</Text>
               <Text style={styles.profileName}>{customerName}</Text>
               <Text style={styles.profilePhone}>📱 +91 {phone}</Text>
 
@@ -539,17 +941,66 @@ export default function App() {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.callSupportBtn} onPress={() => handleCallDriver('9876543210')}>
+              <TouchableOpacity style={styles.callSupportBtn} onPress={() => handleCallSupport('9876543210')}>
                 <Text style={styles.callSupportText}>📞 24x7 CUSTOMER SUPPORT HELPLINE</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.logoutBtn} onPress={() => setIsLoggedIn(false)}>
+              <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                 <Text style={styles.logoutBtnText}>LOGOUT OF ACCOUNT</Text>
               </TouchableOpacity>
             </View>
           )}
         </ScrollView>
       )}
+
+      {/* FLOATING BOTTOM NAVIGATION TAB BAR (Matching Image 2 Bottom Selector) */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity
+          style={[styles.bottomNavItem, tripType === 'ONEWAY' && styles.bottomNavItemActive]}
+          onPress={() => {
+            setTripType('ONEWAY');
+            setActiveTab('HOME');
+          }}
+        >
+          <Text style={styles.bottomNavIcon}>🚗</Text>
+          <Text style={[styles.bottomNavText, tripType === 'ONEWAY' && styles.bottomNavTextActive]}>ONE WAY</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.bottomNavItem, tripType === 'ROUNDTRIP' && styles.bottomNavItemActive]}
+          onPress={() => {
+            setTripType('ROUNDTRIP');
+            setActiveTab('HOME');
+          }}
+        >
+          <Text style={styles.bottomNavIcon}>🔄</Text>
+          <Text style={[styles.bottomNavText, tripType === 'ROUNDTRIP' && styles.bottomNavTextActive]}>
+            ROUND TRIP
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.bottomNavItem, tripType === 'LOCAL' && styles.bottomNavItemActive]}
+          onPress={() => {
+            setTripType('LOCAL');
+            setActiveTab('HOME');
+          }}
+        >
+          <Text style={styles.bottomNavIcon}>📍</Text>
+          <Text style={[styles.bottomNavText, tripType === 'LOCAL' && styles.bottomNavTextActive]}>LOCAL</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.bottomNavItem, tripType === 'AIRPORT' && styles.bottomNavItemActive]}
+          onPress={() => {
+            setTripType('AIRPORT');
+            setActiveTab('HOME');
+          }}
+        >
+          <Text style={styles.bottomNavIcon}>✈️</Text>
+          <Text style={[styles.bottomNavText, tripType === 'AIRPORT' && styles.bottomNavTextActive]}>AIRPORT</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -557,12 +1008,17 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: KANDY_THEME.colors.bg,
+    backgroundColor: '#F8FAFC',
   },
-  header: {
-    backgroundColor: KANDY_THEME.colors.ink,
+  navbar: {
+    backgroundColor: '#1E293B',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  brandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -575,223 +1031,551 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoText: {
+  logoBadgeText: {
     color: '#FFF',
     fontWeight: '900',
     fontSize: 18,
   },
-  headerTitle: {
-    color: KANDY_THEME.colors.primary,
+  brandTitle: {
+    color: '#FFF',
     fontSize: 17,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
-  headerSubtitle: {
-    color: '#9CA3AF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusPillText: {
-    color: '#FFF',
+  brandSubtitle: {
+    color: '#94A3B8',
     fontSize: 10,
+    fontWeight: '700',
+  },
+  hamburgerBtn: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#334155',
+  },
+  hamburgerIcon: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-start',
+  },
+  menuDrawer: {
+    backgroundColor: '#1E293B',
+    padding: 20,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+    paddingBottom: 10,
+  },
+  menuHeaderTitle: {
+    color: KANDY_THEME.colors.primary,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  menuCloseBtn: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  menuItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  menuItemText: {
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  menuItemAuth: {
+    marginTop: 10,
+    borderBottomWidth: 0,
+    backgroundColor: '#334155',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  menuItemAuthText: {
+    color: KANDY_THEME.colors.primary,
+    fontSize: 14,
     fontWeight: '800',
   },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: KANDY_THEME.colors.ink,
-    borderTopWidth: 1,
-    borderTopColor: '#2C3038',
-  },
-  tabItem: {
+  modalOverlay: {
     flex: 1,
-    paddingVertical: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  authModalCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  tabItemActive: {
-    borderBottomWidth: 3,
-    borderBottomColor: KANDY_THEME.colors.primary,
-    backgroundColor: '#1F242D',
+  authModalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: KANDY_THEME.colors.ink,
   },
-  tabText: {
-    color: '#9CA3AF',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  tabTextActive: {
-    color: KANDY_THEME.colors.primary,
+  authModalSub: {
+    fontSize: 12,
+    color: KANDY_THEME.colors.textMuted,
+    marginBottom: 14,
+    marginTop: 2,
   },
   scrollContent: {
     padding: 14,
   },
-  pageHeading: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: KANDY_THEME.colors.ink,
-    marginBottom: 12,
+  heroSection: {
+    marginVertical: 10,
   },
-  card: {
+  heroBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginBottom: 8,
+  },
+  heroBadgeText: {
+    color: KANDY_THEME.colors.primary,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+    lineHeight: 28,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  bookingCard: {
     backgroundColor: '#FFF',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
-  },
-  cardSectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: KANDY_THEME.colors.ink,
-    marginBottom: 10,
-    letterSpacing: 0.5,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 14,
-  },
-  pill: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  pillActive: {
-    backgroundColor: KANDY_THEME.colors.primary,
-  },
-  pillText: {
-    color: KANDY_THEME.colors.ink,
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  pillTextActive: {
-    color: '#FFF',
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   inputLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: KANDY_THEME.colors.textMuted,
+    color: '#64748B',
     marginBottom: 4,
-    marginTop: 6,
+    letterSpacing: 0.5,
   },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    fontWeight: '600',
-    color: KANDY_THEME.colors.ink,
-    marginBottom: 10,
-  },
-  vehicleCard: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
+  inputSearchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 6,
   },
-  vehicleCardSelected: {
+  inputIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  inputWithIcon: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  suggestionsBox: {
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    marginBottom: 10,
+    maxHeight: 180,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  suggestionName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  suggestionAddr: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  swapContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  swapLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  swapCircleBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#FFF7ED',
-    borderColor: KANDY_THEME.colors.primary,
-    borderWidth: 2,
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10,
   },
-  vehicleHeaderRow: {
+  swapIcon: {
+    color: KANDY_THEME.colors.primary,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  dateTimeGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  exploreCabsBtn: {
+    backgroundColor: KANDY_THEME.colors.primary,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  exploreCabsBtnText: {
+    color: '#FFF',
+    fontWeight: '900',
+    fontSize: 13,
+    letterSpacing: 0.5,
+  },
+  trustBadgesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
+  },
+  trustBadgeItem: {
+    flexBasis: '48%',
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  vehicleTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: KANDY_THEME.colors.ink,
+  trustBadgeIcon: {
+    fontSize: 18,
   },
-  tagText: {
+  trustBadgeTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  trustBadgeSub: {
     fontSize: 9,
+    color: '#64748B',
+  },
+  stepHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  backBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 6,
+  },
+  backBtnText: {
+    fontSize: 11,
     fontWeight: '800',
+    color: '#334155',
+  },
+  stepHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: KANDY_THEME.colors.primary,
+  },
+  sectionHeading: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  sectionSubheading: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  vehicleOptionCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  vehicleOptionCardSelected: {
+    borderColor: KANDY_THEME.colors.primary,
+    borderWidth: 2,
+    backgroundColor: '#FFF7ED',
+  },
+  vehicleCardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  vehicleOptionName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  vehicleTag: {
+    fontSize: 9,
+    fontWeight: '900',
     color: KANDY_THEME.colors.primary,
     backgroundColor: '#FFEDD5',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  vehicleSub: {
+  vehicleOptionCategory: {
     fontSize: 11,
-    color: KANDY_THEME.colors.textMuted,
+    color: '#64748B',
     marginTop: 2,
   },
-  vehicleRate: {
+  vehicleOptionSpecs: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#059669',
+    color: '#334155',
     marginTop: 4,
   },
-  vehicleFare: {
-    fontSize: 16,
+  vehicleOptionFare: {
+    fontSize: 18,
     fontWeight: '900',
     color: KANDY_THEME.colors.primary,
   },
-  vehicleFareSub: {
+  vehicleOptionFareSub: {
     fontSize: 9,
-    color: KANDY_THEME.colors.textMuted,
+    color: '#64748B',
   },
-  fareSummaryCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: KANDY_THEME.colors.primary,
+  vehicleOptionAdvance: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+    marginTop: 2,
   },
-  fareSummaryTitle: {
-    fontSize: 13,
+  vehicleDesc: {
+    fontSize: 11,
+    color: '#475569',
+    marginVertical: 8,
+  },
+  selectVehicleBtn: {
+    backgroundColor: KANDY_THEME.colors.primary,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  selectVehicleBtnText: {
+    color: '#FFF',
     fontWeight: '900',
-    color: KANDY_THEME.colors.ink,
+    fontSize: 11,
+  },
+  confirmationCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  cardSectionTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#D97706',
+    letterSpacing: 0.8,
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  routeBox: {
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  routeBoxText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  routeBoxSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
     marginBottom: 10,
+  },
+  fareBreakdownBox: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    borderRadius: 10,
+    padding: 12,
+    marginVertical: 12,
+  },
+  fareBreakdownTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#92400E',
+    marginBottom: 8,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingVertical: 4,
   },
   infoLabel: {
     fontSize: 12,
-    color: KANDY_THEME.colors.textMuted,
+    color: '#475569',
   },
   infoValue: {
     fontSize: 12,
-    fontWeight: '700',
-    color: KANDY_THEME.colors.ink,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   infoValueHighlight: {
     fontSize: 14,
     fontWeight: '900',
-    color: KANDY_THEME.colors.ink,
+    color: '#0F172A',
   },
-  confirmButton: {
+  finalBookBtn: {
     backgroundColor: KANDY_THEME.colors.primary,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 14,
   },
-  confirmButtonText: {
+  finalBookBtnText: {
     color: '#FFF',
     fontWeight: '900',
     fontSize: 12,
-    letterSpacing: 0.5,
+  },
+  successCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  successIcon: {
+    fontSize: 40,
+  },
+  successTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#065F46',
+    marginVertical: 6,
+    textAlign: 'center',
+  },
+  successSub: {
+    fontSize: 12,
+    color: '#475569',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  successDetailsBox: {
+    backgroundColor: '#ECFDF5',
+    padding: 14,
+    borderRadius: 10,
+    width: '100%',
+    marginBottom: 16,
+  },
+  successRef: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#064E3B',
+  },
+  successRoute: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#065F46',
+    marginTop: 2,
+  },
+  successDate: {
+    fontSize: 11,
+    color: '#047857',
+  },
+  successFare: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#064E3B',
+    marginTop: 4,
+  },
+  successAdvance: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  primaryButton: {
+    backgroundColor: KANDY_THEME.colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    width: '100%',
+  },
+  primaryButtonText: {
+    color: '#FFF',
+    fontWeight: '900',
+    fontSize: 12,
+  },
+  pageHeading: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 12,
   },
   tripCard: {
     backgroundColor: '#FFF',
@@ -799,7 +1583,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
+    borderColor: '#E2E8F0',
   },
   tripHeader: {
     flexDirection: 'row',
@@ -822,7 +1606,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   routeContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
     padding: 10,
     borderRadius: 8,
     marginBottom: 10,
@@ -830,7 +1614,7 @@ const styles = StyleSheet.create({
   routeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: KANDY_THEME.colors.ink,
+    color: '#0F172A',
   },
   routeArrow: {
     fontSize: 12,
@@ -875,7 +1659,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
+    borderColor: '#E2E8F0',
   },
   fleetHeader: {
     flexDirection: 'row',
@@ -885,12 +1669,12 @@ const styles = StyleSheet.create({
   fleetTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: KANDY_THEME.colors.ink,
+    color: '#0F172A',
   },
   fleetSub: {
     fontSize: 12,
-    color: KANDY_THEME.colors.textMuted,
-    marginBottom: 8,
+    color: '#64748B',
+    marginBottom: 4,
   },
   fleetFeatureRow: {
     flexDirection: 'row',
@@ -900,12 +1684,12 @@ const styles = StyleSheet.create({
   fleetFeature: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#374151',
+    color: '#334155',
   },
   fleetRateRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
     padding: 8,
     borderRadius: 6,
     marginVertical: 8,
@@ -917,10 +1701,10 @@ const styles = StyleSheet.create({
   },
   fleetBaseText: {
     fontSize: 11,
-    color: KANDY_THEME.colors.textMuted,
+    color: '#64748B',
   },
   bookFleetBtn: {
-    backgroundColor: KANDY_THEME.colors.ink,
+    backgroundColor: '#0F172A',
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
@@ -931,35 +1715,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
-  authCard: {
-    backgroundColor: '#FFF',
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
-  },
   cardTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: KANDY_THEME.colors.ink,
+    color: '#0F172A',
     marginBottom: 4,
   },
   cardDesc: {
     fontSize: 12,
-    color: KANDY_THEME.colors.textMuted,
-    marginBottom: 16,
-  },
-  primaryButton: {
-    backgroundColor: KANDY_THEME.colors.primary,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#FFF',
-    fontWeight: '800',
-    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 14,
   },
   demoOtpBox: {
     backgroundColor: '#FFEDD5',
@@ -978,22 +1743,22 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
+    borderColor: '#E2E8F0',
   },
   profileTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: KANDY_THEME.colors.textMuted,
+    color: '#64748B',
     marginBottom: 6,
   },
   profileName: {
     fontSize: 20,
     fontWeight: '900',
-    color: KANDY_THEME.colors.ink,
+    color: '#0F172A',
   },
   profilePhone: {
     fontSize: 13,
-    color: KANDY_THEME.colors.textMuted,
+    color: '#64748B',
     marginTop: 2,
     marginBottom: 16,
   },
@@ -1004,7 +1769,7 @@ const styles = StyleSheet.create({
   },
   profileStatItem: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -1016,7 +1781,7 @@ const styles = StyleSheet.create({
   },
   profileStatLbl: {
     fontSize: 10,
-    color: KANDY_THEME.colors.textMuted,
+    color: '#64748B',
     fontWeight: '700',
   },
   callSupportBtn: {
@@ -1032,7 +1797,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   logoutBtn: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F1F5F9',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -1041,5 +1806,34 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 11,
     fontWeight: '800',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  bottomNavItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  bottomNavItemActive: {
+    backgroundColor: KANDY_THEME.colors.primary,
+  },
+  bottomNavIcon: {
+    fontSize: 16,
+  },
+  bottomNavText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#475569',
+    marginTop: 2,
+  },
+  bottomNavTextActive: {
+    color: '#FFF',
   },
 });
