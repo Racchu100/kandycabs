@@ -446,11 +446,16 @@ export default function CustomerDashboardPage() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4">
           <div className="bg-white rounded-widget border border-kandy-border max-w-2xl w-full max-h-[90vh] overflow-y-auto p-3.5 sm:p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-kandy-border pb-2.5 sm:pb-4 mb-3 sm:mb-6">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-kandy-orange rounded text-white font-bold flex items-center justify-center text-xs sm:text-sm">KC</div>
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/kandycabs-logo.png"
+                  alt="Kandy Cabs Logo"
+                  className="h-8 sm:h-10 w-auto object-contain shrink-0"
+                />
                 <div>
                   <h3 className="text-base sm:text-lg font-black text-kandy-ink">Tax Invoice</h3>
-                  <p className="text-[9px] sm:text-[10px] text-kandy-muted">Kandy Cabs India Pvt Ltd • GSTIN: 29AABCK1234F1Z5</p>
+                  <p className="text-[9px] sm:text-[10px] text-kandy-muted font-medium">Kandy Cabs India Pvt Ltd • GSTIN: 29AABCK1234F1Z5</p>
                 </div>
               </div>
               <button
