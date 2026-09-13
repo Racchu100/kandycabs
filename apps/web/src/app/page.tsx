@@ -68,41 +68,41 @@ export default function HomePage() {
           {/* Card Booking Widget */}
           <BookingWidget />
 
-          {/* Mobile 4-Trust-Badges Grid (2x2 Grid strictly matching reference screenshot) */}
-          <div className="grid grid-cols-2 gap-3 mt-5 sm:hidden">
-            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
-              <div className="w-9 h-9 bg-orange-100/80 text-[#FF6B1A] rounded-full flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5" />
+          {/* Mobile 4-Trust-Badges Grid (2x2 Grid with comfortable padding & fitting icons) */}
+          <div className="grid grid-cols-2 gap-2.5 mt-4 sm:hidden">
+            <div className="flex items-center gap-2 p-2.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
+              <div className="w-7.5 h-7.5 bg-orange-100/80 text-[#FF6B1A] rounded-full flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">VERIFIED CHAUFFEURS</h4>
+                <h4 className="text-[10px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">VERIFIED CHAUFFEURS</h4>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
-              <div className="w-9 h-9 bg-emerald-100/80 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
+            <div className="flex items-center gap-2 p-2.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
+              <div className="w-7.5 h-7.5 bg-emerald-100/80 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">25% ADVANCE ONLY</h4>
+                <h4 className="text-[10px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">25% ADVANCE ONLY</h4>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
-              <div className="w-9 h-9 bg-blue-100/80 text-blue-600 rounded-full flex items-center justify-center shrink-0">
-                <User className="w-5 h-5" />
+            <div className="flex items-center gap-2 p-2.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
+              <div className="w-7.5 h-7.5 bg-blue-100/80 text-blue-600 rounded-full flex items-center justify-center shrink-0">
+                <User className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">TRANSPARENT BILLING</h4>
+                <h4 className="text-[10px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">TRANSPARENT BILLING</h4>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
-              <div className="w-9 h-9 bg-amber-100/80 text-amber-600 rounded-full flex items-center justify-center shrink-0">
-                <PhoneCall className="w-5 h-5" />
+            <div className="flex items-center gap-2 p-2.5 bg-white rounded-2xl border border-gray-100/90 shadow-sm">
+              <div className="w-7.5 h-7.5 bg-amber-100/80 text-amber-600 rounded-full flex items-center justify-center shrink-0">
+                <PhoneCall className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">24X7 OPS SUPPORT</h4>
+                <h4 className="text-[10px] font-black text-[#1E293B] uppercase tracking-tight leading-tight">24X7 OPS SUPPORT</h4>
               </div>
             </div>
           </div>
