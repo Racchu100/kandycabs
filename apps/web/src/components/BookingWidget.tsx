@@ -145,7 +145,7 @@ export function BookingWidget() {
       <div className="w-full max-w-5xl mx-auto bg-white rounded-3xl sm:rounded-2xl shadow-[0_14px_45px_rgba(0,0,0,0.07)] border border-gray-100/90 relative z-30 p-4 sm:p-6 lg:p-8">
 
         {/* TRIP TYPE TAB SELECTOR (Desktop & Tablet - Mobile uses Sticky Bottom Bar) */}
-        <div className="hidden sm:block mb-1.5 sm:mb-1.5 md:mb-2 lg:mb-6">
+        <div className="hidden sm:block mb-1.5 sm:mb-1.5 md:mb-2 lg:mb-5">
           {/* Tablet & Desktop View: 1 Single Row Bar */}
           <div className="p-0.5 sm:p-1 md:p-1 bg-gray-100/90 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-inner">
             <div className="grid grid-cols-4 gap-1 sm:gap-1 md:gap-1.5">
@@ -155,7 +155,7 @@ export function BookingWidget() {
                   setTripType(TripType.ONEWAY);
                   setFormError(null);
                 }}
-                className={`py-1 sm:py-1 md:py-1.5 lg:py-2.5 px-1 sm:px-2 md:px-2.5 lg:px-4 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-tight flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 transition active:scale-95 cursor-pointer ${
+                className={`py-1 sm:py-1 md:py-1.5 lg:py-2 px-1 sm:px-2 md:px-2 lg:px-3 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-tight flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 transition active:scale-95 cursor-pointer ${
                   tripType === TripType.ONEWAY
                     ? 'bg-kandy-orange text-white shadow-md font-black'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-white/60'
@@ -171,7 +171,7 @@ export function BookingWidget() {
                   setTripType(TripType.ROUND);
                   setFormError(null);
                 }}
-                className={`py-1 sm:py-1 md:py-1.5 lg:py-2.5 px-1 sm:px-2 md:px-2.5 lg:px-4 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-tight flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 transition active:scale-95 cursor-pointer ${
+                className={`py-1 sm:py-1 md:py-1.5 lg:py-2 px-1 sm:px-2 md:px-2 lg:px-3 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-tight flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 transition active:scale-95 cursor-pointer ${
                   tripType === TripType.ROUND
                     ? 'bg-kandy-orange text-white shadow-md font-black'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-white/60'
@@ -187,7 +187,7 @@ export function BookingWidget() {
                   setTripType(TripType.LOCAL);
                   setFormError(null);
                 }}
-                className={`py-1 sm:py-1 md:py-1.5 lg:py-2.5 px-1 sm:px-2 md:px-2.5 lg:px-4 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-tight flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 transition active:scale-95 cursor-pointer ${
+                className={`py-1 sm:py-1 md:py-1.5 lg:py-2 px-1 sm:px-2 md:px-2 lg:px-3 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-tight flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 transition active:scale-95 cursor-pointer ${
                   tripType === TripType.LOCAL
                     ? 'bg-kandy-orange text-white shadow-md font-black'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-white/60'
@@ -200,7 +200,7 @@ export function BookingWidget() {
               <button
                 type="button"
                 onClick={handleSelectAirportTab}
-                className={`py-1 sm:py-1 md:py-1.5 lg:py-2.5 px-1 sm:px-2 md:px-2.5 lg:px-4 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-tight flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 transition active:scale-95 cursor-pointer ${
+                className={`py-1 sm:py-1 md:py-1.5 lg:py-2 px-1 sm:px-2 md:px-2 lg:px-3 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] md:text-xs uppercase tracking-tight flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 transition active:scale-95 cursor-pointer ${
                   tripType === TripType.AIRPORT
                     ? 'bg-kandy-orange text-white shadow-md font-black'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-white/60'
@@ -459,23 +459,23 @@ export function BookingWidget() {
       {isMounted &&
         createPortal(
           <div
-            className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] py-2.5 px-3 rounded-t-3xl sm:hidden z-40"
+            className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] py-1.5 px-2.5 rounded-t-2xl sm:hidden z-40"
             style={{ zIndex: 40 }}
           >
-            <div className="grid grid-cols-4 gap-2 max-w-md mx-auto">
+            <div className="grid grid-cols-4 gap-1.5 max-w-md mx-auto">
               <button
                 type="button"
                 onClick={() => {
                   setTripType(TripType.ONEWAY);
                   setFormError(null);
                 }}
-                className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
+                className={`py-1.5 px-1 rounded-xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-0.5 transition active:scale-95 cursor-pointer ${
                   tripType === TripType.ONEWAY
                     ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
                     : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
                 }`}
               >
-                <Car className="w-4.5 h-4.5 shrink-0" />
+                <Car className="w-4 h-4 shrink-0" />
                 <span>ONE WAY</span>
               </button>
 
@@ -485,13 +485,13 @@ export function BookingWidget() {
                   setTripType(TripType.ROUND);
                   setFormError(null);
                 }}
-                className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
+                className={`py-1.5 px-1 rounded-xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-0.5 transition active:scale-95 cursor-pointer ${
                   tripType === TripType.ROUND
                     ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
                     : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
                 }`}
               >
-                <RefreshCw className="w-4.5 h-4.5 shrink-0" />
+                <RefreshCw className="w-4 h-4 shrink-0" />
                 <span>ROUND TRIP</span>
               </button>
 
@@ -501,26 +501,26 @@ export function BookingWidget() {
                   setTripType(TripType.LOCAL);
                   setFormError(null);
                 }}
-                className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
+                className={`py-1.5 px-1 rounded-xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-0.5 transition active:scale-95 cursor-pointer ${
                   tripType === TripType.LOCAL
                     ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
                     : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
                 }`}
               >
-                <MapPin className="w-4.5 h-4.5 shrink-0" />
+                <MapPin className="w-4 h-4 shrink-0" />
                 <span>LOCAL</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleSelectAirportTab}
-                className={`py-2 px-1 rounded-2xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-1 transition active:scale-95 cursor-pointer ${
+                className={`py-1.5 px-1 rounded-xl font-extrabold text-[10px] uppercase tracking-tight flex flex-col items-center justify-center gap-0.5 transition active:scale-95 cursor-pointer ${
                   tripType === TripType.AIRPORT
                     ? 'bg-gradient-to-r from-[#FF7A28] to-[#FF5500] text-white shadow-md shadow-orange-500/20 font-black'
                     : 'bg-gray-100/90 text-[#475569] hover:bg-gray-200'
                 }`}
               >
-                <Plane className="w-4.5 h-4.5 shrink-0" />
+                <Plane className="w-4 h-4 shrink-0" />
                 <span>AIRPORT</span>
               </button>
             </div>
