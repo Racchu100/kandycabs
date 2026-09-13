@@ -220,10 +220,10 @@ export function BookingWidget() {
         {/* Main Dynamic Booking Form */}
         <form onSubmit={handleSearch} className="space-y-3 sm:space-y-4">
           {/* ROUTE LOCATION INPUTS CONTAINER */}
-          <div className="relative space-y-2.5 sm:space-y-3">
+          <div className="relative flex flex-col gap-3 sm:gap-3.5">
             {/* Dedicated Airport Transfer Direction Toggle (Positioned right above Pickup Location) */}
             {tripType === TripType.AIRPORT && (
-              <div className="flex items-center justify-center gap-1 sm:gap-2 bg-orange-50/90 p-1 sm:p-1.5 rounded-xl border border-orange-200 text-xs font-bold mb-2">
+              <div className="flex items-center justify-center gap-1 sm:gap-2 bg-orange-50/90 p-1 sm:p-1.5 rounded-xl border border-orange-200 text-xs font-bold">
                 <button
                   type="button"
                   onClick={() => {
@@ -333,9 +333,9 @@ export function BookingWidget() {
                 </div>
               ))}
 
-            {/* SWAP BUTTON (Floating circular orange control positioned between Pickup and Drop on right edge) */}
+            {/* SWAP BUTTON (Clean floating circular orange control between Pickup & Destination) */}
             {tripType !== TripType.LOCAL && (
-              <div className="flex justify-end pr-3 -my-3 sm:-my-2 relative z-20">
+              <div className="flex justify-end pr-4 -my-4 relative z-20 pointer-events-auto">
                 <button
                   type="button"
                   onClick={() => {
