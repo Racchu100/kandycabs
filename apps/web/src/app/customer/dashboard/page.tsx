@@ -22,6 +22,7 @@ import {
   Download,
   X,
   Navigation,
+  LogOut,
 } from 'lucide-react';
 
 interface BookingItem {
@@ -243,160 +244,189 @@ export default function CustomerDashboardPage() {
             </div>
           ) : (
             /* Logged-In Customer Dashboard */
-            <div className="space-y-3 sm:space-y-5">
+            <div className="space-y-6">
               {/* Personalization Welcome Banner */}
-              <div className="bg-white p-3.5 sm:p-5 rounded-card border border-kandy-border shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-kandy-orangeLight text-kandy-orange rounded-full flex items-center justify-center font-extrabold text-lg sm:text-xl border border-orange-200 shrink-0">
+              <div className="bg-gradient-to-r from-orange-50/90 via-amber-50/80 to-orange-100/60 border border-orange-200/80 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-gradient-to-tr from-orange-500 to-amber-500 text-white rounded-full flex items-center justify-center font-black text-2xl shadow-md border-2 border-white shrink-0">
                     {user.fullName.charAt(0)}
                   </div>
-                  <div>
-                    <h1 className="text-base sm:text-xl md:text-2xl font-black text-kandy-ink">
+                  <div className="space-y-0.5">
+                    <h1 className="text-xl sm:text-2xl font-black text-slate-900">
                       {user.isNewUser ? `Welcome, ${user.fullName}!` : `Welcome back, ${user.fullName}!`}
                     </h1>
-                    <p className="text-[11px] sm:text-xs text-kandy-muted">
-                      +91 {user.phone} • Customer Account
+                    <p className="text-xs text-slate-600 font-bold flex items-center gap-1.5">
+                      <PhoneCall className="w-3.5 h-3.5 text-slate-400" />
+                      <span>+91 {user.phone} • Customer Account</span>
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-2.5 w-full md:w-auto">
                   <Link
                     href="/booking"
-                    className="flex-1 sm:flex-none text-center px-3 py-1.5 sm:px-4 sm:py-2 bg-kandy-orange hover:bg-kandy-orangeHover text-white text-[11px] sm:text-xs font-extrabold uppercase tracking-wider rounded transition shadow"
+                    className="flex-1 md:flex-none text-center px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition shadow-md flex items-center justify-center gap-1.5"
                   >
-                    + BOOK NEW CAB
+                    <span>+ BOOK NEW CAB</span>
                   </Link>
+                  <button
+                    onClick={handleDashboardLogout}
+                    className="px-5 py-3 bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 text-xs font-black rounded-2xl transition shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    <LogOut className="w-4 h-4 text-slate-700" />
+                    <span>Logout</span>
+                  </button>
                 </div>
               </div>
 
               {/* Bookings Section */}
-              <div>
-                <h2 className="text-base sm:text-lg md:text-xl font-bold text-kandy-ink mb-2 sm:mb-3 border-l-4 border-kandy-orange pl-2 sm:pl-3">
-                  Your Bookings & Trip Invoices
-                </h2>
+              <div className="space-y-4">
+                <div className="border-l-4 border-orange-500 pl-3 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-slate-800" />
+                  <h2 className="text-xl font-black text-slate-900">
+                    Your Bookings & Trip Invoices
+                  </h2>
+                </div>
 
                 {bookings.length === 0 ? (
-                  <div className="bg-white p-6 sm:p-10 text-center rounded-card border border-kandy-border">
-                    <Car className="w-10 h-10 text-kandy-muted mx-auto mb-2" />
-                    <h3 className="text-base sm:text-lg font-bold text-kandy-ink mb-1">No Active Bookings Found</h3>
-                    <p className="text-xs text-kandy-muted mb-3">You haven&apos;t booked any intercity cab yet.</p>
+                  <div className="bg-white p-8 sm:p-12 text-center rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                      <Car className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-black text-slate-900">No Active Bookings Found</h3>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">You haven&apos;t booked any intercity cab yet.</p>
                     <Link
                       href="/booking"
-                      className="inline-block px-5 py-2 bg-kandy-orange text-white font-bold text-xs uppercase tracking-wider rounded"
+                      className="inline-block px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-md"
                     >
                       Book Your First Cab →
                     </Link>
                   </div>
                 ) : (
-                  <div className="space-y-2.5 sm:space-y-3">
+                  <div className="space-y-4">
                     {bookings.map((b) => (
                       <div
                         key={b.id}
-                        className="bg-white rounded-card border border-kandy-border shadow-card p-3 sm:p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4"
+                        className="bg-white rounded-3xl border border-slate-200/90 shadow-lg p-5 sm:p-6 space-y-4"
                       >
-                        <div className="space-y-1.5 flex-1 w-full">
-                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                            <span className="text-sm sm:text-base font-black text-kandy-orange">
-                              Ref: {b.humanReadableRef}
+                        {/* Top Header Row: Ref & Status Pills */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm text-slate-500 font-bold">Ref:</span>
+                            <span className="text-xl font-black text-orange-500">
+                              {b.humanReadableRef}
                             </span>
-                            <span className="bg-kandy-ink text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded uppercase">
-                              {b.tripType}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="bg-slate-900 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-slate-400" />
+                              <span>{b.tripType}</span>
                             </span>
+
                             <span
-                              className={`text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded uppercase ${
+                              className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider border flex items-center gap-1 ${
                                 b.status === 'TRIP_COMPLETED'
-                                  ? 'bg-emerald-100 text-emerald-700'
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                                   : b.status === 'CANCELLED'
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-amber-100 text-amber-800'
+                                  ? 'bg-red-100 text-red-800 border-red-300'
+                                  : 'bg-amber-100 text-amber-900 border-amber-300/60'
                               }`}
                             >
-                              {b.status.replace('_', ' ')}
+                              <Clock className="w-3 h-3" />
+                              <span>{b.status === 'DRIVER_ACCEPTED' ? 'DISPATCH ACCEPTED' : b.status.replace('_', ' ')}</span>
                             </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 text-[11px] sm:text-xs text-kandy-ink pt-0.5">
-                            <div className="flex items-center gap-1.5 font-bold">
-                              <MapPin className="w-3.5 h-3.5 text-kandy-orange shrink-0" />
-                              <span>{b.pickupAddress}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 font-bold">
-                              <Navigation className="w-3.5 h-3.5 text-kandy-ink shrink-0" />
-                              <span>{b.dropAddress}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs text-kandy-muted pt-0.5">
-                            <span className="flex items-center gap-1 font-bold text-kandy-ink">
-                              <Calendar className="w-3.5 h-3.5 text-kandy-orange" />
-                              {formatPickupDate(b.scheduledAt)}
-                            </span>
-                            <span className="flex items-center gap-1 font-extrabold text-kandy-orange bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
-                              <Clock className="w-3.5 h-3.5 text-kandy-orange" />
-                              {formatPickupTime(b.scheduledAt)}
-                            </span>
-                            <span>•</span>
-                            <span className="font-semibold text-kandy-ink">{b.vehicle?.name || 'SEDAN (Standard)'}</span>
-                            {b.distanceKm && (
-                              <>
-                                <span>•</span>
-                                <span className="font-bold text-kandy-ink">~{b.distanceKm} km</span>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Driver Contact Status */}
-                          <div className="pt-1">
-                            {b.customerPhoneReleased && b.assignedDriver ? (
-                              <div className="bg-emerald-50 border border-emerald-200 p-2 rounded text-xs text-emerald-900 flex items-center justify-between">
-                                <div>
-                                  <strong>Driver Assigned:</strong> {b.assignedDriver.fullName}
-                                </div>
-                                <a
-                                  href={`tel:${b.assignedDriver.user?.phone}`}
-                                  className="flex items-center gap-1 bg-emerald-600 text-white px-2 py-0.5 rounded font-bold text-[10px] uppercase"
-                                >
-                                  <PhoneCall className="w-3 h-3" /> Call Driver
-                                </a>
-                              </div>
-                            ) : (
-                              <div className="bg-gray-50 border border-gray-200 p-2 rounded text-[11px] sm:text-xs text-kandy-muted flex items-center gap-1.5">
-                                <ShieldCheck className="w-3.5 h-3.5 text-kandy-orange shrink-0" />
-                                <span>Driver details will be released by ops prior to pickup time.</span>
-                              </div>
-                            )}
                           </div>
                         </div>
 
-                        {/* Right Billing Details & Invoice Button */}
-                        <div className="text-right md:border-l md:border-kandy-border md:pl-4 w-full md:w-auto flex md:flex-col justify-between items-center md:items-end mt-1 md:mt-0">
-                          <div>
-                            <span className="text-[9px] sm:text-[10px] font-bold uppercase text-kandy-muted block">Estimated Total</span>
-                            <span className="text-lg sm:text-xl font-black text-kandy-ink">₹{b.estimatedFare.toLocaleString()}</span>
-                            <div className="text-[10px] font-bold text-emerald-600">
-                              25% Advance Paid: ₹{b.advanceAmount.toLocaleString()}
+                        {/* Route Locations */}
+                        <div className="space-y-2 text-xs font-bold text-slate-800 pl-1">
+                          <div className="flex items-start gap-2.5">
+                            <MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>{b.pickupAddress}</span>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <Navigation className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                            <span>{b.dropAddress}</span>
+                          </div>
+                        </div>
+
+                        {/* Date & Time Strip */}
+                        <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-700 pt-1 border-t border-slate-100">
+                          <span className="flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4 text-orange-500" />
+                            <span>{formatPickupDate(b.scheduledAt)}</span>
+                          </span>
+
+                          <span className="flex items-center gap-1.5 text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200">
+                            <Clock className="w-4 h-4 text-orange-500" />
+                            <span>{formatPickupTime(b.scheduledAt)}</span>
+                          </span>
+
+                          <span className="flex items-center gap-1.5 text-slate-600">
+                            <User className="w-4 h-4 text-slate-400" />
+                            <span>{b.vehicle?.name || 'HATCHBACK (CNG)'} {b.distanceKm ? `• ~${b.distanceKm} km` : ''}</span>
+                          </span>
+                        </div>
+
+                        {/* Driver Status Banner */}
+                        <div>
+                          {b.customerPhoneReleased && b.assignedDriver ? (
+                            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs text-emerald-900 flex items-center justify-between">
+                              <div className="font-bold">
+                                <strong>Driver Assigned:</strong> {b.assignedDriver.fullName}
+                              </div>
+                              <a
+                                href={`tel:${b.assignedDriver.user?.phone}`}
+                                className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1 rounded-xl font-black text-xs uppercase shadow-sm"
+                              >
+                                <PhoneCall className="w-3.5 h-3.5" /> Call Driver
+                              </a>
                             </div>
-                            <div className="text-[10px] font-semibold text-kandy-muted">
-                              Balance Pending: ₹{b.balanceAmount.toLocaleString()}
+                          ) : (
+                            <div className="bg-orange-50/60 border border-orange-200/80 p-3 rounded-2xl text-xs text-slate-700 flex items-center gap-2.5">
+                              <ShieldCheck className="w-5 h-5 text-orange-500 shrink-0" />
+                              <span className="font-medium">Driver details will be released by ops prior to pickup time.</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer: Price Summary Box & Action Buttons */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+                          {/* Price Summary */}
+                          <div className="md:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1.5">
+                            <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                              ESTIMATED TOTAL
+                            </div>
+                            <div className="text-2xl font-black text-slate-900">
+                              ₹{b.estimatedFare.toLocaleString()}
+                            </div>
+                            <div className="flex justify-between items-center text-xs font-black text-emerald-600 pt-1 border-t border-slate-200/60">
+                              <span>25% Advance Paid:</span>
+                              <span>₹{b.advanceAmount.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-xs font-bold text-slate-500">
+                              <span>Balance Pending:</span>
+                              <span>₹{b.balanceAmount.toLocaleString()}</span>
                             </div>
                           </div>
 
-                          <div className="mt-2 flex flex-wrap gap-1.5 justify-end">
+                          {/* Action Buttons Column */}
+                          <div className="flex flex-col justify-center gap-2">
                             {b.status !== 'CANCELLED' && b.status !== 'TRIP_COMPLETED' && (
                               <button
                                 onClick={() => handleOpenCancelModal(b)}
-                                className="px-3 py-1.5 border border-red-300 text-red-600 hover:bg-red-50 font-bold text-[11px] sm:text-xs rounded transition flex items-center gap-1 shadow-sm"
+                                className="w-full py-2.5 px-4 border-2 border-red-500 hover:bg-red-50 text-red-600 font-black text-xs uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-1.5"
                               >
-                                <XCircle className="w-3.5 h-3.5 text-red-600" />
+                                <XCircle className="w-4 h-4 text-red-600" />
                                 <span>CANCEL RIDE</span>
                               </button>
                             )}
                             <button
                               onClick={() => setSelectedInvoiceBooking(b)}
-                              className="px-3 py-1.5 bg-kandy-ink hover:bg-black text-white font-bold text-[11px] sm:text-xs rounded transition flex items-center gap-1 shadow-sm"
+                              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center justify-center gap-1.5"
                             >
-                              <FileText className="w-3.5 h-3.5 text-kandy-orange" />
+                              <FileText className="w-4 h-4 text-orange-500" />
                               <span>VIEW INVOICE</span>
                             </button>
                           </div>
