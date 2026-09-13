@@ -30,7 +30,7 @@ export default function ContactPage() {
   const [driverName, setDriverName] = useState('');
   const [driverPhone, setDriverPhone] = useState('');
   const [driverEmail, setDriverEmail] = useState('');
-  const [driverCity, setDriverCity] = useState('Bangalore');
+  const [driverCity, setDriverCity] = useState('Mangalore');
   const [vehicleOwned, setVehicleOwned] = useState('Swift Dzire (Sedan)');
   const [driverMessage, setDriverMessage] = useState('');
   const [driverSubmitted, setDriverSubmitted] = useState(false);
