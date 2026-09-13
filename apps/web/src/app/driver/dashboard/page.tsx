@@ -59,6 +59,7 @@ export default function DriverDashboardPage() {
     license?: string;
     rc?: string;
     insurance?: string;
+    driverPhotoUrl?: string;
     vehiclePhotos?: string[];
   }>({});
 
@@ -67,6 +68,7 @@ export default function DriverDashboardPage() {
     license: null,
     rc: null,
     insurance: null,
+    driverPhoto: null,
     vehicleFront: null,
     vehicleBack: null,
     vehicleLeft: null,
@@ -81,6 +83,7 @@ export default function DriverDashboardPage() {
     license: { status: 'idle' },
     rc: { status: 'idle' },
     insurance: { status: 'idle' },
+    driverPhoto: { status: 'idle' },
     vehicleFront: { status: 'idle' },
     vehicleBack: { status: 'idle' },
     vehicleLeft: { status: 'idle' },
@@ -88,10 +91,11 @@ export default function DriverDashboardPage() {
     vehicleInside: { status: 'idle' },
   });
 
-  // Pending Document Calculation (License, RC, Insurance, 5 Vehicle Photos)
+  // Pending Document Calculation (License, RC, Insurance, Driver Photo, 5 Vehicle Photos)
   const isLicensePending = !storedDocPaths.license && !selectedFiles.license;
   const isRcPending = !storedDocPaths.rc && !selectedFiles.rc;
   const isInsurancePending = !storedDocPaths.insurance && !selectedFiles.insurance;
+  const isDriverPhotoPending = !storedDocPaths.driverPhotoUrl && !selectedFiles.driverPhoto;
 
   const isFrontPending = !selectedFiles.vehicleFront && (!storedDocPaths.vehiclePhotos || !storedDocPaths.vehiclePhotos[0]);
   const isBackPending = !selectedFiles.vehicleBack && (!storedDocPaths.vehiclePhotos || !storedDocPaths.vehiclePhotos[1]);
@@ -103,6 +107,7 @@ export default function DriverDashboardPage() {
     (isLicensePending ? 1 : 0) +
     (isRcPending ? 1 : 0) +
     (isInsurancePending ? 1 : 0) +
+    (isDriverPhotoPending ? 1 : 0) +
     (isFrontPending ? 1 : 0) +
     (isBackPending ? 1 : 0) +
     (isLeftPending ? 1 : 0) +
@@ -124,6 +129,7 @@ export default function DriverDashboardPage() {
               license: data.docs.licenseDocUrl,
               rc: data.docs.rcDocUrl,
               insurance: data.docs.insuranceDocUrl,
+              driverPhotoUrl: data.docs.driverPhotoUrl,
               vehiclePhotos: data.docs.vehiclePhotos || [],
             });
 
@@ -1075,7 +1081,18 @@ export default function DriverDashboardPage() {
                   <p className="text-[10px] sm:text-[11px] font-extrabold text-kandy-muted uppercase tracking-wider flex items-center gap-1.5">
                     <Camera className="w-3.5 h-3.5 text-kandy-orange" /> Uploaded Documents Preview
                   </p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
+                    {storedDocPaths.driverPhotoUrl && (
+                      <div>
+                        <p className="text-[9px] font-bold text-kandy-muted uppercase mb-1">Driver Photo</p>
+                        <img
+                          src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.driverPhotoUrl)}`}
+                          alt="Driver Photo"
+                          className="h-16 sm:h-20 w-full object-cover rounded border border-emerald-300 shadow-sm"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
                     {storedDocPaths.license && (
                       <div>
                         <p className="text-[9px] font-bold text-kandy-muted uppercase mb-1">License</p>
@@ -1168,9 +1185,9 @@ export default function DriverDashboardPage() {
                 <div className="p-2.5 sm:p-4 bg-kandy-bg rounded-xl border border-kandy-border space-y-2.5 sm:space-y-3">
                   <h4 className="font-extrabold text-kandy-ink text-[11px] sm:text-xs uppercase flex items-center gap-1.5 border-b border-gray-200 pb-1.5 sm:pb-2">
                     <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kandy-orange" />
-                    <span>1. Driving License Document</span>
+                    <span>1. Driver Profile & License Document</span>
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                     <div>
                       <label className="block text-[10px] sm:text-[11px] font-bold text-kandy-muted uppercase mb-1">
                         Driving License Number *
@@ -1222,6 +1239,48 @@ export default function DriverDashboardPage() {
                           />
                           <div className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> License Saved
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] sm:text-[11px] font-bold text-kandy-muted uppercase">
+                          Upload Driver Photo *
+                        </label>
+                        {uploadStatuses.driverPhoto?.status === 'uploaded' && (
+                          <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>
+                        )}
+                        {uploadStatuses.driverPhoto?.status === 'uploading' && (
+                          <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>
+                        )}
+                        {isDriverPhotoPending && uploadStatuses.driverPhoto?.status === 'idle' && (
+                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-1 border border-amber-300">
+                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING UPLOAD
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileSelect('driverPhoto', e.target.files?.[0] || null)}
+                        className="w-full text-xs"
+                      />
+                      {uploadStatuses.driverPhoto?.errorMsg && (
+                        <div className="text-[10px] font-bold text-red-600 mt-1 flex justify-between">
+                          <span>{uploadStatuses.driverPhoto.errorMsg}</span>
+                        </div>
+                      )}
+                      {!selectedFiles.driverPhoto && storedDocPaths.driverPhotoUrl && (
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <img
+                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.driverPhotoUrl)}`}
+                            alt="Driver Photo"
+                            className="h-14 w-14 object-cover rounded-full border border-emerald-300 shadow-sm"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <div className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Driver Photo Saved
                           </div>
                         </div>
                       )}

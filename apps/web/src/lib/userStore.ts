@@ -264,6 +264,7 @@ export interface DriverDocsPayload {
   licenseDocUrl?: string; // Stored relative path e.g. drivers/d_123/documents/license.webp
   rcDocUrl?: string;      // Stored relative path e.g. drivers/d_123/documents/rc.webp
   insuranceDocUrl?: string; // Stored relative path e.g. drivers/d_123/documents/insurance.webp
+  driverPhotoUrl?: string; // Stored relative path e.g. drivers/d_123/documents/driverPhoto.webp
   vehiclePhotos?: string[]; // Stored relative paths e.g. ["drivers/d_123/vehicle/front.webp", ...]
   vehicleName?: string;
   vehicleNumber?: string;
@@ -307,6 +308,7 @@ export function saveDriverDocuments(phoneInput: string, payload: DriverDocsPaylo
     licenseDocUrl: sanitizeDocPath(payload.licenseDocUrl),
     rcDocUrl: sanitizeDocPath(payload.rcDocUrl),
     insuranceDocUrl: sanitizeDocPath(payload.insuranceDocUrl),
+    driverPhotoUrl: sanitizeDocPath(payload.driverPhotoUrl),
     vehiclePhotos: payload.vehiclePhotos?.map(p => p ? sanitizeDocPath(p) : '') as string[] || [],
   };
 

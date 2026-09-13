@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAllStoredDrivers, getDriverDocuments } from '@/lib/userStore';
 import { normalizePhone } from '@kandycabs/shared';
@@ -41,6 +41,7 @@ export async function GET() {
         licenseDocUrl: docs?.licenseDocUrl || d.licenseDocUrl || null,
         rcDocUrl: docs?.rcDocUrl || d.rcDocUrl || null,
         insuranceDocUrl: docs?.insuranceDocUrl || d.insuranceDocUrl || null,
+        driverPhotoUrl: docs?.driverPhotoUrl || null,
         vehiclePhotos: docs?.vehiclePhotos || d.vehiclePhotos || [],
         docsUploaded: !!(docs?.licenseDocUrl || d.licenseDocUrl),
       });
@@ -64,6 +65,7 @@ export async function GET() {
           licenseDocUrl: docs?.licenseDocUrl || s.licenseDocUrl || null,
           rcDocUrl: docs?.rcDocUrl || s.rcDocUrl || null,
           insuranceDocUrl: docs?.insuranceDocUrl || s.insuranceDocUrl || null,
+          driverPhotoUrl: docs?.driverPhotoUrl || null,
           vehiclePhotos: docs?.vehiclePhotos || s.vehiclePhotos || [],
           docsUploaded: !!(docs?.licenseDocUrl || s.licenseDocUrl),
         });

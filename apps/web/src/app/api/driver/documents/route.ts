@@ -50,6 +50,7 @@ export async function POST(req: Request) {
         { name: 'license', category: 'documents' as const },
         { name: 'rc', category: 'documents' as const },
         { name: 'insurance', category: 'documents' as const },
+        { name: 'driverPhoto', category: 'documents' as const },
         { name: 'vehicleFront', category: 'vehicle' as const },
         { name: 'vehicleBack', category: 'vehicle' as const },
         { name: 'vehicleLeft', category: 'vehicle' as const },
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
       license: existingDocs.licenseDocUrl || '',
       rc: existingDocs.rcDocUrl || '',
       insurance: existingDocs.insuranceDocUrl || '',
+      driverPhoto: existingDocs.driverPhotoUrl || '',
     };
 
     const vehiclePhotoMap: { [key: string]: string } = {
@@ -140,6 +142,7 @@ export async function POST(req: Request) {
       licenseDocUrl: documentPaths.license,
       rcDocUrl: documentPaths.rc,
       insuranceDocUrl: documentPositionsToPath(documentPaths.insurance),
+      driverPhotoUrl: documentPaths.driverPhoto,
       vehiclePhotos,
       vehicleName: vehicleName || existingDocs.vehicleName,
       vehicleNumber: vehicleNumber || existingDocs.vehicleNumber,
@@ -155,6 +158,7 @@ export async function POST(req: Request) {
         license: documentPaths.license,
         rc: documentPaths.rc,
         insurance: documentPaths.insurance,
+        driverPhoto: documentPaths.driverPhoto,
       },
       vehiclePhotos,
       docRecord,
