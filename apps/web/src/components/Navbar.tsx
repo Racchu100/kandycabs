@@ -172,38 +172,38 @@ export function Navbar() {
           />
 
           {/* Slideable Right Drawer Panel */}
-          <div className="relative ml-auto w-84 max-w-[88vw] bg-white h-dvh min-h-screen shadow-2xl z-[1000000] flex flex-col justify-between p-4 sm:p-5 overflow-y-auto pb-10 animate-in slide-in-from-right duration-300">
-            <div className="space-y-3.5">
+          <div className="relative ml-auto w-80 max-w-[88vw] bg-white h-dvh max-h-screen shadow-2xl z-[1000000] flex flex-col justify-between p-3 sm:p-4 overflow-y-auto animate-in slide-in-from-right duration-300">
+            <div className="space-y-2">
               {/* Drawer Header */}
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                 <Link href="/" onClick={() => setMobileMenuOpen(false)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/kandycabs-logo.png"
                     alt="Kandy Cabs Logo"
-                    className="h-8 w-auto object-contain"
+                    className="h-7 w-auto object-contain"
                   />
                 </Link>
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition cursor-pointer"
+                  className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               {/* User Greeting / Profile Card */}
-              <div className="relative overflow-hidden bg-gradient-to-r from-orange-50/90 via-orange-100/40 to-orange-50/70 border border-orange-100/90 rounded-2xl p-3 flex items-center justify-between shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#FF6B1A]/15 text-[#FF6B1A] flex items-center justify-center shrink-0">
-                    <User className="w-5 h-5 text-[#FF6B1A]" />
+              <div className="relative overflow-hidden bg-gradient-to-r from-orange-50/90 via-orange-100/40 to-orange-50/70 border border-orange-100/90 rounded-xl p-2 px-2.5 flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#FF6B1A]/15 text-[#FF6B1A] flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4 text-[#FF6B1A]" />
                   </div>
                   <div>
-                    <span className="text-[11px] font-semibold text-gray-500 block leading-tight">Hello,</span>
-                    <span className="text-sm font-black text-gray-900 flex items-center gap-1 leading-tight">
+                    <span className="text-[10px] font-semibold text-gray-500 block leading-tight">Hello,</span>
+                    <span className="text-xs font-black text-gray-900 flex items-center gap-0.5 leading-tight">
                       {user ? (user.fullName || user.phone || 'User') : 'RANJU'}
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                      <ChevronRight className="w-3 h-3 text-gray-400" />
                     </span>
                   </div>
                 </div>
@@ -211,12 +211,12 @@ export function Navbar() {
                 <img
                   src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=300&auto=format&fit=crop&q=60"
                   alt="Car illustration"
-                  className="w-18 h-11 object-contain shrink-0 opacity-90 drop-shadow-xs"
+                  className="w-14 h-9 object-contain shrink-0 opacity-90 drop-shadow-xs"
                 />
               </div>
 
               {/* Navigation Menu Items with Custom Icons & Active Indicator */}
-              <nav className="space-y-1.5 pt-0.5">
+              <nav className="space-y-1">
                 {[
                   { name: 'Home', href: '/', icon: Home },
                   { name: 'Book Cab', href: '/booking', icon: Car },
@@ -231,31 +231,31 @@ export function Navbar() {
                       key={item.name}
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center justify-between p-2.5 px-3 rounded-2xl transition ${
+                      className={`flex items-center justify-between p-1.5 px-2.5 rounded-xl transition ${
                         isActive
                           ? 'bg-[#FFF5EE] border border-orange-200/90 text-[#FF6B1A] font-black shadow-2xs relative'
                           : 'hover:bg-gray-50 text-gray-800 font-bold group'
                       }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition ${
+                          className={`w-7.5 h-7.5 rounded-lg flex items-center justify-center shrink-0 transition ${
                             isActive
                               ? 'bg-[#FF6B1A] text-white shadow-xs'
                               : 'bg-slate-100 text-slate-700 group-hover:bg-orange-100 group-hover:text-[#FF6B1A]'
                           }`}
                         >
-                          <IconComp className="w-4 h-4" />
+                          <IconComp className="w-3.5 h-3.5" />
                         </div>
-                        <span className={`text-sm ${isActive ? 'text-[#FF6B1A] font-extrabold' : 'text-gray-900 font-extrabold group-hover:text-[#FF6B1A]'}`}>
+                        <span className={`text-xs ${isActive ? 'text-[#FF6B1A] font-extrabold' : 'text-gray-900 font-extrabold group-hover:text-[#FF6B1A]'}`}>
                           {item.name}
                         </span>
                       </div>
 
                       {isActive ? (
-                        <div className="w-1.5 h-6 bg-[#FF6B1A] rounded-full shrink-0" />
+                        <div className="w-1.5 h-5 bg-[#FF6B1A] rounded-full shrink-0" />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#FF6B1A] shrink-0 transition" />
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#FF6B1A] shrink-0 transition" />
                       )}
                     </Link>
                   );
@@ -264,28 +264,28 @@ export function Navbar() {
             </div>
 
             {/* Bottom Actions Section: User Status + Portals + Logout + Support Call */}
-            <div className="pt-3 space-y-2.5 mt-3 shrink-0">
+            <div className="pt-2 space-y-2 mt-2 shrink-0">
               {/* User Logged-in Header Badge */}
-              <div className="flex items-center gap-2 px-1 text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">
-                <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              <div className="flex items-center gap-1.5 px-1 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">
+                <User className="w-3 h-3 text-gray-400 shrink-0" />
                 <span>
                   LOGGED IN AS: <strong className="text-gray-900 font-black">{user ? (user.fullName || user.phone || 'USER') : 'RANJU'}</strong>
                 </span>
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {/* Driver Portal Button (Charcoal Dark Card) */}
                 <Link
                   href="/driver/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full bg-[#232731] hover:bg-slate-900 text-white rounded-2xl py-3 px-4 flex items-center justify-between font-extrabold text-xs sm:text-sm shadow-md transition cursor-pointer"
+                  className="w-full bg-[#232731] hover:bg-slate-900 text-white rounded-xl py-2 px-3 flex items-center justify-between font-extrabold text-xs shadow-xs transition cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <Car className="w-4.5 h-4.5 text-[#FF6B1A] shrink-0" />
+                  <div className="flex items-center gap-2.5">
+                    <Car className="w-4 h-4 text-[#FF6B1A] shrink-0" />
                     <span>Driver Portal</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                 </Link>
 
                 {/* Admin Console Button (if admin) */}
@@ -293,13 +293,13 @@ export function Navbar() {
                   <Link
                     href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full bg-kandy-orange hover:bg-orange-600 text-white rounded-2xl py-3 px-4 flex items-center justify-between font-extrabold text-xs sm:text-sm shadow-md transition cursor-pointer"
+                    className="w-full bg-kandy-orange hover:bg-orange-600 text-white rounded-xl py-2 px-3 flex items-center justify-between font-extrabold text-xs shadow-xs transition cursor-pointer"
                   >
-                    <div className="flex items-center gap-3">
-                      <ShieldCheck className="w-4.5 h-4.5 text-white shrink-0" />
+                    <div className="flex items-center gap-2.5">
+                      <ShieldCheck className="w-4 h-4 text-white shrink-0" />
                       <span>Admin Console</span>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-white shrink-0" />
+                    <ChevronRight className="w-3.5 h-3.5 text-white shrink-0" />
                   </Link>
                 )}
 
@@ -307,13 +307,13 @@ export function Navbar() {
                 <Link
                   href="/customer/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full bg-white border-2 border-[#FF6B1A] text-[#FF6B1A] hover:bg-orange-50/80 rounded-2xl py-3 px-4 flex items-center justify-between font-extrabold text-xs sm:text-sm shadow-xs transition cursor-pointer"
+                  className="w-full bg-white border-2 border-[#FF6B1A] text-[#FF6B1A] hover:bg-orange-50/80 rounded-xl py-2 px-3 flex items-center justify-between font-extrabold text-xs shadow-2xs transition cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <User className="w-4.5 h-4.5 text-[#FF6B1A] shrink-0" />
+                  <div className="flex items-center gap-2.5">
+                    <User className="w-4 h-4 text-[#FF6B1A] shrink-0" />
                     <span>Customer Portal (My Account)</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#FF6B1A] shrink-0" />
+                  <ChevronRight className="w-3.5 h-3.5 text-[#FF6B1A] shrink-0" />
                 </Link>
 
                 {/* Logout Button (Solid Red Rounded Card) */}
@@ -324,41 +324,41 @@ export function Navbar() {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full py-3.5 px-4 bg-[#DC2626] hover:bg-red-700 active:bg-red-800 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
+                    className="w-full py-2.5 px-3 bg-[#DC2626] hover:bg-red-700 active:bg-red-800 text-white font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition shadow-xs cursor-pointer"
                   >
-                    <LogOut className="w-4.5 h-4.5 text-white shrink-0" />
+                    <LogOut className="w-4 h-4 text-white shrink-0" />
                     <span>LOGOUT</span>
                   </button>
                 ) : (
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-[#FF7A28] to-[#FF5500] hover:from-orange-600 hover:to-orange-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
+                    className="w-full py-2.5 px-3 bg-gradient-to-r from-[#FF7A28] to-[#FF5500] hover:from-orange-600 hover:to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition shadow-xs cursor-pointer"
                   >
-                    <LogIn className="w-4.5 h-4.5 text-white shrink-0" />
+                    <LogIn className="w-4 h-4 text-white shrink-0" />
                     <span>SIGN IN / LOGIN →</span>
                   </Link>
                 )}
               </div>
 
               {/* Call 24×7 Support Card */}
-              <div className="bg-[#FFF5EE] border border-orange-100 rounded-2xl p-3 flex items-center justify-between shadow-2xs">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-[#FF6B1A] text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <Phone className="w-5 h-5" />
+              <div className="bg-[#FFF5EE] border border-orange-100 rounded-xl p-2 px-2.5 flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-[#FF6B1A] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <Phone className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[10px] font-bold text-gray-500 block leading-tight">Call 24×7 Support</span>
-                    <a href="tel:+919876543210" className="text-xs sm:text-sm font-black text-[#1E293B] hover:text-[#FF6B1A] transition leading-tight block">
+                    <span className="text-[9px] font-bold text-gray-500 block leading-tight">Call 24×7 Support</span>
+                    <a href="tel:+919876543210" className="text-xs font-black text-[#1E293B] hover:text-[#FF6B1A] transition leading-tight block">
                       +91 98765 43210
                     </a>
                   </div>
                 </div>
                 <a
                   href="tel:+919876543210"
-                  className="w-8 h-8 rounded-full bg-orange-100 text-[#FF6B1A] flex items-center justify-center hover:bg-[#FF6B1A] hover:text-white transition shrink-0 ml-2"
+                  className="w-7 h-7 rounded-full bg-orange-100 text-[#FF6B1A] flex items-center justify-center hover:bg-[#FF6B1A] hover:text-white transition shrink-0 ml-2"
                 >
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </a>
               </div>
             </div>
