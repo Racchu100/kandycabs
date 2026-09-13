@@ -676,9 +676,9 @@ function BookingContent() {
             </div>
           </div>
 
-          <div className={`grid grid-cols-1 ${step > 1 ? 'lg:grid-cols-3' : 'max-w-4xl mx-auto'} gap-8`}>
+          <div className={`grid grid-cols-1 ${step > 2 ? 'lg:grid-cols-3' : 'max-w-4xl mx-auto'} gap-8`}>
             {/* Left Main Wizard Form */}
-            <div className={`${step > 1 ? 'lg:col-span-2' : 'w-full'} space-y-6`}>
+            <div className={`${step > 2 ? 'lg:col-span-2' : 'w-full'} space-y-6`}>
               {/* STEP 1: Select Vehicle */}
               {step === 1 && (
                 <div className="space-y-4">
@@ -1346,8 +1346,8 @@ function BookingContent() {
               )}
             </div>
 
-            {/* Right Fare Breakdown Summary Sidebar (Only shown after vehicle selection, step > 1) */}
-            {step > 1 && (
+            {/* Right Fare Breakdown Summary Sidebar (Only shown for Step 3 Coupon & Step 4 Checkout, step > 2) */}
+            {step > 2 && (
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-card border border-kandy-border shadow-card overflow-hidden sticky top-24">
                   <div className="bg-kandy-ink text-white p-3 sm:p-3.5">
