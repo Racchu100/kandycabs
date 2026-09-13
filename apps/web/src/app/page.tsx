@@ -46,20 +46,6 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="relative pt-3 sm:pt-6 md:pt-8 lg:pt-10 pb-4 sm:pb-8 md:pb-10 lg:pb-12 bg-gradient-to-b from-white via-orange-50/20 to-kandy-bg border-b border-kandy-border overflow-hidden">
-        {/* Scenic Coastal Highway Background Banner Image (Vivid car view matching screenshot) */}
-        <div className="absolute top-0 right-0 w-full sm:w-3/4 h-full pointer-events-none overflow-hidden z-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1400&auto=format&fit=crop&q=85"
-            alt="Scenic Coastal Highway with Car"
-            className="w-full h-full object-cover object-right sm:object-right-top opacity-75 sm:opacity-90"
-          />
-          {/* Left-to-right gradient to keep left text background clean and crisp */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/85 sm:via-white/75 to-transparent"></div>
-          {/* Bottom gradient fade */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-white/90"></div>
-        </div>
-
         {/* Bottom Orange Accent Curve (Visible at bottom left behind top edge of booking card) */}
         <div className="absolute bottom-0 left-0 w-3/4 sm:w-1/2 h-8 sm:h-12 bg-gradient-to-r from-[#FF6B1A] via-[#FF8C38] to-transparent rounded-tr-full opacity-80 z-0"></div>
 
@@ -174,17 +160,7 @@ export default function HomePage() {
       </section>
 
       {/* Fleet Showcase Section */}
-      <section className="relative py-6 sm:py-8 lg:py-12 overflow-hidden">
-        {/* Scenic Fleet Background Banner Image (Right side matching reference screenshot) */}
-        <div className="absolute top-0 right-0 w-full sm:w-1/2 h-full opacity-25 pointer-events-none overflow-hidden z-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://images.unsplash.com/photo-1506015391300-4802dc74de2e?w=1200&auto=format&fit=crop&q=80"
-            alt="Scenic Mountain Road"
-            className="w-full h-full object-cover object-right"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-kandy-bg via-kandy-bg/85 to-transparent"></div>
-        </div>
+      <section className="relative py-6 sm:py-8 lg:py-12 overflow-hidden bg-kandy-bg">
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 gap-2 sm:gap-4">
