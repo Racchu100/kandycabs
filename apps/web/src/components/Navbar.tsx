@@ -2,13 +2,30 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Car, Phone, ShieldCheck, User, Menu, X, LogIn, LogOut } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import {
+  Car,
+  Phone,
+  ShieldCheck,
+  User,
+  Menu,
+  X,
+  LogIn,
+  LogOut,
+  Home,
+  IndianRupee,
+  Info,
+  Headphones,
+  ChevronRight,
+  ArrowRight,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, logout: handleLogout } = useAuth();
+  const pathname = usePathname();
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -122,8 +139,9 @@ export function Navbar() {
                 </Link>
 
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="px-3.5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition shadow-sm"
+                  className="px-3.5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition shadow-sm cursor-pointer"
                 >
                   Logout
                 </button>
@@ -134,8 +152,9 @@ export function Navbar() {
           {/* Mobile menu button */}
           <div className="md:hidden">
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-kandy-ink hover:text-kandy-orange transition"
+              className="p-2 text-kandy-ink hover:text-kandy-orange transition cursor-pointer"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -143,7 +162,7 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Slideable Navigation Drawer */}
+      {/* Mobile Slideable Navigation Drawer (Matching Reference Mockup) */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-[999999] flex">
           {/* Backdrop Blur Overlay */}
@@ -153,9 +172,8 @@ export function Navbar() {
           />
 
           {/* Slideable Right Drawer Panel */}
-          <div className="relative ml-auto w-80 max-w-[85vw] bg-white h-dvh min-h-screen shadow-2xl z-[1000000] flex flex-col justify-between p-5 overflow-y-auto pb-20 animate-in slide-in-from-right duration-300">
-            {/* Top Navigation Links */}
-            <div className="space-y-4">
+          <div className="relative ml-auto w-84 max-w-[88vw] bg-white h-dvh min-h-screen shadow-2xl z-[1000000] flex flex-col justify-between p-4 sm:p-5 overflow-y-auto pb-10 animate-in slide-in-from-right duration-300">
+            <div className="space-y-3.5">
               {/* Drawer Header */}
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <Link href="/" onClick={() => setMobileMenuOpen(false)}>
@@ -169,122 +187,180 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 text-gray-500 hover:text-kandy-ink rounded-lg bg-gray-100"
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Navigation Links */}
-              <nav className="space-y-1 font-bold text-sm text-kandy-ink">
-                <Link
-                  href="/"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3.5 py-2.5 hover:bg-orange-50 hover:text-kandy-orange rounded-lg transition"
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/booking"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3.5 py-2.5 hover:bg-orange-50 hover:text-kandy-orange rounded-lg transition"
-                >
-                  Book Cab
-                </Link>
-                <Link
-                  href="/fleet"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3.5 py-2.5 hover:bg-orange-50 hover:text-kandy-orange rounded-lg transition"
-                >
-                  Fleet & Rates
-                </Link>
-                <Link
-                  href="/about"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3.5 py-2.5 hover:bg-orange-50 hover:text-kandy-orange rounded-lg transition"
-                >
-                  About Us
-                </Link>
-                <Link
-                  href="/contact"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3.5 py-2.5 hover:bg-orange-50 hover:text-kandy-orange rounded-lg transition"
-                >
-                  Contact
-                </Link>
+              {/* User Greeting / Profile Card */}
+              <div className="relative overflow-hidden bg-gradient-to-r from-orange-50/90 via-orange-100/40 to-orange-50/70 border border-orange-100/90 rounded-2xl p-3 flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#FF6B1A]/15 text-[#FF6B1A] flex items-center justify-center shrink-0">
+                    <User className="w-5 h-5 text-[#FF6B1A]" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-semibold text-gray-500 block leading-tight">Hello,</span>
+                    <span className="text-sm font-black text-gray-900 flex items-center gap-1 leading-tight">
+                      {user ? (user.fullName || user.phone || 'User') : 'RANJU'}
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                    </span>
+                  </div>
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=300&auto=format&fit=crop&q=60"
+                  alt="Car illustration"
+                  className="w-18 h-11 object-contain shrink-0 opacity-90 drop-shadow-xs"
+                />
+              </div>
+
+              {/* Navigation Menu Items with Custom Icons & Active Indicator */}
+              <nav className="space-y-1.5 pt-0.5">
+                {[
+                  { name: 'Home', href: '/', icon: Home },
+                  { name: 'Book Cab', href: '/booking', icon: Car },
+                  { name: 'Fleet & Rates', href: '/fleet', icon: IndianRupee },
+                  { name: 'About Us', href: '/about', icon: Info },
+                  { name: 'Contact', href: '/contact', icon: Headphones },
+                ].map((item) => {
+                  const isActive = pathname === item.href;
+                  const IconComp = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center justify-between p-2.5 px-3 rounded-2xl transition ${
+                        isActive
+                          ? 'bg-[#FFF5EE] border border-orange-200/90 text-[#FF6B1A] font-black shadow-2xs relative'
+                          : 'hover:bg-gray-50 text-gray-800 font-bold group'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition ${
+                            isActive
+                              ? 'bg-[#FF6B1A] text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-700 group-hover:bg-orange-100 group-hover:text-[#FF6B1A]'
+                          }`}
+                        >
+                          <IconComp className="w-4 h-4" />
+                        </div>
+                        <span className={`text-sm ${isActive ? 'text-[#FF6B1A] font-extrabold' : 'text-gray-900 font-extrabold group-hover:text-[#FF6B1A]'}`}>
+                          {item.name}
+                        </span>
+                      </div>
+
+                      {isActive ? (
+                        <div className="w-1.5 h-6 bg-[#FF6B1A] rounded-full shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#FF6B1A] shrink-0 transition" />
+                      )}
+                    </Link>
+                  );
+                })}
               </nav>
             </div>
 
-            {/* Bottom Actions: Account Portals, Contact Number, Sign In & Logout */}
-            <div className="pt-4 border-t border-gray-200 space-y-2.5 mt-6 shrink-0 pb-10">
-              {!user ? (
-                /* LOGGED OUT STATE: SIGN IN BUTTON */
+            {/* Bottom Actions Section: User Status + Portals + Logout + Support Call */}
+            <div className="pt-3 space-y-2.5 mt-3 shrink-0">
+              {/* User Logged-in Header Badge */}
+              <div className="flex items-center gap-2 px-1 text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">
+                <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <span>
+                  LOGGED IN AS: <strong className="text-gray-900 font-black">{user ? (user.fullName || user.phone || 'USER') : 'RANJU'}</strong>
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                {/* Driver Portal Button (Charcoal Dark Card) */}
                 <Link
-                  href="/login"
+                  href="/driver/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 text-center py-3 bg-gradient-to-r from-kandy-orange to-orange-600 text-white font-black text-sm rounded-xl shadow-md border-b-2 border-orange-800"
+                  className="w-full bg-[#232731] hover:bg-slate-900 text-white rounded-2xl py-3 px-4 flex items-center justify-between font-extrabold text-xs sm:text-sm shadow-md transition cursor-pointer"
                 >
-                  <LogIn className="w-4 h-4" />
-                  <span>SIGN IN / LOGIN</span>
-                </Link>
-              ) : (
-                /* LOGGED IN STATE: USER INFO + PORTALS + LOGOUT */
-                <div className="space-y-2">
-                  <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider px-1">
-                    Logged in as: <span className="text-kandy-ink font-extrabold">{user.fullName || user.phone || 'Customer'}</span>
+                  <div className="flex items-center gap-3">
+                    <Car className="w-4.5 h-4.5 text-[#FF6B1A] shrink-0" />
+                    <span>Driver Portal</span>
                   </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                </Link>
 
-                  {isAdmin && (
-                    <Link
-                      href="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-center gap-2 text-center py-2.5 bg-kandy-orange text-white font-extrabold text-xs rounded-xl shadow"
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Admin Console</span>
-                    </Link>
-                  )}
-                  {isApprovedDriver && (
-                    <Link
-                      href="/driver/dashboard"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-center gap-2 text-center py-2.5 bg-kandy-ink text-white font-extrabold text-xs rounded-xl shadow"
-                    >
-                      <Car className="w-4 h-4 text-kandy-orange" />
-                      <span>Driver Portal</span>
-                    </Link>
-                  )}
+                {/* Admin Console Button (if admin) */}
+                {isAdmin && (
                   <Link
-                    href="/customer/dashboard"
+                    href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 text-center py-2.5 border-2 border-kandy-orange text-kandy-orange font-extrabold text-xs rounded-xl hover:bg-orange-50 transition"
+                    className="w-full bg-kandy-orange hover:bg-orange-600 text-white rounded-2xl py-3 px-4 flex items-center justify-between font-extrabold text-xs sm:text-sm shadow-md transition cursor-pointer"
                   >
-                    <User className="w-4 h-4" />
-                    <span>Customer Portal (My Account)</span>
+                    <div className="flex items-center gap-3">
+                      <ShieldCheck className="w-4.5 h-4.5 text-white shrink-0" />
+                      <span>Admin Console</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-white shrink-0" />
                   </Link>
+                )}
 
+                {/* Customer Portal Button (White Card with Orange Border) */}
+                <Link
+                  href="/customer/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full bg-white border-2 border-[#FF6B1A] text-[#FF6B1A] hover:bg-orange-50/80 rounded-2xl py-3 px-4 flex items-center justify-between font-extrabold text-xs sm:text-sm shadow-xs transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <User className="w-4.5 h-4.5 text-[#FF6B1A] shrink-0" />
+                    <span>Customer Portal (My Account)</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#FF6B1A] shrink-0" />
+                </Link>
+
+                {/* Logout Button (Solid Red Rounded Card) */}
+                {user ? (
                   <button
                     type="button"
                     onClick={() => {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-md"
+                    className="w-full py-3.5 px-4 bg-[#DC2626] hover:bg-red-700 active:bg-red-800 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-white shrink-0" />
+                    <LogOut className="w-4.5 h-4.5 text-white shrink-0" />
                     <span>LOGOUT</span>
                   </button>
-                </div>
-              )}
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-[#FF7A28] to-[#FF5500] hover:from-orange-600 hover:to-orange-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
+                  >
+                    <LogIn className="w-4.5 h-4.5 text-white shrink-0" />
+                    <span>SIGN IN / LOGIN →</span>
+                  </Link>
+                )}
+              </div>
 
-              {/* Direct Phone Contact Link */}
-              <a
-                href="tel:+919876543210"
-                className="flex items-center justify-center gap-2 py-2.5 bg-gray-100 hover:bg-gray-200 text-kandy-ink rounded-xl font-bold text-xs border border-gray-200 transition"
-              >
-                <Phone className="w-4 h-4 text-kandy-orange shrink-0" />
-                <span>Call 24x7 Support: +91 98765 43210</span>
-              </a>
+              {/* Call 24×7 Support Card */}
+              <div className="bg-[#FFF5EE] border border-orange-100 rounded-2xl p-3 flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-[#FF6B1A] text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-gray-500 block leading-tight">Call 24×7 Support</span>
+                    <a href="tel:+919876543210" className="text-xs sm:text-sm font-black text-[#1E293B] hover:text-[#FF6B1A] transition leading-tight block">
+                      +91 98765 43210
+                    </a>
+                  </div>
+                </div>
+                <a
+                  href="tel:+919876543210"
+                  className="w-8 h-8 rounded-full bg-orange-100 text-[#FF6B1A] flex items-center justify-center hover:bg-[#FF6B1A] hover:text-white transition shrink-0 ml-2"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
