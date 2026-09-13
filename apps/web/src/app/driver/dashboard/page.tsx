@@ -7,6 +7,7 @@ import { Footer } from '@/components/Footer';
 import { TripLifecycleModal } from '@/components/TripLifecycleModal';
 import { SwipeToAcceptButton } from '@/components/SwipeToAcceptButton';
 import { useAuth } from '@/context/AuthContext';
+import { UploadField } from '@/components/UploadField';
 import {
   Car,
   CheckCircle2,
@@ -53,6 +54,8 @@ export default function DriverDashboardPage() {
   const [docSubmitting, setDocSubmitting] = useState(false);
   const [docSuccess, setDocSuccess] = useState<string | null>(null);
   const [isVehicleChangedMode, setIsVehicleChangedMode] = useState(false);
+  const [isNoticeDismissed, setIsNoticeDismissed] = useState(false);
+  const [hasSubmitAttempted, setHasSubmitAttempted] = useState(false);
 
   // Existing Stored Paths (from backend)
   const [storedDocPaths, setStoredDocPaths] = useState<{
@@ -183,6 +186,7 @@ export default function DriverDashboardPage() {
 
   const handleUploadQueue = async (e: React.FormEvent) => {
     e.preventDefault();
+    setHasSubmitAttempted(true);
     setDocSubmitting(true);
     setDocSuccess(null);
 
@@ -1172,422 +1176,258 @@ export default function DriverDashboardPage() {
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleUploadQueue} className="space-y-3 sm:space-y-4 text-xs">
-                {/* Notice Banner */}
-                <div className="bg-amber-50 border border-amber-200 p-2.5 sm:p-3 rounded-xl flex items-center gap-2 text-amber-900 text-[11px] sm:text-xs font-semibold">
-                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 shrink-0" />
-                  <span>
-                    <strong>Admin Notice:</strong> Upload clear documents & vehicle photos. Upload queue processes 2 files concurrently with path storage.
-                  </span>
-                </div>
+              <form onSubmit={handleUploadQueue} className="space-y-6 text-xs">
+                {/* 1. Progress Indicator Stepper */}
+                {(() => {
+                  const isSec1Complete = (!isLicensePending || uploadStatuses.license?.status === 'uploaded') && (!isDriverPhotoPending || uploadStatuses.driverPhoto?.status === 'uploaded');
+                  const isSec2Complete = (!isRcPending || uploadStatuses.rc?.status === 'uploaded') && (!isInsurancePending || uploadStatuses.insurance?.status === 'uploaded');
+                  const isSec3Complete = !isFrontPending && !isBackPending && !isLeftPending && !isRightPending && !isInsidePending;
 
-                {/* Section 1: License details */}
-                <div className="p-2.5 sm:p-4 bg-kandy-bg rounded-xl border border-kandy-border space-y-2.5 sm:space-y-3">
-                  <h4 className="font-extrabold text-kandy-ink text-[11px] sm:text-xs uppercase flex items-center gap-1.5 border-b border-gray-200 pb-1.5 sm:pb-2">
-                    <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kandy-orange" />
+                  const currentStep = isSec1Complete ? (isSec2Complete ? 3 : 2) : 1;
+                  const stepLabel = currentStep === 1 ? 'License & Driver Photo' : currentStep === 2 ? 'RC & Insurance' : 'Vehicle Photos';
+                  const percentComplete = Math.round((((isSec1Complete ? 1 : 0) + (isSec2Complete ? 1 : 0) + (isSec3Complete ? 1 : 0)) / 3) * 100);
+
+                  return (
+                    <div className="bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-200/80 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-black text-slate-800">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-5 h-5 bg-kandy-orange text-white rounded-full text-[10px] flex items-center justify-center font-black">
+                            {currentStep}
+                          </span>
+                          <span>Step {currentStep} of 3: {stepLabel}</span>
+                        </span>
+                        <span className="text-[11px] font-extrabold text-kandy-orange">
+                          {percentComplete}% Complete
+                        </span>
+                      </div>
+
+                      {/* 3-Segment Progress Bar */}
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <div className={`h-1.5 rounded-full transition-colors ${isSec1Complete ? 'bg-emerald-500' : 'bg-kandy-orange'}`}></div>
+                        <div className={`h-1.5 rounded-full transition-colors ${isSec2Complete ? 'bg-emerald-500' : isSec1Complete ? 'bg-kandy-orange' : 'bg-slate-200'}`}></div>
+                        <div className={`h-1.5 rounded-full transition-colors ${isSec3Complete ? 'bg-emerald-500' : isSec2Complete ? 'bg-kandy-orange' : 'bg-slate-200'}`}></div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 2. Collapsible Admin Notice Banner */}
+                {!isNoticeDismissed && (
+                  <div className="p-2 px-3 bg-amber-50/90 border border-amber-200/90 rounded-lg flex items-center justify-between gap-2 text-amber-900 text-[11px] font-medium shadow-2xs">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>
+                        <strong>Admin Notice:</strong> Upload clear documents & vehicle photos. Upload queue processes 2 files concurrently.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsNoticeDismissed(true)}
+                      className="text-amber-600 hover:text-amber-900 p-0.5 rounded transition shrink-0"
+                      title="Dismiss Notice"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* SECTION 1: Driver Profile & License */}
+                <div className="p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2 border-b border-slate-100 pb-2.5">
+                    <div className="w-6 h-6 rounded-md bg-orange-100 text-kandy-orange flex items-center justify-center shrink-0">
+                      <FileText className="w-3.5 h-3.5" />
+                    </div>
                     <span>1. Driver Profile & License Document</span>
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+
+                  <div className="space-y-4">
                     <div>
-                      <label className="block text-[10px] sm:text-[11px] font-bold text-kandy-muted uppercase mb-1">
-                        Driving License Number *
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                        Driving License Number <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         value={docLicenseNumber}
                         onChange={(e) => setDocLicenseNumber(e.target.value)}
                         placeholder="e.g. KA-01-2026-9876543"
-                        className="w-full px-2.5 py-1.5 sm:py-2 bg-white border border-kandy-border rounded-lg text-xs font-semibold focus:outline-none focus:border-kandy-orange"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-kandy-orange focus:bg-white rounded-xl text-xs font-semibold focus:outline-none transition shadow-2xs"
                         required
                       />
                     </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[10px] sm:text-[11px] font-bold text-kandy-muted uppercase">
-                          Upload License File *
-                        </label>
-                        {uploadStatuses.license?.status === 'uploaded' && (
-                          <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>
-                        )}
-                        {uploadStatuses.license?.status === 'uploading' && (
-                          <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>
-                        )}
-                        {isLicensePending && uploadStatuses.license?.status === 'idle' && (
-                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-1 border border-amber-300">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING UPLOAD
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="file"
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <UploadField
+                        label="Upload License File"
+                        required
                         accept="image/*,.pdf"
-                        onChange={(e) => handleFileSelect('license', e.target.files?.[0] || null)}
-                        className="w-full text-xs"
+                        selectedFile={selectedFiles.license}
+                        storedPath={storedDocPaths.license}
+                        uploadStatus={uploadStatuses.license?.status}
+                        errorMessage={uploadStatuses.license?.errorMsg}
+                        onFileSelect={(file) => handleFileSelect('license', file)}
+                        showValidationError={hasSubmitAttempted}
                       />
-                      {uploadStatuses.license?.errorMsg && (
-                        <div className="text-[10px] font-bold text-red-600 mt-1 flex justify-between">
-                          <span>{uploadStatuses.license.errorMsg}</span>
-                        </div>
-                      )}
-                      {!selectedFiles.license && storedDocPaths.license && (
-                        <div className="mt-1.5">
-                          <img
-                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.license)}`}
-                            alt="License Document"
-                            className="h-16 sm:h-20 w-full object-cover rounded-lg border border-emerald-300 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <div className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> License Saved
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[10px] sm:text-[11px] font-bold text-kandy-muted uppercase">
-                          Upload Driver Photo *
-                        </label>
-                        {uploadStatuses.driverPhoto?.status === 'uploaded' && (
-                          <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>
-                        )}
-                        {uploadStatuses.driverPhoto?.status === 'uploading' && (
-                          <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>
-                        )}
-                        {isDriverPhotoPending && uploadStatuses.driverPhoto?.status === 'idle' && (
-                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-1 border border-amber-300">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING UPLOAD
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="file"
+
+                      <UploadField
+                        label="Upload Driver Photo"
+                        required
                         accept="image/*"
-                        onChange={(e) => handleFileSelect('driverPhoto', e.target.files?.[0] || null)}
-                        className="w-full text-xs"
+                        selectedFile={selectedFiles.driverPhoto}
+                        storedPath={storedDocPaths.driverPhotoUrl}
+                        uploadStatus={uploadStatuses.driverPhoto?.status}
+                        errorMessage={uploadStatuses.driverPhoto?.errorMsg}
+                        onFileSelect={(file) => handleFileSelect('driverPhoto', file)}
+                        showValidationError={hasSubmitAttempted}
                       />
-                      {uploadStatuses.driverPhoto?.errorMsg && (
-                        <div className="text-[10px] font-bold text-red-600 mt-1 flex justify-between">
-                          <span>{uploadStatuses.driverPhoto.errorMsg}</span>
-                        </div>
-                      )}
-                      {!selectedFiles.driverPhoto && storedDocPaths.driverPhotoUrl && (
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <img
-                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.driverPhotoUrl)}`}
-                            alt="Driver Photo"
-                            className="h-14 w-14 object-cover rounded-full border border-emerald-300 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <div className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Driver Photo Saved
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Section 2: Vehicle & RC / Insurance */}
-                <div className="p-2.5 sm:p-4 bg-kandy-bg rounded-xl border border-kandy-border space-y-2.5 sm:space-y-3">
-                  <h4 className="font-extrabold text-kandy-ink text-[11px] sm:text-xs uppercase flex items-center gap-1.5 border-b border-gray-200 pb-1.5 sm:pb-2">
-                    <Car className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kandy-orange" />
+                {/* SECTION 2: Vehicle RC & Insurance */}
+                <div className="p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2 border-b border-slate-100 pb-2.5">
+                    <div className="w-6 h-6 rounded-md bg-orange-100 text-kandy-orange flex items-center justify-center shrink-0">
+                      <Car className="w-3.5 h-3.5" />
+                    </div>
                     <span>2. Vehicle RC & Insurance Documents</span>
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-                    <div>
-                      <label className="block text-[10px] sm:text-[11px] font-bold text-kandy-muted uppercase mb-1">
-                        Vehicle Model & Category *
-                      </label>
-                      <select
-                        value={docVehicleName}
-                        onChange={(e) => setDocVehicleName(e.target.value)}
-                        className="w-full px-2.5 py-1.5 sm:py-2 bg-white border border-kandy-border rounded-lg text-xs font-semibold focus:outline-none focus:border-kandy-orange"
-                      >
-                        <option value="Swift Dzire (Sedan)">Swift Dzire (Sedan)</option>
-                        <option value="Toyota Etios (Sedan)">Toyota Etios (Sedan)</option>
-                        <option value="Hatchback (WagonR / Indica)">Hatchback (WagonR / Indica)</option>
-                        <option value="SUV (Ertiga / Marazzo)">SUV (Ertiga / Marazzo)</option>
-                        <option value="SUV Premium (Toyota Innova Crysta)">SUV Premium (Toyota Innova Crysta)</option>
-                        <option value="Tempo Traveler (12 Seater Luxury)">Tempo Traveler (12 Seater Luxury)</option>
-                      </select>
-                    </div>
 
-                    <div>
-                      <label className="block text-[10px] sm:text-[11px] font-bold text-kandy-muted uppercase mb-1">
-                        Vehicle Plate Number
-                      </label>
-                      <input
-                        type="text"
-                        value={docVehicleNumber}
-                        onChange={(e) => setDocVehicleNumber(e.target.value)}
-                        placeholder="e.g. KA-01-AB-1234"
-                        className="w-full px-2.5 py-1.5 sm:py-2 bg-white border border-kandy-border rounded-lg text-xs font-semibold focus:outline-none focus:border-kandy-orange"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[10px] sm:text-[11px] font-bold text-kandy-muted uppercase">
-                          Upload RC (Registration Cert) *
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                          Vehicle Model & Category <span className="text-red-500">*</span>
                         </label>
-                        {uploadStatuses.rc?.status === 'uploaded' && <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>}
-                        {uploadStatuses.rc?.status === 'uploading' && <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>}
-                        {isRcPending && uploadStatuses.rc?.status === 'idle' && (
-                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-1 border border-amber-300">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING UPLOAD
-                          </span>
-                        )}
+                        <select
+                          value={docVehicleName}
+                          onChange={(e) => setDocVehicleName(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-kandy-orange focus:bg-white rounded-xl text-xs font-semibold focus:outline-none transition shadow-2xs"
+                        >
+                          <option value="Swift Dzire (Sedan)">Swift Dzire (Sedan)</option>
+                          <option value="Toyota Etios (Sedan)">Toyota Etios (Sedan)</option>
+                          <option value="Hatchback (WagonR / Indica)">Hatchback (WagonR / Indica)</option>
+                          <option value="SUV (Ertiga / Marazzo)">SUV (Ertiga / Marazzo)</option>
+                          <option value="SUV Premium (Toyota Innova Crysta)">SUV Premium (Toyota Innova Crysta)</option>
+                          <option value="Tempo Traveler (12 Seater Luxury)">Tempo Traveler (12 Seater Luxury)</option>
+                        </select>
                       </div>
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => handleFileSelect('rc', e.target.files?.[0] || null)}
-                        className="w-full text-xs"
-                      />
-                      {uploadStatuses.rc?.errorMsg && <div className="text-[10px] font-bold text-red-600 mt-1">{uploadStatuses.rc.errorMsg}</div>}
-                      {!selectedFiles.rc && storedDocPaths.rc && (
-                        <div className="mt-1.5">
-                          <img
-                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.rc)}`}
-                            alt="RC Document"
-                            className="h-16 sm:h-20 w-full object-cover rounded-lg border border-emerald-300 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <div className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> RC Saved
-                          </div>
-                        </div>
-                      )}
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                          Vehicle Plate Number
+                        </label>
+                        <input
+                          type="text"
+                          value={docVehicleNumber}
+                          onChange={(e) => setDocVehicleNumber(e.target.value)}
+                          placeholder="e.g. KA-01-AB-1234"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 focus:border-kandy-orange focus:bg-white rounded-xl text-xs font-semibold focus:outline-none transition shadow-2xs"
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[10px] sm:text-[11px] font-bold text-kandy-muted uppercase">
-                          Upload Vehicle Insurance *
-                        </label>
-                        {uploadStatuses.insurance?.status === 'uploaded' && <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>}
-                        {uploadStatuses.insurance?.status === 'uploading' && <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>}
-                        {isInsurancePending && uploadStatuses.insurance?.status === 'idle' && (
-                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-1 border border-amber-300">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING UPLOAD
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="file"
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <UploadField
+                        label="Upload RC (Registration Cert)"
+                        required
                         accept="image/*,.pdf"
-                        onChange={(e) => handleFileSelect('insurance', e.target.files?.[0] || null)}
-                        className="w-full text-xs"
+                        selectedFile={selectedFiles.rc}
+                        storedPath={storedDocPaths.rc}
+                        uploadStatus={uploadStatuses.rc?.status}
+                        errorMessage={uploadStatuses.rc?.errorMsg}
+                        onFileSelect={(file) => handleFileSelect('rc', file)}
+                        showValidationError={hasSubmitAttempted}
                       />
-                      {uploadStatuses.insurance?.errorMsg && <div className="text-[10px] font-bold text-red-600 mt-1">{uploadStatuses.insurance.errorMsg}</div>}
-                      {!selectedFiles.insurance && storedDocPaths.insurance && (
-                        <div className="mt-1.5">
-                          <img
-                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.insurance)}`}
-                            alt="Insurance Document"
-                            className="h-16 sm:h-20 w-full object-cover rounded-lg border border-emerald-300 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <div className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Insurance Saved
-                          </div>
-                        </div>
-                      )}
+
+                      <UploadField
+                        label="Upload Vehicle Insurance"
+                        required
+                        accept="image/*,.pdf"
+                        selectedFile={selectedFiles.insurance}
+                        storedPath={storedDocPaths.insurance}
+                        uploadStatus={uploadStatuses.insurance?.status}
+                        errorMessage={uploadStatuses.insurance?.errorMsg}
+                        onFileSelect={(file) => handleFileSelect('insurance', file)}
+                        showValidationError={hasSubmitAttempted}
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* Section 3: Vehicle Angle & Interior Photos */}
-                <div className="p-2.5 sm:p-4 bg-kandy-bg rounded-xl border border-kandy-border space-y-2.5 sm:space-y-3">
-                  <h4 className="font-extrabold text-kandy-ink text-[11px] sm:text-xs uppercase flex items-center gap-1.5 border-b border-gray-200 pb-1.5 sm:pb-2">
-                    <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kandy-orange" />
-                    <span>3. Vehicle Photos (Front, Back, Left/Right Sides & Car Interior)</span>
+                {/* SECTION 3: Vehicle Photos */}
+                <div className="p-3.5 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2 border-b border-slate-100 pb-2.5">
+                    <div className="w-6 h-6 rounded-md bg-orange-100 text-kandy-orange flex items-center justify-center shrink-0">
+                      <Camera className="w-3.5 h-3.5" />
+                    </div>
+                    <span>3. Vehicle Photos (Front, Back, Sides & Interior)</span>
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
-                    {/* Front Photo */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block text-[10px] font-bold text-kandy-muted uppercase">Front View Photo *</label>
-                        {(uploadStatuses.vehicleFront?.status === 'uploaded' || (!selectedFiles.vehicleFront && storedDocPaths.vehiclePhotos?.[0])) && (
-                          <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>
-                        )}
-                        {uploadStatuses.vehicleFront?.status === 'uploading' && <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>}
-                        {isFrontPending && uploadStatuses.vehicleFront?.status === 'idle' && (
-                          <span className="px-1 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-0.5 border border-amber-300">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileSelect('vehicleFront', e.target.files?.[0] || null)}
-                        className="w-full text-[11px]"
-                      />
-                      {uploadStatuses.vehicleFront?.errorMsg && <div className="text-[10px] font-bold text-red-600 mt-1">{uploadStatuses.vehicleFront.errorMsg}</div>}
-                      {!selectedFiles.vehicleFront && storedDocPaths.vehiclePhotos?.[0] && (
-                        <div className="mt-2">
-                          <img
-                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.vehiclePhotos[0])}`}
-                            alt="Front View"
-                            className="h-20 w-full object-cover rounded border border-emerald-300 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <div className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Front Photo Saved
-                          </div>
-                        </div>
-                      )}
-                    </div>
 
-                    {/* Back Photo */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block text-[10px] font-bold text-kandy-muted uppercase">Back View Photo *</label>
-                        {(uploadStatuses.vehicleBack?.status === 'uploaded' || (!selectedFiles.vehicleBack && storedDocPaths.vehiclePhotos?.[1])) && (
-                          <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>
-                        )}
-                        {uploadStatuses.vehicleBack?.status === 'uploading' && <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>}
-                        {isBackPending && uploadStatuses.vehicleBack?.status === 'idle' && (
-                          <span className="px-1 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-0.5 border border-amber-300">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileSelect('vehicleBack', e.target.files?.[0] || null)}
-                        className="w-full text-[11px]"
-                      />
-                      {uploadStatuses.vehicleBack?.errorMsg && <div className="text-[10px] font-bold text-red-600 mt-1">{uploadStatuses.vehicleBack.errorMsg}</div>}
-                      {!selectedFiles.vehicleBack && storedDocPaths.vehiclePhotos?.[1] && (
-                        <div className="mt-2">
-                          <img
-                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.vehiclePhotos[1])}`}
-                            alt="Back View"
-                            className="h-20 w-full object-cover rounded border border-emerald-300 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <div className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Back Photo Saved
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <UploadField
+                      label="Front View Photo"
+                      required
+                      accept="image/*"
+                      selectedFile={selectedFiles.vehicleFront}
+                      storedPath={storedDocPaths.vehiclePhotos?.[0]}
+                      uploadStatus={uploadStatuses.vehicleFront?.status}
+                      errorMessage={uploadStatuses.vehicleFront?.errorMsg}
+                      onFileSelect={(file) => handleFileSelect('vehicleFront', file)}
+                      showValidationError={hasSubmitAttempted}
+                    />
 
-                    {/* Left Side Photo */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block text-[10px] font-bold text-kandy-muted uppercase">Left Side View Photo *</label>
-                        {(uploadStatuses.vehicleLeft?.status === 'uploaded' || (!selectedFiles.vehicleLeft && storedDocPaths.vehiclePhotos?.[2])) && (
-                          <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>
-                        )}
-                        {uploadStatuses.vehicleLeft?.status === 'uploading' && <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>}
-                        {isLeftPending && uploadStatuses.vehicleLeft?.status === 'idle' && (
-                          <span className="px-1 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-0.5 border border-amber-300">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileSelect('vehicleLeft', e.target.files?.[0] || null)}
-                        className="w-full text-[11px]"
-                      />
-                      {uploadStatuses.vehicleLeft?.errorMsg && <div className="text-[10px] font-bold text-red-600 mt-1">{uploadStatuses.vehicleLeft.errorMsg}</div>}
-                      {!selectedFiles.vehicleLeft && storedDocPaths.vehiclePhotos?.[2] && (
-                        <div className="mt-2">
-                          <img
-                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.vehiclePhotos[2])}`}
-                            alt="Left Side View"
-                            className="h-20 w-full object-cover rounded border border-emerald-300 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <div className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Left Photo Saved
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <UploadField
+                      label="Back View Photo"
+                      required
+                      accept="image/*"
+                      selectedFile={selectedFiles.vehicleBack}
+                      storedPath={storedDocPaths.vehiclePhotos?.[1]}
+                      uploadStatus={uploadStatuses.vehicleBack?.status}
+                      errorMessage={uploadStatuses.vehicleBack?.errorMsg}
+                      onFileSelect={(file) => handleFileSelect('vehicleBack', file)}
+                      showValidationError={hasSubmitAttempted}
+                    />
 
-                    {/* Right Side Photo */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block text-[10px] font-bold text-kandy-muted uppercase">Right Side View Photo *</label>
-                        {(uploadStatuses.vehicleRight?.status === 'uploaded' || (!selectedFiles.vehicleRight && storedDocPaths.vehiclePhotos?.[3])) && (
-                          <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>
-                        )}
-                        {uploadStatuses.vehicleRight?.status === 'uploading' && <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>}
-                        {isRightPending && uploadStatuses.vehicleRight?.status === 'idle' && (
-                          <span className="px-1 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-0.5 border border-amber-300">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileSelect('vehicleRight', e.target.files?.[0] || null)}
-                        className="w-full text-[11px]"
-                      />
-                      {uploadStatuses.vehicleRight?.errorMsg && <div className="text-[10px] font-bold text-red-600 mt-1">{uploadStatuses.vehicleRight.errorMsg}</div>}
-                      {!selectedFiles.vehicleRight && storedDocPaths.vehiclePhotos?.[3] && (
-                        <div className="mt-2">
-                          <img
-                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.vehiclePhotos[3])}`}
-                            alt="Right Side View"
-                            className="h-20 w-full object-cover rounded border border-emerald-300 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <div className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Right Photo Saved
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <UploadField
+                      label="Left Side View Photo"
+                      required
+                      accept="image/*"
+                      selectedFile={selectedFiles.vehicleLeft}
+                      storedPath={storedDocPaths.vehiclePhotos?.[2]}
+                      uploadStatus={uploadStatuses.vehicleLeft?.status}
+                      errorMessage={uploadStatuses.vehicleLeft?.errorMsg}
+                      onFileSelect={(file) => handleFileSelect('vehicleLeft', file)}
+                      showValidationError={hasSubmitAttempted}
+                    />
 
-                    {/* Car Inside Photo */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block text-[10px] font-bold text-kandy-muted uppercase">Car Inside View Photo *</label>
-                        {(uploadStatuses.vehicleInside?.status === 'uploaded' || (!selectedFiles.vehicleInside && storedDocPaths.vehiclePhotos?.[4])) && (
-                          <span className="text-[10px] font-bold text-emerald-600">✓ Uploaded</span>
-                        )}
-                        {uploadStatuses.vehicleInside?.status === 'uploading' && <span className="text-[10px] font-bold text-amber-600 animate-pulse">⏳ Uploading...</span>}
-                        {isInsidePending && uploadStatuses.vehicleInside?.status === 'idle' && (
-                          <span className="px-1 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[9px] inline-flex items-center gap-0.5 border border-amber-300">
-                            <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> PENDING
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileSelect('vehicleInside', e.target.files?.[0] || null)}
-                        className="w-full text-[11px]"
-                      />
-                      {uploadStatuses.vehicleInside?.errorMsg && <div className="text-[10px] font-bold text-red-600 mt-1">{uploadStatuses.vehicleInside.errorMsg}</div>}
-                      {!selectedFiles.vehicleInside && storedDocPaths.vehiclePhotos?.[4] && (
-                        <div className="mt-2">
-                          <img
-                            src={`/api/driver/documents/file?path=${encodeURIComponent(storedDocPaths.vehiclePhotos[4])}`}
-                            alt="Car Inside View"
-                            className="h-20 w-full object-cover rounded border border-emerald-300 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                          <div className="mt-0.5 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Inside Photo Saved
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <UploadField
+                      label="Right Side View Photo"
+                      required
+                      accept="image/*"
+                      selectedFile={selectedFiles.vehicleRight}
+                      storedPath={storedDocPaths.vehiclePhotos?.[3]}
+                      uploadStatus={uploadStatuses.vehicleRight?.status}
+                      errorMessage={uploadStatuses.vehicleRight?.errorMsg}
+                      onFileSelect={(file) => handleFileSelect('vehicleRight', file)}
+                      showValidationError={hasSubmitAttempted}
+                    />
+
+                    <UploadField
+                      label="Car Inside View Photo"
+                      required
+                      accept="image/*"
+                      selectedFile={selectedFiles.vehicleInside}
+                      storedPath={storedDocPaths.vehiclePhotos?.[4]}
+                      uploadStatus={uploadStatuses.vehicleInside?.status}
+                      errorMessage={uploadStatuses.vehicleInside?.errorMsg}
+                      onFileSelect={(file) => handleFileSelect('vehicleInside', file)}
+                      showValidationError={hasSubmitAttempted}
+                    />
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2.5 pt-2.5 sm:pt-3 border-t border-kandy-border">
+                {/* Form Actions */}
+                <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200">
                   <button
                     type="button"
                     onClick={() => {
@@ -1596,16 +1436,16 @@ export default function DriverDashboardPage() {
                       }
                       setShowDocModal(false);
                     }}
-                    className="px-3 py-2 sm:py-2.5 bg-gray-100 text-gray-700 font-bold text-xs uppercase rounded-lg hover:bg-gray-200"
+                    className="px-4 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 font-extrabold text-xs uppercase rounded-xl transition cursor-pointer"
                   >
                     Skip For Now
                   </button>
                   <button
                     type="submit"
                     disabled={docSubmitting}
-                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-kandy-orange hover:bg-kandy-orangeHover text-white font-extrabold text-[11px] sm:text-xs uppercase tracking-wider rounded-lg transition shadow flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-6 py-2.5 bg-gradient-to-r from-kandy-orange to-amber-500 hover:opacity-90 text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
-                    <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                    <Upload className="w-4 h-4 shrink-0" />
                     <span>{docSubmitting ? 'UPLOADING...' : 'UPLOAD & SAVE PATHS →'}</span>
                   </button>
                 </div>
