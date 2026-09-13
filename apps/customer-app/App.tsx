@@ -103,9 +103,38 @@ const FLEET_CATEGORIES: VehicleCategory[] = [
 
 export default function App() {
   // Navigation State
+  type AppTab = 'HOME' | 'TRIPS' | 'FLEET' | 'ACCOUNT' | 'ABOUT' | 'CONTACT' | 'DRIVER_PORTAL' | 'ADMIN_PORTAL';
   const [currentStep, setCurrentStep] = useState<WizardStep>('SEARCH');
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'HOME' | 'TRIPS' | 'FLEET' | 'ACCOUNT'>('HOME');
+  const [activeTab, setActiveTab] = useState<AppTab>('HOME');
+
+  // Driver Portal State
+  const [isDriverLoggedIn, setIsDriverLoggedIn] = useState<boolean>(false);
+  const [driverInputPhone, setDriverInputPhone] = useState<string>('8888888888');
+  const [driverInputLicense, setDriverInputLicense] = useState<string>('KA-01-2022-8874');
+  const [driverStartOdometer, setDriverStartOdometer] = useState<string>('45210');
+  const [driverEndOdometer, setDriverEndOdometer] = useState<string>('45460');
+  const [driverTripStatus, setDriverTripStatus] = useState<'ASSIGNED' | 'STARTED' | 'COMPLETED'>('ASSIGNED');
+  const [startPhotoCaptured, setStartPhotoCaptured] = useState<boolean>(false);
+  const [endPhotoCaptured, setEndPhotoCaptured] = useState<boolean>(false);
+  const [startGpsRecorded, setStartGpsRecorded] = useState<boolean>(false);
+  const [endGpsRecorded, setEndGpsRecorded] = useState<boolean>(false);
+
+  // Admin Portal State
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
+  const [adminPinInput, setAdminPinInput] = useState<string>('');
+  const [adminSubTab, setAdminSubTab] = useState<'BOOKINGS' | 'DRIVERS' | 'ODOMETER' | 'PAYMENTS'>('BOOKINGS');
+  const [approvedDriversList, setApprovedDriversList] = useState([
+    { id: 'DRV-101', name: 'Ramesh Kumar', phone: '8888888888', vehicle: 'Innova Crysta (KA-01-MJ-4892)', status: 'APPROVED', docs: 'VERIFIED' },
+    { id: 'DRV-102', name: 'Saman Perera', phone: '7771234567', vehicle: 'Sedan (Dzire)', status: 'APPROVED', docs: 'VERIFIED' },
+    { id: 'DRV-103', name: 'Suresh Gowda', phone: '9988776655', vehicle: 'SUV Ertiga (KA-05-AB-1234)', status: 'PENDING', docs: 'REVIEW_NEEDED' },
+  ]);
+
+  // Contact Form State
+  const [contactName, setContactName] = useState<string>('');
+  const [contactPhoneInput, setContactPhoneInput] = useState<string>('');
+  const [contactSubject, setContactSubject] = useState<string>('General Enquiry');
+  const [contactMessage, setContactMessage] = useState<string>('');
 
   // Backend / Database Status
   const [dbStatus, setDbStatus] = useState<string>('App Connected (Demo Mode)');
@@ -322,8 +351,8 @@ export default function App() {
               <TouchableOpacity
                 style={styles.menuLinkRow}
                 onPress={() => {
+                  setActiveTab('ABOUT');
                   setMenuOpen(false);
-                  Alert.alert('About Kandy Cabs', 'South India’s premier intercity taxi & outstation cab service provider.');
                 }}
               >
                 <Text style={styles.menuLinkText}>About Us</Text>
@@ -332,11 +361,11 @@ export default function App() {
               <TouchableOpacity
                 style={styles.menuLinkRow}
                 onPress={() => {
+                  setActiveTab('CONTACT');
                   setMenuOpen(false);
-                  handleCallSupport('9876543210');
                 }}
               >
-                <Text style={styles.menuLinkText}>Contact</Text>
+                <Text style={styles.menuLinkText}>Contact Us</Text>
               </TouchableOpacity>
 
               <View style={styles.menuDivider} />
@@ -348,8 +377,8 @@ export default function App() {
               <TouchableOpacity
                 style={styles.driverPortalBtn}
                 onPress={() => {
+                  setActiveTab('DRIVER_PORTAL');
                   setMenuOpen(false);
-                  Alert.alert('Driver Portal', 'Driver app portal functionality.');
                 }}
               >
                 <Text style={styles.driverPortalBtnText}>🚗 Driver Portal</Text>
@@ -367,6 +396,16 @@ export default function App() {
                 }}
               >
                 <Text style={styles.customerPortalBtnText}>👤 Customer Portal (My Account)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.customerPortalBtn, { borderColor: '#0F172A' }]}
+                onPress={() => {
+                  setActiveTab('ADMIN_PORTAL');
+                  setMenuOpen(false);
+                }}
+              >
+                <Text style={[styles.customerPortalBtnText, { color: '#0F172A' }]}>🛡️ Admin Control Panel</Text>
               </TouchableOpacity>
 
               {isLoggedIn && (
@@ -1036,6 +1075,501 @@ export default function App() {
               <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                 <Text style={styles.logoutBtnText}>LOGOUT OF ACCOUNT</Text>
               </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      )}
+
+      {/* TAB: ABOUT US PAGE */}
+      {activeTab === 'ABOUT' && (
+        <ScrollView style={styles.scrollContent}>
+          <View style={styles.bookingCard}>
+            <Text style={styles.cardSectionTitle}>ABOUT KANDY CABS</Text>
+            <Text style={styles.pageHeading}>South India & Sri Lanka's Premier Intercity Taxi Service</Text>
+            <Text style={styles.heroSubtitle}>
+              Kandy Cabs provides premium outstation, intercity, local hourly rental, and airport transfer cab services with 100% verified chauffeurs, sanitized vehicles, and transparent billing.
+            </Text>
+
+            <View style={styles.menuDivider} />
+
+            <Text style={styles.cardSectionTitle}>WHY CHOOSE US</Text>
+            <View style={styles.trustBadgesGrid}>
+              <View style={styles.trustBadgeItem}>
+                <Text style={styles.trustBadgeIcon}>🛡️</Text>
+                <View>
+                  <Text style={styles.trustBadgeTitle}>Police Verified Drivers</Text>
+                  <Text style={styles.trustBadgeSub}>Background Checked</Text>
+                </View>
+              </View>
+              <View style={styles.trustBadgeItem}>
+                <Text style={styles.trustBadgeIcon}>🟢</Text>
+                <View>
+                  <Text style={styles.trustBadgeTitle}>25% Advance Only</Text>
+                  <Text style={styles.trustBadgeSub}>Pay Rest on Trip Completion</Text>
+                </View>
+              </View>
+              <View style={styles.trustBadgeItem}>
+                <Text style={styles.trustBadgeIcon}>🎗️</Text>
+                <View>
+                  <Text style={styles.trustBadgeTitle}>Zero Hidden Fees</Text>
+                  <Text style={styles.trustBadgeSub}>Itemized Billing</Text>
+                </View>
+              </View>
+              <View style={styles.trustBadgeItem}>
+                <Text style={styles.trustBadgeIcon}>📞</Text>
+                <View>
+                  <Text style={styles.trustBadgeTitle}>24x7 Ops Support</Text>
+                  <Text style={styles.trustBadgeSub}>Dedicated Helpline</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.menuDivider} />
+
+            <Text style={styles.cardSectionTitle}>OPERATING CITIES & REGIONS</Text>
+            <Text style={styles.heroSubtitle}>
+              • Karnataka: Bangalore, Mysore, Coorg, Chikmagalur, Mangalore{"\n"}
+              • Tamil Nadu: Chennai, Ooty, Madurai, Coimbatore{"\n"}
+              • Sri Lanka: Colombo, Kandy, Galle, Negombo, Nuwara Eliya
+            </Text>
+
+            <TouchableOpacity style={styles.primaryButton} onPress={() => { setActiveTab('HOME'); setCurrentStep('SEARCH'); }}>
+              <Text style={styles.primaryButtonText}>BOOK A CAB NOW →</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* TAB: CONTACT US PAGE */}
+      {activeTab === 'CONTACT' && (
+        <ScrollView style={styles.scrollContent}>
+          <View style={styles.bookingCard}>
+            <Text style={styles.cardSectionTitle}>24x7 CUSTOMER SUPPORT</Text>
+            <Text style={styles.pageHeading}>Get in Touch with Our Operations Team</Text>
+
+            <TouchableOpacity style={styles.supportCallBtn} onPress={() => handleCallSupport('9876543210')}>
+              <Text style={styles.supportCallBtnText}>📞 Call Customer Helpline: +91 98765 43210</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.supportCallBtn, { backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FFEDD5' }]} onPress={() => Linking.openURL('mailto:support@kandycabs.com')}>
+              <Text style={[styles.supportCallBtnText, { color: '#EA580C' }]}>✉️ Email Support: support@kandycabs.com</Text>
+            </TouchableOpacity>
+
+            <View style={styles.routeBox}>
+              <Text style={styles.routeBoxText}>📍 Headquarters Address:</Text>
+              <Text style={styles.routeBoxSub}>#45, 100 Feet Road, Indiranagar, Bengaluru, Karnataka 560038</Text>
+            </View>
+
+            <View style={styles.menuDivider} />
+
+            <Text style={styles.cardSectionTitle}>SEND US A MESSAGE</Text>
+            <Text style={styles.inputLabel}>YOUR FULL NAME</Text>
+            <TextInput
+              style={styles.input}
+              value={contactName}
+              onChangeText={setContactName}
+              placeholder="e.g. Ranju M"
+            />
+
+            <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="phone-pad"
+              value={contactPhoneInput}
+              onChangeText={setContactPhoneInput}
+              placeholder="10-digit mobile number"
+            />
+
+            <Text style={styles.inputLabel}>SUBJECT</Text>
+            <TextInput
+              style={styles.input}
+              value={contactSubject}
+              onChangeText={setContactSubject}
+              placeholder="Booking enquiry / Feedback"
+            />
+
+            <Text style={styles.inputLabel}>MESSAGE / REQUIREMENTS</Text>
+            <TextInput
+              style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+              multiline={true}
+              numberOfLines={3}
+              value={contactMessage}
+              onChangeText={setContactMessage}
+              placeholder="Describe your trip requirements or query..."
+            />
+
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => {
+                if (!contactName || !contactPhoneInput) {
+                  Alert.alert('Required', 'Please fill in your name and phone number.');
+                  return;
+                }
+                Alert.alert('Message Sent!', 'Thank you! Our 24x7 support team will call you back within 15 minutes.');
+                setContactName('');
+                setContactPhoneInput('');
+                setContactMessage('');
+              }}
+            >
+              <Text style={styles.primaryButtonText}>SUBMIT MESSAGE →</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* TAB: DRIVER PORTAL */}
+      {activeTab === 'DRIVER_PORTAL' && (
+        <ScrollView style={styles.scrollContent}>
+          {!isDriverLoggedIn ? (
+            <View style={styles.bookingCard}>
+              <Text style={styles.cardSectionTitle}>DRIVER PORTAL LOGIN</Text>
+              <Text style={styles.pageHeading}>Chauffeur & Partner Sign In</Text>
+              <Text style={styles.heroSubtitle}>Enter registered mobile number and driving license ID to access active assignments.</Text>
+
+              <Text style={styles.inputLabel}>REGISTERED MOBILE NUMBER</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="phone-pad"
+                value={driverInputPhone}
+                onChangeText={setDriverInputPhone}
+                placeholder="10-digit mobile number"
+              />
+
+              <Text style={styles.inputLabel}>DRIVING LICENSE NUMBER</Text>
+              <TextInput
+                style={styles.input}
+                value={driverInputLicense}
+                onChangeText={setDriverInputLicense}
+                placeholder="e.g. KA-01-2022-8874"
+              />
+
+              <TouchableOpacity
+                style={styles.driverPortalBtn}
+                onPress={() => {
+                  if (!driverInputPhone || !driverInputLicense) {
+                    Alert.alert('Required', 'Please enter both mobile number and license number.');
+                    return;
+                  }
+                  setIsDriverLoggedIn(true);
+                  Alert.alert('Driver Signed In', 'Welcome, Ramesh Kumar! Active assignment loaded.');
+                }}
+              >
+                <Text style={styles.driverPortalBtnText}>SIGN IN TO DRIVER PORTAL →</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.bookingCard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <View>
+                  <Text style={styles.cardSectionTitle}>CHAUFFEUR PORTAL</Text>
+                  <Text style={styles.pageHeading}>Welcome, Ramesh Kumar</Text>
+                  <Text style={styles.routeBoxSub}>Vehicle: Innova Crysta (KA-01-MJ-4892)</Text>
+                </View>
+                <TouchableOpacity onPress={() => setIsDriverLoggedIn(false)}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#EF4444' }}>SIGN OUT</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.menuDivider} />
+
+              <Text style={styles.cardSectionTitle}>ACTIVE TRIP ASSIGNMENT</Text>
+              <View style={styles.routeBox}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={styles.successRef}>Ref: KC73744</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '900', color: '#D97706', backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                    {driverTripStatus}
+                  </Text>
+                </View>
+                <Text style={styles.routeBoxText}>📍 Pickup: Bangalore, KA</Text>
+                <Text style={styles.routeBoxText}>🏁 Drop: Coorg (Madikeri), KA</Text>
+                <Text style={styles.routeBoxSub}>Scheduled: 15 Sep 2026, 07:00 AM</Text>
+                <Text style={styles.routeBoxSub}>Customer: Rakshith M (+91 9876543210)</Text>
+              </View>
+
+              {/* ODOMETER & TRIP ACTIONS */}
+              {driverTripStatus === 'ASSIGNED' && (
+                <View style={{ backgroundColor: '#FFF7ED', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#FFEDD5', marginVertical: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#92400E', marginBottom: 8 }}>TRIP START ODOMETER ENTRY</Text>
+
+                  <Text style={styles.inputLabel}>STARTING ODOMETER READING (KM)</Text>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="number-pad"
+                    value={driverStartOdometer}
+                    onChangeText={setDriverStartOdometer}
+                    placeholder="e.g. 45210"
+                  />
+
+                  <TouchableOpacity
+                    style={[styles.supportCallBtn, { backgroundColor: startPhotoCaptured ? '#ECFDF5' : '#F1F5F9', marginBottom: 8 }]}
+                    onPress={() => {
+                      setStartPhotoCaptured(true);
+                      Alert.alert('Photo Captured', 'Starting Odometer image captured & uploaded.');
+                    }}
+                  >
+                    <Text style={styles.supportCallBtnText}>{startPhotoCaptured ? '✅ Start Odometer Photo Uploaded' : '📷 Capture Start Odometer Photo'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.supportCallBtn, { backgroundColor: startGpsRecorded ? '#ECFDF5' : '#F1F5F9', marginBottom: 12 }]}
+                    onPress={() => {
+                      setStartGpsRecorded(true);
+                      Alert.alert('GPS Location Saved', 'Start location recorded: Lat 12.9716, Lng 77.5946');
+                    }}
+                  >
+                    <Text style={styles.supportCallBtnText}>{startGpsRecorded ? '📍 Start GPS Recorded (12.9716, 77.5946)' : '📍 Record Start GPS Location'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => {
+                      setDriverTripStatus('STARTED');
+                      Alert.alert('Trip Started!', 'Trip KC73744 is now live. Customer notified.');
+                    }}
+                  >
+                    <Text style={styles.primaryButtonText}>START TRIP NOW 🚀</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {driverTripStatus === 'STARTED' && (
+                <View style={{ backgroundColor: '#ECFDF5', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#A7F3D0', marginVertical: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#065F46', marginBottom: 8 }}>TRIP END ODOMETER & BALANCE COLLECTION</Text>
+
+                  <Text style={styles.inputLabel}>FINAL ODOMETER READING (KM)</Text>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="number-pad"
+                    value={driverEndOdometer}
+                    onChangeText={setDriverEndOdometer}
+                    placeholder="e.g. 45460"
+                  />
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 6 }}>
+                    <Text style={styles.infoLabel}>Actual Distance Travelled:</Text>
+                    <Text style={styles.infoValueHighlight}>{(parseInt(driverEndOdometer || '0') - parseInt(driverStartOdometer || '0'))} km</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <Text style={styles.infoLabel}>Balance Amount to Collect:</Text>
+                    <Text style={[styles.infoValueHighlight, { color: '#059669' }]}>₹3,187 (Cash / UPI)</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.supportCallBtn, { backgroundColor: endPhotoCaptured ? '#ECFDF5' : '#F1F5F9', marginBottom: 8 }]}
+                    onPress={() => {
+                      setEndPhotoCaptured(true);
+                      Alert.alert('Photo Captured', 'Final Odometer photo uploaded.');
+                    }}
+                  >
+                    <Text style={styles.supportCallBtnText}>{endPhotoCaptured ? '✅ Final Odometer Photo Uploaded' : '📷 Capture Final Odometer Photo'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.supportCallBtn, { backgroundColor: endGpsRecorded ? '#ECFDF5' : '#F1F5F9', marginBottom: 12 }]}
+                    onPress={() => {
+                      setEndGpsRecorded(true);
+                      Alert.alert('GPS Location Saved', 'End location recorded: Lat 12.3375, Lng 75.8069');
+                    }}
+                  >
+                    <Text style={styles.supportCallBtnText}>{endGpsRecorded ? '📍 End GPS Recorded (12.3375, 75.8069)' : '📍 Record End GPS Location'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.primaryButton, { backgroundColor: '#059669' }]}
+                    onPress={() => {
+                      setDriverTripStatus('COMPLETED');
+                      Alert.alert('Trip Completed!', 'Trip KC73744 completed and ₹3,187 balance marked as collected!');
+                    }}
+                  >
+                    <Text style={styles.primaryButtonText}>COMPLETE TRIP & COLLECT BALANCE 💰</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {driverTripStatus === 'COMPLETED' && (
+                <View style={{ backgroundColor: '#ECFDF5', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#A7F3D0', marginVertical: 10, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 28, marginBottom: 4 }}>🎉</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: '#065F46' }}>TRIP COMPLETED SUCCESSFULLY!</Text>
+                  <Text style={{ fontSize: 12, color: '#047857', marginTop: 4, textAlign: 'center' }}>Total Distance: 250 km • Balance Collected: ₹3,187</Text>
+                </View>
+              )}
+
+              <View style={styles.menuDivider} />
+
+              <Text style={styles.cardSectionTitle}>CHAUFFEURS DOCUMENT VERIFICATION</Text>
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                  <Text style={styles.infoLabel}>🪪 Driving License</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '900', color: '#059669' }}>VERIFIED</Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                  <Text style={styles.infoLabel}>📄 Vehicle RC Book</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '900', color: '#059669' }}>VERIFIED</Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 10, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                  <Text style={styles.infoLabel}>🛡️ Commercial Insurance</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '900', color: '#059669' }}>VERIFIED</Text>
+                </View>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      )}
+
+      {/* TAB: ADMIN CONTROL PANEL */}
+      {activeTab === 'ADMIN_PORTAL' && (
+        <ScrollView style={styles.scrollContent}>
+          {!isAdminLoggedIn ? (
+            <View style={styles.bookingCard}>
+              <Text style={styles.cardSectionTitle}>ADMINISTRATOR ACCESS</Text>
+              <Text style={styles.pageHeading}>Kandy Cabs Admin Dashboard</Text>
+              <Text style={styles.heroSubtitle}>Enter Security Master PIN to access live bookings, driver verification, and revenue reports.</Text>
+
+              <Text style={styles.inputLabel}>ENTER MASTER ADMIN PIN</Text>
+              <TextInput
+                style={[styles.input, { textAlign: 'center', fontSize: 22, letterSpacing: 8 }]}
+                keyboardType="number-pad"
+                secureTextEntry={true}
+                maxLength={4}
+                value={adminPinInput}
+                onChangeText={setAdminPinInput}
+                placeholder="1234"
+              />
+
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => {
+                  if (adminPinInput === '1234' || adminPinInput === '') {
+                    setIsAdminLoggedIn(true);
+                    Alert.alert('Admin Access Granted', 'Welcome to Kandy Cabs Control Panel!');
+                  } else {
+                    Alert.alert('Access Denied', 'Invalid Master PIN. Enter 1234');
+                  }
+                }}
+              >
+                <Text style={styles.primaryButtonText}>UNLOCK ADMIN DASHBOARD →</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.bookingCard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <View>
+                  <Text style={styles.cardSectionTitle}>ADMIN CONTROL PANEL</Text>
+                  <Text style={styles.pageHeading}>Operations Dashboard</Text>
+                </View>
+                <TouchableOpacity onPress={() => setIsAdminLoggedIn(false)}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#EF4444' }}>EXIT ADMIN</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* STAT SUMMARY BAR */}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                <View style={[styles.profileStatItem, { backgroundColor: '#FFF7ED', borderColor: '#FFEDD5' }]}>
+                  <Text style={[styles.profileStatVal, { color: '#EA580C' }]}>{userBookings.length}</Text>
+                  <Text style={styles.profileStatLbl}>Bookings</Text>
+                </View>
+                <View style={[styles.profileStatItem, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                  <Text style={[styles.profileStatVal, { color: '#059669' }]}>₹7,750</Text>
+                  <Text style={styles.profileStatLbl}>Revenue</Text>
+                </View>
+                <View style={[styles.profileStatItem, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
+                  <Text style={[styles.profileStatVal, { color: '#0284C7' }]}>{approvedDriversList.length}</Text>
+                  <Text style={styles.profileStatLbl}>Drivers</Text>
+                </View>
+              </View>
+
+              {/* SUB TAB SELECTOR */}
+              <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+                <TouchableOpacity
+                  style={[styles.backBtn, adminSubTab === 'BOOKINGS' && { backgroundColor: '#0F172A' }]}
+                  onPress={() => setAdminSubTab('BOOKINGS')}
+                >
+                  <Text style={[styles.backBtnText, adminSubTab === 'BOOKINGS' && { color: '#FFF' }]}>BOOKINGS</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.backBtn, adminSubTab === 'DRIVERS' && { backgroundColor: '#0F172A' }]}
+                  onPress={() => setAdminSubTab('DRIVERS')}
+                >
+                  <Text style={[styles.backBtnText, adminSubTab === 'DRIVERS' && { color: '#FFF' }]}>DRIVERS</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.backBtn, adminSubTab === 'ODOMETER' && { backgroundColor: '#0F172A' }]}
+                  onPress={() => setAdminSubTab('ODOMETER')}
+                >
+                  <Text style={[styles.backBtnText, adminSubTab === 'ODOMETER' && { color: '#FFF' }]}>ODOMETER</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* ADMIN SUBTAB 1: BOOKINGS */}
+              {adminSubTab === 'BOOKINGS' && (
+                <View>
+                  <Text style={styles.cardSectionTitle}>ALL CUSTOMER BOOKINGS</Text>
+                  {userBookings.map((b) => (
+                    <View key={b.id} style={styles.routeBox}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={styles.successRef}>Ref: {b.id}</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '900', color: b.status === 'COMPLETED' ? '#059669' : '#EA580C' }}>{b.status}</Text>
+                      </View>
+                      <Text style={styles.routeBoxText}>{b.pickup} → {b.drop}</Text>
+                      <Text style={styles.routeBoxSub}>Fare: ₹{b.totalFare} (Advance: ₹{b.advancePaid})</Text>
+                      <Text style={styles.routeBoxSub}>Driver: {b.driverName}</Text>
+                      <TouchableOpacity
+                        style={[styles.exploreCabsBtn, { paddingVertical: 6, marginTop: 8 }]}
+                        onPress={() => Alert.alert('Dispatch', `Driver assigned to booking ${b.id}`)}
+                      >
+                        <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900', textAlign: 'center' }}>DISPATCH / ASSIGN DRIVER →</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* ADMIN SUBTAB 2: DRIVERS */}
+              {adminSubTab === 'DRIVERS' && (
+                <View>
+                  <Text style={styles.cardSectionTitle}>CHAUFFEUR & VEHICLE EVIDENCE AUDIT</Text>
+                  {approvedDriversList.map((d) => (
+                    <View key={d.id} style={styles.routeBox}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={styles.routeBoxText}>👨‍✈️ {d.name}</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '900', color: d.status === 'APPROVED' ? '#059669' : '#D97706' }}>{d.status}</Text>
+                      </View>
+                      <Text style={styles.routeBoxSub}>Phone: +91 {d.phone}</Text>
+                      <Text style={styles.routeBoxSub}>Vehicle: {d.vehicle}</Text>
+                      <Text style={styles.routeBoxSub}>Docs: {d.docs}</Text>
+                      {d.status === 'PENDING' && (
+                        <TouchableOpacity
+                          style={[styles.primaryButton, { paddingVertical: 6, marginTop: 8 }]}
+                          onPress={() => {
+                            setApprovedDriversList(
+                              approvedDriversList.map((item) => item.id === d.id ? { ...item, status: 'APPROVED', docs: 'VERIFIED' } : item)
+                            );
+                            Alert.alert('Approved!', `Driver ${d.name} verified and approved.`);
+                          }}
+                        >
+                          <Text style={styles.primaryButtonText}>VERIFY & APPROVE DRIVER →</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* ADMIN SUBTAB 3: ODOMETER */}
+              {adminSubTab === 'ODOMETER' && (
+                <View>
+                  <Text style={styles.cardSectionTitle}>TRIP ODOMETER & GPS EVIDENCE LOGS</Text>
+                  <View style={styles.routeBox}>
+                    <Text style={styles.successRef}>Trip: KC73744</Text>
+                    <Text style={styles.routeBoxText}>Driver: Ramesh Kumar (Innova Crysta)</Text>
+                    <Text style={styles.routeBoxSub}>Start Odometer: 45,210 km (GPS: 12.9716, 77.5946)</Text>
+                    <Text style={styles.routeBoxSub}>End Odometer: 45,460 km (GPS: 12.3375, 75.8069)</Text>
+                    <Text style={styles.routeBoxSub}>Actual Driven: 250 km • Status: VERIFIED</Text>
+                  </View>
+                </View>
+              )}
             </View>
           )}
         </ScrollView>
