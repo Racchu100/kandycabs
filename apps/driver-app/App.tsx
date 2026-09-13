@@ -12,6 +12,16 @@ import {
   Switch,
 } from 'react-native';
 import { KANDY_THEME } from '@kandycabs/shared';
+import {
+  driverLoginApi,
+  fetchDriverDispatches,
+  verifyPickupOtpApi,
+  uploadOdometerPhotoApi,
+  startTripApi,
+  endTripApi,
+  sendGpsPingApi,
+  fetchDriverDocumentsApi,
+} from './services/api';
 
 export default function App() {
   const [driverPhone, setDriverPhone] = useState('8888888888');
@@ -39,35 +49,54 @@ export default function App() {
     let pingTimer: NodeJS.Timeout;
     if (isLoggedIn && (tripState === 'EN_ROUTE' || tripState === 'TRIP_STARTED') && locationPermissionGranted) {
       pingTimer = setInterval(() => {
-        setSpeedKmh(Math.min(95, Math.max(45, Math.floor(Math.random() * 40) + 50)));
-        console.log(`[GPS PING LOOP] Sent ping to /api/driver/trips/b_1/ping: 12.5218° N, 76.8951° E @ ${speedKmh} km/h`);
+        const nextSpeed = Math.min(95, Math.max(45, Math.floor(Math.random() * 40) + 50));
+        setSpeedKmh(nextSpeed);
+        sendGpsPingApi('KC73744', 12.5218, 76.8951, nextSpeed);
+        console.log(`[GPS PING LOOP] Sent ping to /api/driver/trips/KC73744/ping: 12.5218° N, 76.8951° E @ ${nextSpeed} km/h`);
       }, 5000);
     }
     return () => clearInterval(pingTimer);
-  }, [isLoggedIn, tripState, locationPermissionGranted, speedKmh]);
+  }, [isLoggedIn, tripState, locationPermissionGranted]);
 
   const canCapturePhoto = cameraPermissionGranted && locationPermissionGranted;
 
-  const handleVerifyPickupOtp = () => {
-    if (pickupOtpInput === '1234' || pickupOtpInput === '4321' || pickupOtpInput.length === 4) {
+  const handleVerifyPickupOtp = async () => {
+    if (pickupOtpInput.length !== 4) {
+      Alert.alert('Error', 'Invalid Pickup OTP. Please ask customer for 4-digit code.');
+      return;
+    }
+    try {
+      await verifyPickupOtpApi('KC73744', pickupOtpInput);
       setOtpVerified(true);
       setTripState('TRIP_STARTED');
-      Alert.alert('✅ OTP Verified!', 'Trip started successfully. Admin notified in real time.');
-    } else {
-      Alert.alert('Error', 'Invalid Pickup OTP. Please ask customer for 4-digit code.');
+      Alert.alert('✅ OTP Verified!', 'Trip started successfully. Admin & customer notified in real time.');
+    } catch (err: any) {
+      Alert.alert('OTP Verification Failed', err.message || 'Invalid OTP code.');
     }
   };
 
-  const handleCaptureStartOdometer = () => {
+  const handleCaptureStartOdometer = async () => {
     if (!canCapturePhoto) {
       Alert.alert('Permission Denied', 'Capture disabled! Both Camera and GPS Location permissions must be LIVE.');
       return;
     }
-    setStartOdometerCaptured(true);
-    Alert.alert('📷 Photo Stamped', 'Start Odometer & Cleanliness photo captured with Timestamp: 2026-09-15 06:05 AM and GPS: 12.9716° N, 77.5946° E.');
+    try {
+      await uploadOdometerPhotoApi({
+        bookingId: 'KC73744',
+        type: 'START',
+        odometerReading: 45210,
+        lat: 12.9716,
+        lng: 77.5946,
+      });
+      await startTripApi('KC73744', 45210, 12.9716, 77.5946);
+      setStartOdometerCaptured(true);
+      Alert.alert('📷 Photo Stamped', 'Start Odometer & Cleanliness photo captured with Timestamp: 2026-09-15 06:05 AM and GPS: 12.9716° N, 77.5946° E.');
+    } catch (err: any) {
+      Alert.alert('Upload Error', err.message || 'Failed to upload start odometer photo.');
+    }
   };
 
-  const handleCaptureEndOdometer = () => {
+  const handleCaptureEndOdometer = async () => {
     if (!canCapturePhoto) {
       Alert.alert('Permission Denied', 'Capture disabled! Both Camera and GPS Location permissions must be LIVE.');
       return;
@@ -76,9 +105,27 @@ export default function App() {
       Alert.alert('Toll Gating Block', 'Cannot end trip while toll entries are unconfirmed! Please confirm toll fare (even if ₹0).');
       return;
     }
-    setEndOdometerCaptured(true);
-    setTripState('COMPLETED');
-    Alert.alert('🎉 Trip Completed!', 'End Odometer photo stamped with GPS & timestamp. Billing closed out for admin review.');
+    try {
+      await uploadOdometerPhotoApi({
+        bookingId: 'KC73744',
+        type: 'END',
+        odometerReading: 45460,
+        lat: 12.3375,
+        lng: 75.8069,
+      });
+      await endTripApi({
+        bookingId: 'KC73744',
+        finalReading: 45460,
+        tollAmount: Number(tollAmountInput) || 0,
+        lat: 12.3375,
+        lng: 75.8069,
+      });
+      setEndOdometerCaptured(true);
+      setTripState('COMPLETED');
+      Alert.alert('🎉 Trip Completed!', 'End Odometer photo stamped with GPS & timestamp. Billing closed out for admin review.');
+    } catch (err: any) {
+      Alert.alert('Trip Completion Error', err.message || 'Failed to end trip.');
+    }
   };
 
   return (

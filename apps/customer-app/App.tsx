@@ -15,6 +15,16 @@ import {
 } from 'react-native';
 import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
+import {
+  sendOtp,
+  verifyOtp,
+  fetchPublicFleet,
+  fetchPublicFareChart,
+  calculateFareApi,
+  fetchCustomerBookings,
+  createCustomerBooking,
+  createPaymentOrder,
+} from './services/api';
 
 // Types & Data Schemas
 type TripType = 'ONEWAY' | 'ROUNDTRIP' | 'LOCAL' | 'AIRPORT';
@@ -177,10 +187,19 @@ export default function App() {
     },
   ]);
 
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
   useEffect(() => {
     testSupabaseConnection().then((res) => {
       setDbStatus(res.message);
       setDbConnected(res.success);
+    });
+
+    // Fetch dynamic fleet catalog from public API on mount
+    fetchPublicFleet().then((res) => {
+      if (res?.vehicles && Array.isArray(res.vehicles) && res.vehicles.length > 0) {
+        console.log('[API] Dynamically loaded live fleet catalog from backend API');
+      }
     });
   }, []);
 
@@ -197,22 +216,45 @@ export default function App() {
   const balancePayable = calculatedFare - advancePayable;
 
   // Authentication Handlers
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     if (phone.trim().length < 10) {
       Alert.alert('Invalid Phone', 'Please enter a valid 10-digit mobile number.');
       return;
     }
-    setOtpSent(true);
-    Alert.alert('SMS OTP Sent', 'Use demo 4-digit code: 1234');
+    setIsSubmitting(true);
+    try {
+      const res = await sendOtp(phone);
+      setOtpSent(true);
+      Alert.alert('SMS OTP Sent', res.message || 'Use demo 4-digit code: 1234');
+    } catch (err: any) {
+      Alert.alert('Authentication Error', err.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleVerifyOtp = () => {
-    if (otp === '1234' || otp === '') {
+  const handleVerifyOtp = async () => {
+    if (!otp) {
+      Alert.alert('OTP Required', 'Please enter the 4-digit OTP code.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const res = await verifyOtp(phone, otp, customerName);
       setIsLoggedIn(true);
       setAuthModalOpen(false);
-      Alert.alert('Welcome!', `Logged in successfully as ${customerName}`);
-    } else {
-      Alert.alert('Error', 'Invalid OTP. Please enter 1234');
+      Alert.alert('Welcome!', res.message || `Logged in successfully as ${customerName}`);
+      
+      // Load user's bookings from backend API
+      fetchCustomerBookings().then((bRes) => {
+        if (bRes?.bookings && Array.isArray(bRes.bookings)) {
+          setUserBookings(bRes.bookings);
+        }
+      });
+    } catch (err: any) {
+      Alert.alert('Verification Error', err.message || 'Invalid OTP code.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -224,25 +266,52 @@ export default function App() {
   };
 
   // Confirm Final Booking Action
-  const handleConfirmFinalBooking = () => {
-    const newRef = `KC${Math.floor(10000 + Math.random() * 90000)}`;
-    const newBooking = {
-      id: newRef,
-      status: 'CONFIRMED',
-      pickup: pickupInput,
-      drop: dropInput,
-      date: `${pickupDate}, ${pickupTime}`,
-      vehicleName: selectedVehicle.name,
-      totalFare: calculatedFare,
-      advancePaid: advancePayable,
-      balanceDue: balancePayable,
-      driverName: 'Assigning Chauffeur...',
-      driverPhone: '9876543210',
-      driverRating: '5.0 ★',
-    };
+  const handleConfirmFinalBooking = async () => {
+    setIsSubmitting(true);
+    try {
+      const newRef = `KC${Math.floor(10000 + Math.random() * 90000)}`;
+      const payload = {
+        tripType,
+        pickupAddress: pickupInput,
+        dropAddress: dropInput,
+        pickupDate,
+        pickupTime,
+        vehicleCategory: selectedVehicle.id,
+        vehicleName: selectedVehicle.name,
+        estimatedDistanceKm,
+        estimatedFare: calculatedFare,
+        advanceAmount: advancePayable,
+        balanceAmount: balancePayable,
+        customerName,
+        customerPhone: phone,
+        customerEmail,
+        specialNotes,
+      };
 
-    setUserBookings([newBooking, ...userBookings]);
-    setCurrentStep('SUCCESS');
+      const apiRes = await createCustomerBooking(payload);
+
+      const newBooking = {
+        id: apiRes?.booking?.humanReadableRef || apiRes?.booking?.id || newRef,
+        status: 'CONFIRMED',
+        pickup: pickupInput,
+        drop: dropInput,
+        date: `${pickupDate}, ${pickupTime}`,
+        vehicleName: selectedVehicle.name,
+        totalFare: calculatedFare,
+        advancePaid: advancePayable,
+        balanceDue: balancePayable,
+        driverName: 'Assigning Chauffeur...',
+        driverPhone: '9876543210',
+        driverRating: '5.0 ★',
+      };
+
+      setUserBookings([newBooking, ...userBookings]);
+      setCurrentStep('SUCCESS');
+    } catch (err: any) {
+      Alert.alert('Booking Error', err.message || 'Failed to place booking. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCallSupport = (num: string = '9876543210') => {
