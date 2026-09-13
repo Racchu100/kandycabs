@@ -974,11 +974,6 @@ export default function DriverDashboardPage() {
                   <h3 className="text-sm sm:text-lg font-black text-kandy-ink leading-tight">
                     {isVehicleChangedMode ? '🔄 Vehicle Change & Document Update' : '🚘 Driver & Vehicle Necessary Documents'}
                   </h3>
-                  {isVehicleChangedMode && (
-                    <p className="text-[10px] sm:text-[11px] text-kandy-muted mt-0.5">
-                      Update your new vehicle details and upload fresh RC, Insurance & photos
-                    </p>
-                  )}
                 </div>
               </div>
               <button
