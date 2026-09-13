@@ -23,6 +23,10 @@ import {
   X,
   AlertTriangle,
   XCircle,
+  ChevronRight,
+  MapPin,
+  User,
+  LogOut,
 } from 'lucide-react';
 
 export default function DriverDashboardPage() {
@@ -633,35 +637,61 @@ export default function DriverDashboardPage() {
             </div>
           ) : (
             /* Approved Driver Dashboard */
-            <div className="space-y-4 sm:space-y-8">
-              {/* Dual-Role Header Switcher */}
-              <div className="bg-kandy-ink text-white p-3.5 sm:p-6 rounded-2xl sm:rounded-card shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-kandy-orange text-white rounded-full flex items-center justify-center font-black text-lg sm:text-2xl shrink-0">
-                    {(driver?.fullName || user?.fullName || 'Driver').charAt(0)}
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <h1 className="text-base sm:text-xl font-black">{driver?.fullName || user?.fullName || 'Approved Driver Partner'}</h1>
-                      <span className="bg-emerald-500 text-white text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded uppercase">
-                        APPROVED BY ADMIN (9481086058)
-                      </span>
+            <div className="space-y-6">
+              {/* Dark Profile Header Card */}
+              <div className="bg-[#0B132B] text-white p-5 sm:p-6 rounded-3xl shadow-xl space-y-5 border border-slate-800">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                  {/* Left: Driver Avatar & Details */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative shrink-0">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-tr from-kandy-orange to-amber-400 text-white rounded-full flex items-center justify-center font-black text-2xl shadow-md border-2 border-white/20">
+                        {(driver?.fullName || user?.fullName || 'Ranju').charAt(0)}
+                      </div>
+                      <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-[#0B132B] rounded-full" title="Online"></span>
                     </div>
-                    <p className="text-[11px] sm:text-xs text-gray-300 mt-0.5">
-                      Vehicle: {driver?.assignedVehicle?.name || 'Swift Dzire Sedan'}
-                    </p>
+
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-1.5">
+                          <span>{driver?.fullName || user?.fullName || 'Ranju'}</span>
+                          <span className="inline-flex items-center justify-center w-5 h-5 bg-blue-500 text-white text-xs font-bold rounded-full" title="Verified Driver">
+                            ✓
+                          </span>
+                        </h1>
+                        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                          APPROVED BY ADMIN
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300">
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{user?.phone ? `+91 ${user.phone}` : '+91 94810 86058'}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Car className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{driver?.assignedVehicle?.name || 'Swift Dzire Sedan'}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Driver Status Pill */}
+                  <div className="bg-emerald-950/80 border border-emerald-500/30 px-3.5 py-2 rounded-2xl flex items-center gap-2 self-stretch lg:self-auto justify-center">
+                    <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
+                    <span className="text-emerald-300 font-extrabold text-xs tracking-wide">Driver Online / Ready for ride</span>
                   </div>
                 </div>
 
-                {/* Mode Switcher & Vehicle Change Button */}
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                {/* Header Action Buttons */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
                   <button
                     onClick={() => {
                       setIsVehicleChangedMode(true);
                       setShowDocModal(true);
                       setDocSuccess(null);
                     }}
-                    className={`px-3 sm:px-4 py-2 sm:py-2.5 text-white text-xs font-extrabold rounded-xl transition shadow flex items-center gap-1.5 ${
+                    className={`px-4 py-2.5 text-white text-xs font-black rounded-xl transition shadow flex items-center gap-2 ${
                       hasPendingDocs
                         ? 'bg-amber-500 hover:bg-amber-600 animate-pulse border border-amber-300'
                         : 'bg-kandy-orange hover:bg-kandy-orangeHover'
@@ -669,50 +699,72 @@ export default function DriverDashboardPage() {
                   >
                     {hasPendingDocs ? (
                       <>
-                        <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white animate-bounce shrink-0" />
-                        <span>⚠️ {pendingCount} PENDING DOCS / UPLOAD NOW</span>
+                        <AlertTriangle className="w-4 h-4 text-white animate-bounce shrink-0" />
+                        <span>{pendingCount} PENDING DOCS / UPLOAD NOW &gt;</span>
                       </>
                     ) : (
                       <>
-                        <Upload className="w-3.5 h-3.5 shrink-0" />
+                        <Upload className="w-4 h-4 shrink-0" />
                         <span>🔄 Vehicle Changed / Upload Docs</span>
                       </>
                     )}
                   </button>
-                  <Link
-                    href="/customer/dashboard"
-                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-white text-kandy-ink text-xs font-bold rounded-xl hover:bg-gray-100 transition shadow"
-                  >
-                    Switch to Customer Mode 🚘
-                  </Link>
-                  <button
-                    onClick={() => {
-                      fetch('/api/auth/logout', { method: 'POST' }).then(() => {
-                        localStorage.removeItem('kandy_user');
-                        localStorage.removeItem('kandy_token');
-                        window.location.href = '/';
-                      });
-                    }}
-                    className="px-3 sm:px-3.5 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow"
-                  >
-                    Logout
-                  </button>
+
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                    <Link
+                      href="/customer/dashboard"
+                      className="px-4 py-2.5 bg-white text-slate-900 text-xs font-extrabold rounded-xl hover:bg-slate-100 transition shadow flex items-center gap-1.5"
+                    >
+                      <span>Switch to Customer Mode</span>
+                      <span>🚘</span>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+                          localStorage.removeItem('kandy_user');
+                          localStorage.removeItem('kandy_token');
+                          window.location.href = '/';
+                        });
+                      }}
+                      className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold rounded-xl transition shadow flex items-center gap-1.5"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Active Broadcast Dispatches Section */}
-              <div>
-                <h2 className="text-base sm:text-xl font-bold text-kandy-ink mb-3 sm:mb-4 border-l-4 border-kandy-orange pl-2.5 sm:pl-3 flex items-center gap-2">
-                  <Radio className="w-4 h-4 sm:w-5 sm:h-5 text-kandy-orange animate-pulse shrink-0" />
-                  <span>Available Trip Dispatches (First Accept Wins)</span>
-                </h2>
+              {/* Available Trip Dispatches Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                      <Radio className="w-4 h-4 text-kandy-orange animate-pulse" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                        Available Trip Dispatches
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium">First Accept Wins</p>
+                    </div>
+                  </div>
+                  <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    Live Updates
+                  </span>
+                </div>
 
                 {dispatches.length === 0 ? (
-                  <div className="bg-white p-6 sm:p-8 text-center rounded-2xl sm:rounded-card border border-kandy-border text-xs text-kandy-muted">
-                    No active dispatches right now. Stay online to receive broadcasts!
+                  <div className="bg-white p-8 text-center rounded-3xl border border-slate-200 text-xs text-slate-500 shadow-sm space-y-2">
+                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                      <Radio className="w-6 h-6" />
+                    </div>
+                    <p className="font-bold text-slate-700">No active dispatches right now.</p>
+                    <p className="text-slate-400">Stay online on this screen to automatically receive incoming ride broadcasts!</p>
                   </div>
                 ) : (
-                  <div className="space-y-3 sm:space-y-4">
+                  <div className="space-y-4">
                     {dispatches.map((disp) => {
                       const bStatus = disp.booking?.status || disp.status || 'DISPATCHED';
                       const assignedDriverId = disp.assignedDriverId || disp.booking?.assignedDriverId || disp.booking?.assignedDriver?.id;
@@ -736,145 +788,150 @@ export default function DriverDashboardPage() {
                       return (
                         <div
                           key={disp.id}
-                          className={`rounded-2xl sm:rounded-card border-2 transition-all p-3.5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-6 ${
+                          className={`rounded-3xl border-2 transition-all p-5 sm:p-6 space-y-4 shadow-md ${
                             isAcceptedByMe
-                              ? 'bg-emerald-50/80 border-emerald-500 shadow-md ring-2 ring-emerald-200'
+                              ? 'bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-200'
                               : isTakenByOther
-                              ? 'bg-gray-100 border-gray-300 opacity-75 shadow-sm'
+                              ? 'bg-slate-50 border-slate-300 opacity-75'
                               : isCancelled
-                              ? 'bg-red-50/50 border-red-200 opacity-75 shadow-sm'
-                              : 'bg-white border-kandy-orange shadow-card'
+                              ? 'bg-red-50/50 border-red-200 opacity-75'
+                              : 'bg-white border-orange-200 hover:border-orange-300'
                           }`}
                         >
-                          <div className="space-y-1.5 sm:space-y-2 flex-1 w-full">
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                              <span className="text-sm sm:text-base font-black text-kandy-orange">
+                          {/* Top Row: Ref, Trip Type, Status */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="bg-orange-500 text-white text-xs font-black px-3 py-1 rounded-full shadow-sm">
                                 Booking Ref: {disp.booking?.humanReadableRef}
                               </span>
-                              <span className="bg-kandy-ink text-white text-[9px] sm:text-[10px] font-extrabold px-2 sm:px-2.5 py-0.5 rounded uppercase">
-                                {disp.booking?.tripType}
+                              <span className="bg-slate-900 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                {disp.booking?.tripType || 'ONEWAY'}
                               </span>
+                            </div>
 
-                              {/* Status Badge */}
-                              {isAcceptedByMe ? (
-                                <span className="bg-emerald-600 text-white text-[9px] sm:text-[10px] font-black px-2.5 sm:px-3 py-1 rounded uppercase tracking-wider shadow-sm flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-white shrink-0" /> ACCEPTED BY YOU
-                                </span>
-                              ) : isTakenByOther ? (
-                                <span className="bg-gray-200 text-gray-700 border border-gray-300 text-[9px] sm:text-[10px] font-extrabold px-2.5 sm:px-3 py-1 rounded uppercase tracking-wider flex items-center gap-1">
-                                  <XCircle className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-gray-500 shrink-0" /> TAKEN BY ANOTHER DRIVER (NOT AVAILABLE)
-                                </span>
-                              ) : isCancelled ? (
-                                <span className="bg-red-100 text-red-800 border border-red-300 text-[9px] sm:text-[10px] font-extrabold px-2.5 sm:px-3 py-1 rounded uppercase tracking-wider">
-                                  ❌ BOOKING CANCELLED
-                                </span>
+                            {/* Status Pill */}
+                            {isAcceptedByMe ? (
+                              <span className="bg-emerald-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> ACCEPTED BY YOU
+                              </span>
+                            ) : isTakenByOther ? (
+                              <span className="bg-slate-200 text-slate-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                <XCircle className="w-3.5 h-3.5 text-slate-500 shrink-0" /> TAKEN BY OTHER DRIVER
+                              </span>
+                            ) : isCancelled ? (
+                              <span className="bg-red-100 text-red-800 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                ❌ CANCELLED
+                              </span>
+                            ) : (
+                              <span className="bg-amber-100 text-amber-900 border border-amber-300/60 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse">
+                                Dispatched (Available)
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Details Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
+                            <div className="space-y-1">
+                              <div className="text-slate-400 font-bold text-[11px] uppercase tracking-wider">Customer Name</div>
+                              <div className="font-black text-slate-900 text-sm flex items-center gap-1.5">
+                                <User className="w-3.5 h-3.5 text-slate-400" />
+                                <span>{disp.booking?.customer?.fullName || 'Ranju'}</span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="text-slate-400 font-bold text-[11px] uppercase tracking-wider">Contact Phone</div>
+                              {disp.booking?.customerPhoneReleased && disp.booking?.customer?.phone ? (
+                                <a
+                                  href={`tel:+91${disp.booking.customer.phone}`}
+                                  className="inline-flex items-center gap-1 font-black text-emerald-700 bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-lg hover:bg-emerald-200 transition"
+                                >
+                                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>+91 {disp.booking.customer.phone} (Call)</span>
+                                </a>
                               ) : (
-                                <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[9px] sm:text-[10px] font-extrabold px-2.5 sm:px-3 py-1 rounded uppercase tracking-wider animate-pulse">
-                                  DISPATCHED (AVAILABLE)
+                                <span className="inline-flex items-center gap-1 font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg text-[11px]">
+                                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>Contact Hidden (Pending Admin Release)</span>
                                 </span>
                               )}
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-kandy-ink">
-                              <div>
-                                <strong className="text-kandy-muted">Customer Name:</strong>{' '}
-                                <span className="font-extrabold text-kandy-ink">{disp.booking?.customer?.fullName || 'Customer'}</span>
+                            <div className="space-y-1">
+                              <div className="text-slate-400 font-bold text-[11px] uppercase tracking-wider">Pickup Location</div>
+                              <div className="font-bold text-slate-800 flex items-start gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                                <span>{disp.booking?.pickupAddress || 'Pickup address'}</span>
                               </div>
-                              <div>
-                                <strong className="text-kandy-muted">Contact Phone:</strong>{' '}
-                                {disp.booking?.customerPhoneReleased && disp.booking?.customer?.phone ? (
-                                  <a
-                                    href={`tel:+91${disp.booking.customer.phone}`}
-                                    className="inline-flex items-center gap-1 font-black text-emerald-700 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded hover:bg-emerald-200"
-                                  >
-                                    <Phone className="w-3 h-3 text-emerald-600" />
-                                    <span>+91 {disp.booking.customer.phone} (Call)</span>
-                                  </a>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 font-bold text-gray-500 bg-gray-100 border border-gray-300 px-2 py-0.5 rounded text-[10px] sm:text-[11px]">
-                                    <Lock className="w-3 h-3 text-gray-400" />
-                                    <span>Contact Hidden (Pending Admin Release)</span>
-                                  </span>
-                                )}
-                              </div>
-                              <div><strong className="text-kandy-muted">Pickup:</strong> {disp.booking?.pickupAddress}</div>
-                              <div><strong className="text-kandy-muted">Drop:</strong> {disp.booking?.dropAddress}</div>
                             </div>
 
-                            <div className="text-[11px] sm:text-xs text-kandy-muted flex items-center gap-1.5 sm:gap-2">
-                              <Clock className="w-3.5 h-3.5 text-kandy-orange shrink-0" />
-                              <span>Pickup Time: {new Date(disp.booking?.scheduledAt).toLocaleString('en-IN')}</span>
+                            <div className="space-y-1">
+                              <div className="text-slate-400 font-bold text-[11px] uppercase tracking-wider">Drop Location</div>
+                              <div className="font-bold text-slate-800 flex items-start gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                                <span>{disp.booking?.dropAddress || 'Drop address'}</span>
+                              </div>
+                            </div>
+
+                            <div className="sm:col-span-2 pt-1 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+                              <span className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-orange-500" />
+                                <span>Pickup Time: <strong>{disp.booking?.scheduledAt ? new Date(disp.booking.scheduledAt).toLocaleString('en-IN') : 'As Soon As Possible'}</strong></span>
+                              </span>
                             </div>
                           </div>
 
-                          <div className="text-left md:text-right pt-2.5 md:pt-0 border-t md:border-t-0 border-gray-200 md:border-l md:border-kandy-border md:pl-6 w-full md:w-auto flex md:flex-col justify-end items-center md:items-end gap-2">
-                            {/* Action Buttons & Status Indicators */}
+                          {/* Swipe to Accept or Action Button */}
+                          <div className="pt-2">
                             {isAcceptedByMe ? (
                               bStatus === 'DRIVER_ACCEPTED' ? (
                                 <button
                                   onClick={() => setActiveTripModalBooking(disp.booking || disp)}
-                                  className="mt-1 sm:mt-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] sm:text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-1.5 animate-pulse"
+                                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition shadow-lg flex items-center justify-center gap-2 animate-pulse"
                                 >
-                                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                  <CheckCircle2 className="w-4 h-4" />
                                   <span>START TRIP NOW (LIFECYCLE) →</span>
                                 </button>
                               ) : bStatus === 'TRIP_STARTED' ? (
                                 <button
                                   onClick={() => setActiveTripModalBooking(disp.booking || disp)}
-                                  className="mt-1 sm:mt-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-kandy-orange hover:bg-kandy-orangeHover text-white font-extrabold text-[11px] sm:text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-1.5 animate-pulse"
+                                  className="w-full py-3.5 bg-kandy-orange hover:bg-kandy-orangeHover text-white font-black text-xs uppercase tracking-wider rounded-2xl transition shadow-lg flex items-center justify-center gap-2 animate-pulse"
                                 >
-                                  <Radio className="w-4 h-4 text-white shrink-0" />
+                                  <Radio className="w-4 h-4" />
                                   <span>TRIP IN PROGRESS (MANAGE) →</span>
                                 </button>
                               ) : (
-                                <span className="mt-1 sm:mt-3 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-black uppercase rounded-lg border border-emerald-300">
+                                <div className="w-full py-3 bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider rounded-2xl text-center border border-emerald-300">
                                   ✓ TRIP COMPLETED
-                                </span>
+                                </div>
                               )
                             ) : isTakenByOther ? (
                               <button
                                 disabled
-                                className="mt-1 sm:mt-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 text-gray-500 font-extrabold text-[11px] sm:text-xs uppercase tracking-wider rounded-xl border border-gray-300 cursor-not-allowed flex items-center gap-1.5 opacity-80"
+                                className="w-full py-3.5 bg-slate-200 text-slate-500 font-black text-xs uppercase tracking-wider rounded-2xl border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2 opacity-80"
                               >
-                                <XCircle className="w-4 h-4 text-gray-400 shrink-0" />
-                                <span>NOT AVAILABLE (TAKEN)</span>
+                                <XCircle className="w-4 h-4 text-slate-400" />
+                                <span>NOT AVAILABLE (TAKEN BY OTHER DRIVER)</span>
                               </button>
                             ) : isCancelled ? (
                               <button
                                 disabled
-                                className="mt-1 sm:mt-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 text-gray-500 font-extrabold text-[11px] sm:text-xs uppercase tracking-wider rounded-xl border border-gray-300 cursor-not-allowed"
+                                className="w-full py-3.5 bg-slate-200 text-slate-500 font-black text-xs uppercase tracking-wider rounded-2xl border border-slate-300 cursor-not-allowed text-center"
                               >
                                 ❌ CANCELLED
                               </button>
                             ) : (
-                              <div className="w-full md:w-auto mt-2 md:mt-0">
-                                {/* Mobile Only: Swipeable Call-to-Accept Slider */}
-                                <div className="md:hidden w-full">
-                                  <SwipeToAcceptButton
-                                    onAccept={() =>
-                                      handleAcceptDispatch(
-                                        disp.id,
-                                        disp.bookingId || disp.booking?.id,
-                                      )
-                                    }
-                                    label="SWIPE TO ACCEPT"
-                                    successLabel="DISPATCH ACCEPTED ✓"
-                                  />
-                                </div>
-
-                                {/* Desktop Only: Standard Accept Button */}
-                                <button
-                                  onClick={() =>
+                              <div className="w-full">
+                                <SwipeToAcceptButton
+                                  onAccept={() =>
                                     handleAcceptDispatch(
                                       disp.id,
                                       disp.bookingId || disp.booking?.id,
                                     )
                                   }
-                                  className="hidden md:flex mt-3 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition shadow-md items-center gap-1.5"
-                                >
-                                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                                  <span>ACCEPT DISPATCH →</span>
-                                </button>
+                                  label="SWIPE TO ACCEPT"
+                                  successLabel="DISPATCH ACCEPTED ✓"
+                                />
                               </div>
                             )}
                           </div>
