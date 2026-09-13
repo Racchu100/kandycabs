@@ -214,12 +214,6 @@ export function Navbar() {
                       </span>
                     </div>
                   </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=300&auto=format&fit=crop&q=60"
-                    alt="Car illustration"
-                    className="w-14 h-9 object-contain shrink-0 opacity-90 drop-shadow-xs"
-                  />
                 </Link>
               )}
 
