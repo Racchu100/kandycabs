@@ -128,30 +128,30 @@ export default function ContactPage() {
           {/* Main Card Wrapper */}
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl overflow-hidden max-w-xl mx-auto">
             {/* Top Dual Tab Switcher */}
-            <div className="grid grid-cols-2 bg-slate-100/70 p-1.5 border-b border-slate-200/80 gap-1.5">
+            <div className="grid grid-cols-2 bg-slate-100/70 p-1 border-b border-slate-200/80 gap-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('contact')}
-                className={`py-3 px-4 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition ${
+                className={`py-2 px-2.5 sm:py-2.5 sm:px-3.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition ${
                   activeTab === 'contact'
-                    ? 'bg-white text-slate-900 shadow-md border-b-2 border-orange-500'
+                    ? 'bg-white text-slate-900 shadow-sm border-b-2 border-orange-500'
                     : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
                 }`}
               >
-                <Mail className={`w-4 h-4 ${activeTab === 'contact' ? 'text-orange-500' : 'text-slate-400'}`} />
+                <Mail className={`w-5 h-5 sm:w-5.5 sm:h-5.5 ${activeTab === 'contact' ? 'text-orange-500' : 'text-slate-400'}`} />
                 <span>Customer Inquiry</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('driver')}
-                className={`py-3 px-4 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition ${
+                className={`py-2 px-2.5 sm:py-2.5 sm:px-3.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition ${
                   activeTab === 'driver'
-                    ? 'bg-white text-orange-600 shadow-md border-b-2 border-orange-500'
+                    ? 'bg-white text-orange-600 shadow-sm border-b-2 border-orange-500'
                     : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
                 }`}
               >
-                <Car className={`w-4 h-4 ${activeTab === 'driver' ? 'text-orange-500' : 'text-slate-400'}`} />
+                <Car className={`w-5 h-5 sm:w-5.5 sm:h-5.5 ${activeTab === 'driver' ? 'text-orange-500' : 'text-slate-400'}`} />
                 <span>Drive With Us</span>
               </button>
             </div>
