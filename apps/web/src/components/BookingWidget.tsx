@@ -451,8 +451,8 @@ export function BookingWidget() {
         </form>
       </div>
 
-      {/* Mobile Sticky Bottom Trip Navigation Bar (Matching Reference Screenshot) */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/98 backdrop-blur-md border-t border-gray-100 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] py-2.5 px-3 rounded-t-3xl sm:hidden">
+      {/* Mobile Sticky Bottom Trip Navigation Bar (Fixed z-[9999] solid white background to prevent scroll overlap) */}
+      <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-white border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.15)] py-2.5 px-3 rounded-t-3xl sm:hidden">
         <div className="grid grid-cols-4 gap-2 max-w-md mx-auto">
           <button
             type="button"

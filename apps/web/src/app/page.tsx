@@ -41,7 +41,7 @@ const FLEET_TEASER = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-kandy-bg pb-20 sm:pb-0">
+    <div className="min-h-screen flex flex-col bg-kandy-bg pb-28 sm:pb-0">
       <Navbar />
 
       {/* Hero Section */}
