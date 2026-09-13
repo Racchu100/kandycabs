@@ -7,7 +7,20 @@ import { useAuth } from '@/context/AuthContext';
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { user, logout: handleLogout } = useAuth();
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const isAdmin =
     user &&
@@ -22,7 +35,11 @@ export function Navbar() {
       (Array.isArray(user.roles) && user.roles.includes('DRIVER')));
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-kandy-border shadow-sm">
+    <header
+      className={`sticky top-0 z-50 bg-white transition-all duration-200 ${
+        isScrolled ? 'shadow-md border-b border-gray-100/80' : 'shadow-none border-b-0'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-14 md:h-16 lg:h-20">
           {/* Brand Logo */}
