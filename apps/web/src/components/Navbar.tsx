@@ -193,31 +193,33 @@ export function Navbar() {
                 </button>
               </div>
 
-              {/* User Greeting / Profile Card */}
-              <Link
-                href={user ? '/customer/dashboard' : '/login'}
-                onClick={() => setMobileMenuOpen(false)}
-                className="relative overflow-hidden bg-gradient-to-r from-orange-50/90 via-orange-100/40 to-orange-50/70 border border-orange-100/90 rounded-xl p-2 px-2.5 flex items-center justify-between shadow-2xs group cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-[#FF6B1A]/15 text-[#FF6B1A] flex items-center justify-center shrink-0">
-                    <User className="w-4 h-4 text-[#FF6B1A]" />
+              {/* User Greeting / Profile Card (ONLY rendered when logged in) */}
+              {user && (
+                <Link
+                  href="/customer/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="relative overflow-hidden bg-gradient-to-r from-orange-50/90 via-orange-100/40 to-orange-50/70 border border-orange-100/90 rounded-xl p-2 px-2.5 flex items-center justify-between shadow-2xs group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-[#FF6B1A]/15 text-[#FF6B1A] flex items-center justify-center shrink-0">
+                      <User className="w-4 h-4 text-[#FF6B1A]" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-gray-500 block leading-tight">Hello,</span>
+                      <span className="text-xs font-black text-gray-900 flex items-center gap-0.5 leading-tight group-hover:text-[#FF6B1A] transition">
+                        {user.fullName || user.phone || 'User'}
+                        <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-[#FF6B1A] transition" />
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-semibold text-gray-500 block leading-tight">Hello,</span>
-                    <span className="text-xs font-black text-gray-900 flex items-center gap-0.5 leading-tight group-hover:text-[#FF6B1A] transition">
-                      {user ? (user.fullName || user.phone || 'User') : 'Guest'}
-                      <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-[#FF6B1A] transition" />
-                    </span>
-                  </div>
-                </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=300&auto=format&fit=crop&q=60"
-                  alt="Car illustration"
-                  className="w-14 h-9 object-contain shrink-0 opacity-90 drop-shadow-xs"
-                />
-              </Link>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=300&auto=format&fit=crop&q=60"
+                    alt="Car illustration"
+                    className="w-14 h-9 object-contain shrink-0 opacity-90 drop-shadow-xs"
+                  />
+                </Link>
+              )}
 
               {/* Navigation Menu Items with Custom Icons & Active Indicator */}
               <nav className="space-y-1">
