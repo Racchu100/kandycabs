@@ -56,12 +56,6 @@ export default function HomePage() {
       <section className="relative pt-3 sm:pt-6 md:pt-8 lg:pt-10 pb-4 sm:pb-8 md:pb-10 lg:pb-12 bg-gradient-to-b from-white via-orange-50/20 to-kandy-bg border-b border-kandy-border">
         <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="text-left max-w-2xl mb-4 sm:mb-6">
-            {/* White Pill Badge with Orange Accent */}
-            <div className="inline-flex items-center gap-2 bg-white text-[#FF6B1A] px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wide mb-3 border border-[#FF6B1A]/25 shadow-sm">
-              <Sparkles className="w-4 h-4 text-[#FF6B1A]" />
-              <span>South India&apos;s Premium Intercity Cab Service</span>
-            </div>
-
             {/* Main Headline */}
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-tight leading-tight mb-2.5">
               Travel with confidence with <span className="text-[#FF6B1A]">Kandy Cabs</span>
