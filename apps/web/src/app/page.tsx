@@ -53,16 +53,24 @@ export default function HomePage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative pt-3 sm:pt-6 md:pt-8 lg:pt-10 pb-4 sm:pb-8 md:pb-10 lg:pb-12 bg-gradient-to-b from-white via-orange-50/20 to-kandy-bg border-b border-kandy-border">
+      <section className="relative pt-4 sm:pt-8 md:pt-10 lg:pt-12 pb-6 sm:pb-10 md:pb-12 lg:pb-16 overflow-hidden border-b border-kandy-border">
+        {/* Scenic Mountain Road Background Image */}
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transform scale-105"
+          style={{ backgroundImage: "url('/hero-bg.jpg')" }}
+        />
+        {/* Soft White/Light Gradient Overlay for High Text Contrast */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/95 via-white/85 to-white/50 md:via-white/75 md:to-white/25" />
+
         <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="text-left max-w-2xl mb-4 sm:mb-6">
             {/* Main Headline */}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-tight leading-tight mb-2.5">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#0F172A] tracking-tight leading-tight mb-2.5 drop-shadow-xs">
               Travel with confidence with <span className="text-[#FF6B1A]">Kandy Cabs</span>
             </h1>
 
             {/* Subtitle */}
-            <h2 className="text-xs sm:text-sm md:text-base text-[#475569] font-medium leading-relaxed max-w-xl">
+            <h2 className="text-xs sm:text-sm md:text-base text-[#334155] font-bold leading-relaxed max-w-xl drop-shadow-xs">
               Safe, reliable, and hassle-free rides for local, airport, and outstation journeys
             </h2>
           </div>
