@@ -64,13 +64,13 @@ export default function HomePage() {
 
             {/* Main Headline */}
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-tight leading-tight mb-2.5">
-              Book Outstation & Local Cabs with <span className="text-[#FF6B1A] block sm:inline">Transparent Fares</span>
+              Travel with confidence with <span className="text-[#FF6B1A]">Kandy Cabs</span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-xs sm:text-sm md:text-base text-[#475569] font-medium leading-relaxed max-w-xl">
-              Pay 25% advance only. Clean sanitized cabs, courteous verified drivers, and doorstep pickup.
-            </p>
+            <h2 className="text-xs sm:text-sm md:text-base text-[#475569] font-medium leading-relaxed max-w-xl">
+              Safe, reliable, and hassle-free rides for local, airport, and outstation journeys
+            </h2>
           </div>
 
           {/* Card Booking Widget */}
