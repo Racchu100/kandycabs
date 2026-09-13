@@ -27,6 +27,8 @@ import {
   Map,
   Compass,
   AlertCircle,
+  Headphones,
+  Ban,
 } from 'lucide-react';
 
 const INITIAL_VEHICLE_OPTIONS = [
@@ -531,26 +533,43 @@ function BookingContent() {
       <main className="flex-1 pt-1 sm:pt-2 pb-6">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
 
-          {/* Trust Banner (1 single row, compact padding & spacing) */}
-          <div className="bg-gradient-to-r from-sky-500 to-sky-700 text-white rounded-lg sm:rounded-xl py-1.5 px-2 sm:py-2 sm:px-4 mb-2.5 sm:mb-3.5 shadow-md flex items-center justify-between gap-1.5 sm:gap-4 text-[9.5px] sm:text-xs font-extrabold tracking-tight overflow-x-auto whitespace-nowrap">
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <span className="text-xs sm:text-base">₹</span>
+          {/* Trust Banner (Redesigned matching reference screenshot media_1789308734406.png) */}
+          <div className="bg-[#EBF6FF] border border-[#D0EAFF] rounded-2xl py-2 px-3 sm:py-3 sm:px-6 mb-3 sm:mb-4 shadow-xs flex items-center justify-between sm:justify-around gap-2 sm:gap-4 overflow-x-auto whitespace-nowrap">
+            {/* Item 1: Book Now at Zero Cost */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-[#0088FF] text-white rounded-full flex items-center justify-center text-sm font-black shrink-0 shadow-2xs">
+                ₹
+              </div>
               <div>
-                <div className="leading-tight text-[9.5px] sm:text-xs font-black">Book Now</div>
-                <div className="text-[8px] sm:text-[10px] font-medium text-sky-100 leading-none">at Zero Cost</div>
+                <h4 className="text-[11px] sm:text-xs font-extrabold text-[#0F172A] leading-tight">Book Now</h4>
+                <p className="text-[9px] sm:text-[11px] font-medium text-[#64748B] leading-none mt-0.5">at Zero Cost</p>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <span className="text-xs sm:text-base">🚫</span>
+
+            {/* Vertical Divider 1 */}
+            <div className="w-[1px] h-6 sm:h-7 bg-sky-200/80 shrink-0"></div>
+
+            {/* Item 2: Free Cancellations Upto 1 Hour */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-tr from-red-500 to-rose-500 text-white rounded-full flex items-center justify-center text-xs font-black shrink-0 shadow-2xs">
+                <Ban className="w-4 h-4 text-white" />
+              </div>
               <div>
-                <div className="leading-tight text-[9.5px] sm:text-xs font-black">Free Cancellations</div>
-                <div className="text-[8px] sm:text-[10px] font-medium text-sky-100 leading-none">Upto 1 Hour</div>
+                <h4 className="text-[11px] sm:text-xs font-extrabold text-[#0F172A] leading-tight">Free Cancellations</h4>
+                <p className="text-[9px] sm:text-[11px] font-medium text-[#64748B] leading-none mt-0.5">Upto 1 Hour</p>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <span className="text-xs sm:text-base">🎧</span>
+
+            {/* Vertical Divider 2 */}
+            <div className="w-[1px] h-6 sm:h-7 bg-sky-200/80 shrink-0"></div>
+
+            {/* Item 3: 24x7 Support */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-[#0088FF] text-white rounded-full flex items-center justify-center text-xs font-black shrink-0 shadow-2xs">
+                <Headphones className="w-4 h-4 text-white" />
+              </div>
               <div>
-                <div className="leading-tight text-[9.5px] sm:text-xs font-black">24x7 Support</div>
+                <h4 className="text-[11px] sm:text-xs font-extrabold text-[#0F172A] leading-tight">24x7 Support</h4>
               </div>
             </div>
           </div>
