@@ -682,15 +682,15 @@ export default function DriverDashboardPage() {
                 </div>
 
                 {/* Header Action Buttons */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-800/80">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="space-y-2 pt-2.5 border-t border-slate-800/80">
+                  <div>
                     <button
                       onClick={() => {
                         setIsVehicleChangedMode(true);
                         setShowDocModal(true);
                         setDocSuccess(null);
                       }}
-                      className={`px-3 py-1.5 text-white text-[11px] sm:text-xs font-black rounded-lg transition shadow flex items-center gap-1.5 ${
+                      className={`w-full sm:w-auto px-3.5 py-2 text-white text-[11px] sm:text-xs font-black rounded-xl transition shadow flex items-center justify-center gap-1.5 ${
                         hasPendingDocs
                           ? 'bg-amber-500 hover:bg-amber-600 animate-pulse border border-amber-300'
                           : 'bg-kandy-orange hover:bg-kandy-orangeHover'
@@ -708,29 +708,31 @@ export default function DriverDashboardPage() {
                         </>
                       )}
                     </button>
+                  </div>
 
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     <Link
                       href="/customer/dashboard"
-                      className="px-3 py-1.5 bg-white text-slate-900 text-[11px] sm:text-xs font-extrabold rounded-lg hover:bg-slate-100 transition shadow flex items-center gap-1"
+                      className="px-3.5 py-1.5 bg-white text-slate-900 text-[11px] sm:text-xs font-extrabold rounded-xl hover:bg-slate-100 transition shadow flex items-center gap-1.5"
                     >
                       <span>Switch to Customer Mode</span>
                       <span>🚘</span>
                     </Link>
-                  </div>
 
-                  <button
-                    onClick={() => {
-                      fetch('/api/auth/logout', { method: 'POST' }).then(() => {
-                        localStorage.removeItem('kandy_user');
-                        localStorage.removeItem('kandy_token');
-                        window.location.href = '/';
-                      });
-                    }}
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] sm:text-xs font-extrabold rounded-lg transition shadow flex items-center gap-1 ml-auto"
-                  >
-                    <LogOut className="w-3 h-3" />
-                    <span>Logout</span>
-                  </button>
+                    <button
+                      onClick={() => {
+                        fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+                          localStorage.removeItem('kandy_user');
+                          localStorage.removeItem('kandy_token');
+                          window.location.href = '/';
+                        });
+                      }}
+                      className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] sm:text-xs font-extrabold rounded-full transition shadow flex items-center gap-1.5"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
