@@ -130,132 +130,157 @@ export default function UnifiedLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-kandy-bg">
+    <div className="min-h-screen flex flex-col bg-slate-50/70">
       <Navbar />
 
-      <main className="flex-1 py-6 sm:py-12">
-        <div className="max-w-md mx-auto px-2.5 sm:px-4">
-          <div className="bg-white p-4 sm:p-8 rounded-2xl sm:rounded-widget border border-kandy-border shadow-widget">
-            <div className="text-center mb-4 sm:mb-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/kandycabs-logo.png"
-                alt="Kandy Cabs Logo"
-                className="h-10 sm:h-12 w-auto mx-auto object-contain mb-2 sm:mb-3"
-              />
-              <h1 className="text-xl sm:text-2xl font-black text-kandy-ink">Sign In to Kandy Cabs</h1>
-              <p className="text-[11px] sm:text-xs text-kandy-muted mt-0.5 sm:mt-1">
-                Unified Portal — Driver partners & customers are automatically directed to their account.
-              </p>
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-2.5 sm:p-3 rounded-lg mb-3 sm:mb-4 font-bold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                <span>{error}</span>
+      <main className="flex-1 py-8 sm:py-14 flex items-center justify-center">
+        <div className="max-w-md w-full mx-auto px-3 sm:px-4">
+          
+          {/* Main Unified Sign-In Container */}
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden">
+            
+            {/* White Form Card */}
+            <div className="p-6 sm:p-8 space-y-5">
+              
+              {/* Single Centered Logo & Headline */}
+              <div className="text-center space-y-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/kandycabs-logo.png"
+                  alt="Kandy Cabs Logo"
+                  className="h-11 sm:h-12 w-auto mx-auto object-contain"
+                />
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  Sign In to Kandy Cabs
+                </h1>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xs mx-auto">
+                  Unified Portal — Driver partners & customers are automatically directed to their account.
+                </p>
               </div>
-            )}
 
-            {!otpSent ? (
-              <form onSubmit={handleSendOtp} className="space-y-3 sm:space-y-4">
-                <div>
-                  <label className="block text-[11px] sm:text-xs font-bold text-kandy-muted uppercase mb-1">
-                    Mobile Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="10-digit mobile number"
-                    className="w-full px-3 py-2.5 sm:py-3 bg-kandy-bg border border-kandy-border rounded-xl text-sm font-bold text-kandy-ink focus:outline-none focus:border-kandy-orange"
-                    required
-                  />
-                  <span className="text-[10px] text-kandy-muted block mt-1">
-                    Driver / Admin Test: <strong>8888888888</strong> / <strong>9481086058</strong>
-                  </span>
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-xl font-bold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>{error}</span>
                 </div>
+              )}
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 sm:py-4 px-3 sm:px-4 bg-kandy-orange hover:bg-kandy-orangeHover active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm uppercase tracking-wide rounded-xl transition shadow-lg flex items-center justify-center gap-2 sm:gap-2.5"
-                >
-                  <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
-                  <span className="whitespace-nowrap">{loading ? 'SENDING CODE...' : 'GET 4-DIGIT VERIFICATION CODE →'}</span>
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOtp} className="space-y-3 sm:space-y-4">
-                {isRegisteredUser && existingName ? (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 sm:p-3.5 rounded-xl text-xs font-bold flex items-center justify-between shadow-sm">
-                    <span>👋 Welcome back, <strong className="text-emerald-950 font-black">{existingName}</strong>!</span>
-                    <span className="text-[9px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded uppercase font-black tracking-wider">
-                      Verified Account
-                    </span>
-                  </div>
-                ) : (
-                  <div className="bg-kandy-orangeLight p-2.5 sm:p-3 rounded-xl border border-orange-200 text-xs text-kandy-ink">
-                    Demo Verification Code: <strong className="text-kandy-orange">1234</strong> (Sent to +91 {phone})
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-[11px] sm:text-xs font-bold text-kandy-muted uppercase mb-1">
-                    Enter 4-Digit OTP
-                  </label>
-                  <input
-                    type="password"
-                    maxLength={4}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="1234"
-                    className="w-full px-3 py-2.5 sm:py-3 bg-kandy-bg border border-kandy-border rounded-xl text-center text-lg font-black tracking-widest text-kandy-ink focus:outline-none focus:border-kandy-orange"
-                    required
-                  />
-                </div>
-
-                {isNewUser && !isRegisteredUser && (
-                  <div className="space-y-1">
-                    <div className="bg-blue-50 border border-blue-200 text-blue-800 p-2.5 sm:p-3 rounded-xl text-xs font-medium">
-                      👋 First time here! Enter your name once — we'll remember you for all future bookings.
-                    </div>
-                    <label className="block text-[11px] sm:text-xs font-bold text-kandy-muted uppercase mb-1 mt-2">
-                      Full Name *
+              {!otpSent ? (
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Mobile Number
                     </label>
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Enter your full name"
-                      className="w-full px-3 py-2.5 sm:py-3 bg-kandy-bg border border-kandy-border rounded-xl text-sm font-bold text-kandy-ink focus:outline-none focus:border-kandy-orange"
-                      autoFocus
-                      required
-                    />
-                  </div>
-                )}
 
-                <div className="flex gap-2 sm:gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpSent(false);
-                      setIsNewUser(false);
-                    }}
-                    className="px-3.5 py-2.5 sm:py-3.5 bg-gray-100 text-gray-700 font-bold text-xs uppercase rounded-xl hover:bg-gray-200 transition shrink-0"
-                  >
-                    Back
-                  </button>
+                    {/* Phone Input with Fixed +91 Prefix & Subtle Border */}
+                    <div className="relative flex items-center bg-slate-50 border border-slate-300 rounded-xl overflow-hidden focus-within:bg-white focus-within:border-kandy-orange focus-within:ring-2 focus-within:ring-orange-100 transition shadow-2xs">
+                      <div className="bg-slate-100/90 text-slate-600 font-extrabold text-xs px-3.5 h-12 flex items-center border-r border-slate-200 shrink-0 select-none">
+                        +91
+                      </div>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="98765 43210"
+                        className="w-full h-12 px-3.5 bg-transparent text-sm font-black text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* CTA Button */}
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 py-2.5 sm:py-3.5 px-2.5 sm:px-4 bg-kandy-ink hover:bg-black text-white font-extrabold text-[11px] sm:text-xs uppercase tracking-wide rounded-xl transition shadow-md border-l-4 border-kandy-orange flex items-center justify-center gap-1.5 sm:gap-2.5"
+                    className="w-full h-12 bg-kandy-orange hover:bg-kandy-orangeHover active:scale-[0.99] text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    <ShieldCheck className="w-4 h-4 text-kandy-orange shrink-0" />
-                    <span className="whitespace-nowrap">{loading ? 'VERIFYING...' : 'VERIFY & SIGN IN →'}</span>
+                    <Lock className="w-4 h-4 text-white shrink-0" />
+                    <span>{loading ? 'SENDING CODE...' : 'SEND OTP →'}</span>
                   </button>
-                </div>
-              </form>
-            )}
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  {isRegisteredUser && existingName ? (
+                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl text-xs font-bold flex items-center justify-between shadow-2xs">
+                      <span>👋 Welcome back, <strong className="text-emerald-950 font-black">{existingName}</strong>!</span>
+                      <span className="text-[9px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded uppercase font-black tracking-wider">
+                        Verified
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="bg-orange-50 p-3 rounded-xl border border-orange-200 text-xs text-slate-800 font-medium">
+                      Demo Verification Code: <strong className="text-kandy-orange font-extrabold">1234</strong> (Sent to +91 {phone})
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Enter 4-Digit OTP
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="1234"
+                      className="w-full h-12 px-3 bg-slate-50 border border-slate-300 rounded-xl text-center text-lg font-black tracking-widest text-slate-900 focus:outline-none focus:border-kandy-orange focus:bg-white focus:ring-2 focus:ring-orange-100 transition shadow-2xs"
+                      required
+                    />
+                  </div>
+
+                  {isNewUser && !isRegisteredUser && (
+                    <div className="space-y-2">
+                      <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-xl text-xs font-medium">
+                        👋 First time here! Enter your name once — we'll remember you for future bookings.
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                          Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder="Enter your full name"
+                          className="w-full h-12 px-3.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-900 focus:outline-none focus:border-kandy-orange focus:bg-white focus:ring-2 focus:ring-orange-100 transition shadow-2xs"
+                          autoFocus
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false);
+                        setIsNewUser(false);
+                      }}
+                      className="h-12 px-4 bg-slate-100 text-slate-700 font-extrabold text-xs uppercase rounded-xl hover:bg-slate-200 transition shrink-0 cursor-pointer"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-1 h-12 bg-slate-900 hover:bg-black text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-kandy-orange shrink-0" />
+                      <span>{loading ? 'VERIFYING...' : 'VERIFY & SIGN IN →'}</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Integrated Dark Footer Block (No Repeated Logo) */}
+            <div className="bg-slate-900 text-slate-300 p-5 sm:p-6 text-center border-t border-slate-800">
+              <p className="text-xs leading-relaxed max-w-sm mx-auto font-medium text-slate-300">
+                South India's most trusted outstation & local cab booking platform. Premium chauffeur-driven cabs with transparent pricing.
+              </p>
+            </div>
+
           </div>
         </div>
       </main>
