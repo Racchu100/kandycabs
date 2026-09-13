@@ -35,6 +35,7 @@ export interface SideMenuProps {
   onLogout: () => void;
   supportPhone?: string;
   navItems?: NavItem[];
+  appVersion?: string;
 }
 
 const DEFAULT_NAV_ITEMS: NavItem[] = [
@@ -43,6 +44,7 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
   { name: 'Fleet & Rates', href: '/fleet', icon: Tag },
   { name: 'About Us', href: '/about', icon: Info },
   { name: 'Contact', href: '/contact', icon: Headphones },
+  { name: 'Need Assistance?', href: '/contact', icon: HelpCircle },
 ];
 
 export const SideMenu: React.FC<SideMenuProps> = ({
@@ -54,6 +56,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   onLogout,
   supportPhone = '+91 98765 43210',
   navItems = DEFAULT_NAV_ITEMS,
+  appVersion = 'v2.4.1',
 }) => {
   const pathname = usePathname();
 
@@ -79,75 +82,78 @@ export const SideMenu: React.FC<SideMenuProps> = ({
       {/* Slideable Right Drawer Panel */}
       <div className="relative ml-auto w-80 sm:w-[400px] max-w-[90vw] bg-white h-dvh max-h-screen shadow-2xl z-[1000000] flex flex-col justify-between p-4 sm:p-5 overflow-y-auto animate-in slide-in-from-right duration-300">
         
-        {/* TOP SECTION: Header & Identity */}
-        <div className="space-y-4">
-          {/* Drawer Header Row */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <Link href="/" onClick={onClose} className="flex items-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/kandycabs-logo.png"
-                alt="Kandy Cabs Logo"
-                className="h-8 w-auto object-contain"
-              />
-            </Link>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
-              aria-label="Close menu"
-            >
-              <X className="w-4 h-4" />
-            </button>
+        {/* TOP & MAIN NAV SECTION */}
+        <div className="space-y-6">
+          {/* Header Block: Logo & User Identity Card */}
+          <div className="space-y-4">
+            {/* Drawer Header Row */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <Link href="/" onClick={onClose} className="flex items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/kandycabs-logo.png"
+                  alt="Kandy Cabs Logo"
+                  className="h-8 w-auto object-contain"
+                />
+              </Link>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
+                aria-label="Close menu"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* User Welcome Identity Card (Single Identity Element) */}
+            {user ? (
+              <Link
+                href="/customer/dashboard"
+                onClick={onClose}
+                className="group bg-slate-50 hover:bg-slate-100/90 border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-between transition shadow-2xs cursor-pointer"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-orange-100 text-kandy-orange flex items-center justify-center font-black text-sm shrink-0 border border-orange-200">
+                    <User className="w-5 h-5 text-kandy-orange" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[11px] font-semibold text-slate-500 block leading-tight">
+                      {user.isNewUser ? 'Welcome,' : 'Welcome back,'}
+                    </span>
+                    <span className="text-sm font-black text-slate-900 truncate block leading-snug group-hover:text-kandy-orange transition">
+                      {user.fullName || user.phone || 'Valued User'}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 block tracking-wide">
+                      {userRoleTitle}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-kandy-orange group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </Link>
+            ) : (
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-slate-900 block leading-tight">
+                      Welcome to Kandy Cabs
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-500 block">
+                      Sign in for bookings & dispatches
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* User Welcome Identity Card (Single Identity Element) */}
-          {user ? (
-            <Link
-              href="/customer/dashboard"
-              onClick={onClose}
-              className="group bg-slate-50 hover:bg-slate-100/90 border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-between transition shadow-2xs cursor-pointer"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-orange-100 text-kandy-orange flex items-center justify-center font-black text-sm shrink-0 border border-orange-200">
-                  <User className="w-5 h-5 text-kandy-orange" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[11px] font-semibold text-slate-500 block leading-tight">
-                    {user.isNewUser ? 'Welcome,' : 'Welcome back,'}
-                  </span>
-                  <span className="text-sm font-black text-slate-900 truncate block leading-snug group-hover:text-kandy-orange transition">
-                    {user.fullName || user.phone || 'Valued User'}
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-400 block tracking-wide">
-                    {userRoleTitle}
-                  </span>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-kandy-orange group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
-            </Link>
-          ) : (
-            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0">
-                  <User className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-xs font-black text-slate-900 block leading-tight">
-                    Welcome to Kandy Cabs
-                  </span>
-                  <span className="text-[11px] font-medium text-slate-500 block">
-                    Sign in for bookings & dispatches
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* MAIN NAV ITEMS */}
-          <nav className="space-y-1 pt-1">
+          {/* MAIN NAV ITEMS (Includes 'Need Assistance?' as final nav item) */}
+          <nav className="space-y-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href && item.name !== 'Need Assistance?';
               const IconComp = item.icon;
               return (
                 <Link
@@ -194,31 +200,22 @@ export const SideMenu: React.FC<SideMenuProps> = ({
           </nav>
         </div>
 
-        {/* MIDDLE / UTILITY SECTION */}
-        <div className="my-3 pt-3 border-t border-slate-100 space-y-1">
-          <div className="flex items-center justify-between text-[11px] font-medium text-slate-400 px-3 py-1">
-            <span className="flex items-center gap-1.5">
-              <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
-              <span>Need Assistance?</span>
-            </span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">v2.4.1</span>
-          </div>
-        </div>
-
-        {/* BOTTOM ACTION & FOOTER SECTION */}
-        <div className="space-y-3 shrink-0">
-          {/* Action Buttons Stack (Driver Portal > Customer Portal > Logout/SignIn) */}
+        {/* BOTTOM SECTION: Actions, Support Footer & Quiet App Version */}
+        <div className="space-y-6 pt-4 border-t border-slate-100 shrink-0 mt-6">
+          {/* Action Buttons Stack (Exact Alignment across Driver Portal, Customer Portal & Logout) */}
           <div className="space-y-2.5">
             {/* 1. Driver Portal - Primary Filled Dark Button */}
             {user && isApprovedDriver && (
               <Link
                 href="/driver/dashboard"
                 onClick={onClose}
-                className="w-full h-11 bg-slate-900 hover:bg-black active:bg-slate-950 text-white rounded-xl px-4 flex items-center justify-between font-black text-xs shadow-sm transition cursor-pointer"
+                className="w-full h-11 bg-slate-900 hover:bg-black active:bg-slate-950 text-white rounded-xl px-3.5 flex items-center justify-between font-extrabold text-xs shadow-sm transition cursor-pointer"
               >
-                <div className="flex items-center gap-2.5">
-                  <Car className="w-4 h-4 text-kandy-orange shrink-0 stroke-[2]" />
-                  <span>Driver Portal</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                    <Car className="w-4 h-4 text-kandy-orange stroke-[2]" />
+                  </div>
+                  <span className="truncate">Driver Portal</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
               </Link>
@@ -229,11 +226,13 @@ export const SideMenu: React.FC<SideMenuProps> = ({
               <Link
                 href="/admin"
                 onClick={onClose}
-                className="w-full h-11 bg-kandy-orange hover:bg-kandy-orangeHover text-white rounded-xl px-4 flex items-center justify-between font-black text-xs shadow-sm transition cursor-pointer"
+                className="w-full h-11 bg-kandy-orange hover:bg-kandy-orangeHover text-white rounded-xl px-3.5 flex items-center justify-between font-extrabold text-xs shadow-sm transition cursor-pointer"
               >
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-white shrink-0 stroke-[2]" />
-                  <span>Admin Console</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-4 h-4 text-white stroke-[2]" />
+                  </div>
+                  <span className="truncate">Admin Console</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-white/80 shrink-0" />
               </Link>
@@ -244,17 +243,19 @@ export const SideMenu: React.FC<SideMenuProps> = ({
               <Link
                 href="/customer/dashboard"
                 onClick={onClose}
-                className="w-full h-10 hover:bg-slate-100 text-slate-700 rounded-xl px-3 flex items-center justify-between font-extrabold text-xs transition cursor-pointer"
+                className="w-full h-11 hover:bg-slate-100 text-slate-700 rounded-xl px-3.5 flex items-center justify-between font-extrabold text-xs transition cursor-pointer border border-transparent hover:border-slate-200"
               >
-                <div className="flex items-center gap-2.5">
-                  <User className="w-4 h-4 text-slate-500 shrink-0 stroke-[2]" />
-                  <span>Customer Portal (My Account)</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4 text-slate-500 stroke-[2]" />
+                  </div>
+                  <span className="truncate">Customer Portal (My Account)</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
               </Link>
             )}
 
-            {/* 3. Logout / Sign In - Lower emphasis outline / text style */}
+            {/* 3. Logout / Sign In - Lower emphasis outline style with matching alignment */}
             {user ? (
               <button
                 type="button"
@@ -262,46 +263,63 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                   onLogout();
                   onClose();
                 }}
-                className="w-full h-10 border border-red-200 hover:bg-red-50 active:bg-red-100 text-red-600 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+                className="w-full h-11 border border-red-200 hover:bg-red-50 active:bg-red-100 text-red-600 font-extrabold text-xs rounded-xl px-3.5 flex items-center justify-between transition cursor-pointer"
               >
-                <LogOut className="w-4 h-4 text-red-600 shrink-0 stroke-[2]" />
-                <span>Logout</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                    <LogOut className="w-4 h-4 text-red-600 stroke-[2]" />
+                  </div>
+                  <span className="truncate">Logout</span>
+                </div>
+                <div className="w-4 h-4 shrink-0" />
               </button>
             ) : (
               <Link
                 href="/login"
                 onClick={onClose}
-                className="w-full h-11 bg-kandy-orange hover:bg-kandy-orangeHover text-white font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition shadow-sm cursor-pointer"
+                className="w-full h-11 bg-kandy-orange hover:bg-kandy-orangeHover text-white font-black text-xs uppercase tracking-wider rounded-xl px-3.5 flex items-center justify-between transition shadow-sm cursor-pointer"
               >
-                <LogIn className="w-4 h-4 text-white shrink-0 stroke-[2]" />
-                <span>SIGN IN / LOGIN →</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                    <LogIn className="w-4 h-4 text-white stroke-[2]" />
+                  </div>
+                  <span className="truncate">SIGN IN / LOGIN</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/80 shrink-0" />
               </Link>
             )}
           </div>
 
           {/* 4. SUPPORT FOOTER: Single-line utility bar */}
-          <div className="pt-2 border-t border-slate-100">
-            <div className="bg-slate-50 rounded-xl p-2.5 px-3 flex items-center justify-between border border-slate-200/80 text-xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Phone className="w-4 h-4 text-slate-500 shrink-0 stroke-[2]" />
-                <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[11px] font-medium text-slate-500">24×7 Support:</span>
-                  <a
-                    href={`tel:${supportPhone.replace(/\s+/g, '')}`}
-                    className="font-black text-slate-900 hover:text-kandy-orange transition"
-                  >
-                    {supportPhone}
-                  </a>
-                </div>
+          <div className="bg-slate-50 rounded-xl p-3 px-3.5 flex items-center justify-between border border-slate-200/80 text-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                <Phone className="w-4 h-4 text-slate-500 stroke-[2]" />
               </div>
-              <a
-                href={`tel:${supportPhone.replace(/\s+/g, '')}`}
-                className="w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shrink-0 ml-2 shadow-2xs"
-                title="Call Support Now"
-              >
-                <PhoneCall className="w-3.5 h-3.5" />
-              </a>
+              <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-medium text-slate-500">24×7 Support:</span>
+                <a
+                  href={`tel:${supportPhone.replace(/\s+/g, '')}`}
+                  className="font-black text-slate-900 hover:text-kandy-orange transition"
+                >
+                  {supportPhone}
+                </a>
+              </div>
             </div>
+            <a
+              href={`tel:${supportPhone.replace(/\s+/g, '')}`}
+              className="w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shrink-0 ml-2 shadow-2xs"
+              title="Call Support Now"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          {/* 5. APP VERSION METADATA AT VERY BOTTOM */}
+          <div className="text-center pt-1">
+            <span className="text-[11px] font-medium text-slate-400 tracking-wider">
+              {appVersion}
+            </span>
           </div>
 
         </div>
