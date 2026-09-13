@@ -45,29 +45,39 @@ export default function HomePage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative pt-1.5 sm:pt-3 md:pt-4 lg:pt-8 pb-1 sm:pb-6 md:pb-8 lg:pb-12 bg-gradient-to-b from-white via-gray-50 to-kandy-bg border-b border-kandy-border overflow-hidden">
-        {/* Scenic Background Banner Image (Top right matching reference screenshot) */}
-        <div className="absolute top-0 right-0 w-full sm:w-2/3 h-56 sm:h-full opacity-20 sm:opacity-30 pointer-events-none overflow-hidden z-0">
+      <section className="relative pt-3 sm:pt-6 md:pt-8 lg:pt-10 pb-4 sm:pb-8 md:pb-10 lg:pb-12 bg-gradient-to-b from-white via-orange-50/20 to-kandy-bg border-b border-kandy-border overflow-hidden">
+        {/* Scenic Coastal Highway Background Banner Image (Vivid car view matching screenshot) */}
+        <div className="absolute top-0 right-0 w-full sm:w-3/4 h-full pointer-events-none overflow-hidden z-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1200&auto=format&fit=crop&q=80"
-            alt="Scenic Coastal Highway"
-            className="w-full h-full object-cover object-right-top"
+            src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=1400&auto=format&fit=crop&q=85"
+            alt="Scenic Coastal Highway with Car"
+            className="w-full h-full object-cover object-right sm:object-right-top opacity-75 sm:opacity-90"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-white"></div>
+          {/* Left-to-right gradient to keep left text background clean and crisp */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/85 sm:via-white/75 to-transparent"></div>
+          {/* Bottom gradient fade */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-white/90"></div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-4 md:px-6 lg:px-8 w-full pb-1.5 sm:pb-0 relative z-10">
-          <div className="text-center max-w-3xl mx-auto mb-3 sm:mb-4">
-            <div className="inline-flex items-center gap-1.5 bg-[#FFF4ED] text-[#FF6B1A] px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider mb-2 border border-[#FFE0D1] shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5" />
+        {/* Bottom Orange Accent Curve (Visible at bottom left behind top edge of booking card) */}
+        <div className="absolute bottom-0 left-0 w-3/4 sm:w-1/2 h-8 sm:h-12 bg-gradient-to-r from-[#FF6B1A] via-[#FF8C38] to-transparent rounded-tr-full opacity-80 z-0"></div>
+
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full relative z-10">
+          <div className="text-left max-w-2xl mb-4 sm:mb-6">
+            {/* White Pill Badge with Orange Accent */}
+            <div className="inline-flex items-center gap-2 bg-white text-[#FF6B1A] px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wide mb-3 border border-[#FF6B1A]/25 shadow-sm">
+              <Sparkles className="w-4 h-4 text-[#FF6B1A]" />
               <span>South India&apos;s Premium Intercity Cab Service</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-kandy-ink tracking-tight leading-tight mb-2">
-              Book Outstation & Local Cabs with <span className="text-[#FF6B1A]">Transparent Fares</span>
+
+            {/* Main Headline */}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-tight leading-tight mb-2.5">
+              Book Outstation & Local Cabs with <span className="text-[#FF6B1A] block sm:inline">Transparent Fares</span>
             </h1>
-            <p className="text-xs sm:text-sm lg:text-base text-kandy-muted font-semibold max-w-md sm:max-w-xl mx-auto">
+
+            {/* Subtitle */}
+            <p className="text-xs sm:text-sm md:text-base text-[#475569] font-medium leading-relaxed max-w-xl">
               Pay 25% advance only. Clean sanitized cabs, courteous verified drivers, and doorstep pickup.
             </p>
           </div>
