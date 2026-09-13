@@ -267,12 +267,6 @@ export default function CustomerDashboardPage() {
                   >
                     + BOOK NEW CAB
                   </Link>
-                  <button
-                    onClick={handleDashboardLogout}
-                    className="px-3 py-1.5 sm:px-3.5 sm:py-2 border border-kandy-border text-kandy-ink text-[11px] sm:text-xs font-bold rounded hover:bg-gray-100 transition"
-                  >
-                    Logout
-                  </button>
                 </div>
               </div>
 
