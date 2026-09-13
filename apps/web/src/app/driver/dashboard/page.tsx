@@ -682,7 +682,7 @@ export default function DriverDashboardPage() {
                 </div>
 
                 {/* Header Action Buttons */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-800/80">
+                <div className="flex flex-wrap items-center justify-start gap-2 pt-2.5 border-t border-slate-800/80">
                   <button
                     onClick={() => {
                       setIsVehicleChangedMode(true);
@@ -708,28 +708,27 @@ export default function DriverDashboardPage() {
                     )}
                   </button>
 
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <Link
-                      href="/customer/dashboard"
-                      className="px-3 py-1.5 bg-white text-slate-900 text-[11px] sm:text-xs font-extrabold rounded-lg hover:bg-slate-100 transition shadow flex items-center gap-1"
-                    >
-                      <span>Switch to Customer Mode</span>
-                      <span>🚘</span>
-                    </Link>
-                    <button
-                      onClick={() => {
-                        fetch('/api/auth/logout', { method: 'POST' }).then(() => {
-                          localStorage.removeItem('kandy_user');
-                          localStorage.removeItem('kandy_token');
-                          window.location.href = '/';
-                        });
-                      }}
-                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] sm:text-xs font-extrabold rounded-lg transition shadow flex items-center gap-1"
-                    >
-                      <LogOut className="w-3 h-3" />
-                      <span>Logout</span>
-                    </button>
-                  </div>
+                  <Link
+                    href="/customer/dashboard"
+                    className="px-3 py-1.5 bg-white text-slate-900 text-[11px] sm:text-xs font-extrabold rounded-lg hover:bg-slate-100 transition shadow flex items-center gap-1"
+                  >
+                    <span>Switch to Customer Mode</span>
+                    <span>🚘</span>
+                  </Link>
+
+                  <button
+                    onClick={() => {
+                      fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+                        localStorage.removeItem('kandy_user');
+                        localStorage.removeItem('kandy_token');
+                        window.location.href = '/';
+                      });
+                    }}
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] sm:text-xs font-extrabold rounded-lg transition shadow flex items-center gap-1"
+                  >
+                    <LogOut className="w-3 h-3" />
+                    <span>Logout</span>
+                  </button>
                 </div>
               </div>
 
