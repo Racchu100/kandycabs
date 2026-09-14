@@ -428,11 +428,12 @@ export default function App() {
         </View>
       )}
 
-      {/* DRAWER / HAMBURGER SLIDE-OUT MENU MODAL (Matching Web Drawer Image 3) */}
+      {/* DRAWER / HAMBURGER SLIDE-OUT MENU MODAL (Exact Website SideMenu Design) */}
       <Modal visible={menuOpen} animationType="fade" transparent={true}>
         <View style={styles.menuOverlay}>
           <TouchableOpacity style={styles.menuBackdrop} activeOpacity={1} onPress={() => setMenuOpen(false)} />
           <View style={styles.menuDrawer}>
+            {/* Header Block: Logo & Close Button */}
             <View style={styles.menuHeader}>
               <Image
                 source={require('./assets/kandycabs-logo.png')}
@@ -445,87 +446,193 @@ export default function App() {
             </View>
 
             <ScrollView style={styles.menuContent} showsVerticalScrollIndicator={false}>
-              <TouchableOpacity
-                style={styles.menuLinkRow}
-                onPress={() => {
-                  setActiveTab('HOME');
-                  setCurrentStep('SEARCH');
-                  setMenuOpen(false);
-                }}
-              >
-                <Text style={styles.menuLinkText}>Home</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuLinkRow}
-                onPress={() => {
-                  setActiveTab('HOME');
-                  setCurrentStep('SEARCH');
-                  setMenuOpen(false);
-                }}
-              >
-                <Text style={styles.menuLinkText}>Book Cab</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuLinkRow}
-                onPress={() => {
-                  setActiveTab('FLEET');
-                  setMenuOpen(false);
-                }}
-              >
-                <Text style={styles.menuLinkText}>Fleet & Rates</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuLinkRow}
-                onPress={() => {
-                  setActiveTab('ABOUT');
-                  setMenuOpen(false);
-                }}
-              >
-                <Text style={styles.menuLinkText}>About Us</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuLinkRow}
-                onPress={() => {
-                  setActiveTab('CONTACT');
-                  setMenuOpen(false);
-                }}
-              >
-                <Text style={styles.menuLinkText}>Contact Us</Text>
-              </TouchableOpacity>
-
-              <View style={styles.menuDivider} />
-
-              <Text style={styles.menuUserLabel}>
-                LOGGED IN AS: <Text style={{ fontWeight: '900', color: '#0F172A' }}>{isLoggedIn ? customerName.toUpperCase() : 'GUEST USER'}</Text>
-              </Text>
-
-              <TouchableOpacity
-                style={styles.customerPortalBtn}
-                onPress={() => {
-                  setMenuOpen(false);
-                  if (!isLoggedIn) {
-                    setAuthModalOpen(true);
-                  } else {
+              {/* User Identity / Welcome Card */}
+              {isLoggedIn ? (
+                <TouchableOpacity
+                  style={styles.welcomeCardLoggedIn}
+                  onPress={() => {
+                    setMenuOpen(false);
                     setActiveTab('ACCOUNT');
-                  }
-                }}
-              >
-                <Text style={styles.customerPortalBtnText}>👤 Customer Portal (My Account)</Text>
-              </TouchableOpacity>
-
-              {isLoggedIn && (
-                <TouchableOpacity style={styles.logoutDrawerBtn} onPress={handleLogout}>
-                  <Text style={styles.logoutDrawerBtnText}>🚪 LOGOUT</Text>
+                  }}
+                >
+                  <View style={styles.welcomeAvatarCircleLoggedIn}>
+                    <Text style={styles.welcomeAvatarIconLoggedIn}>👤</Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.welcomeSubLabel}>Welcome back,</Text>
+                    <Text style={styles.welcomeUserName} numberOfLines={1}>{customerName}</Text>
+                    <Text style={styles.welcomeUserRole}>Customer Account</Text>
+                  </View>
+                  <Text style={styles.drawerNavChevron}>›</Text>
                 </TouchableOpacity>
+              ) : (
+                <View style={styles.welcomeCard}>
+                  <View style={styles.welcomeAvatarCircle}>
+                    <Text style={styles.welcomeAvatarIcon}>👤</Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.welcomeTitle}>Welcome to Kandy Cabs</Text>
+                    <Text style={styles.welcomeSubtitle}>Sign in for bookings & dispatches</Text>
+                  </View>
+                </View>
               )}
 
-              <TouchableOpacity style={styles.supportCallBtn} onPress={() => handleCallSupport('9876543210')}>
-                <Text style={styles.supportCallBtnText}>📞 Call 24×7 Support: +91 98765 43210</Text>
-              </TouchableOpacity>
+              {/* Main Nav Items List */}
+              <View style={styles.drawerNavList}>
+                {/* 1. Home */}
+                <TouchableOpacity
+                  style={[styles.drawerNavItem, activeTab === 'HOME' && styles.drawerNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('HOME');
+                    setCurrentStep('SEARCH');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <View style={styles.drawerNavLeft}>
+                    <Text style={[styles.drawerNavIcon, activeTab === 'HOME' && styles.drawerNavIconActive]}>🏠</Text>
+                    <Text style={[styles.drawerNavText, activeTab === 'HOME' && styles.drawerNavTextActive]}>Home</Text>
+                  </View>
+                  <Text style={[styles.drawerNavChevron, activeTab === 'HOME' && styles.drawerNavChevronActive]}>›</Text>
+                </TouchableOpacity>
+
+                {/* 2. Book Cab */}
+                <TouchableOpacity
+                  style={styles.drawerNavItem}
+                  onPress={() => {
+                    setActiveTab('HOME');
+                    setCurrentStep('SEARCH');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <View style={styles.drawerNavLeft}>
+                    <Text style={styles.drawerNavIcon}>🚗</Text>
+                    <Text style={styles.drawerNavText}>Book Cab</Text>
+                  </View>
+                  <Text style={styles.drawerNavChevron}>›</Text>
+                </TouchableOpacity>
+
+                {/* 3. Fleet & Rates */}
+                <TouchableOpacity
+                  style={[styles.drawerNavItem, activeTab === 'FLEET' && styles.drawerNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('FLEET');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <View style={styles.drawerNavLeft}>
+                    <Text style={[styles.drawerNavIcon, activeTab === 'FLEET' && styles.drawerNavIconActive]}>🏷️</Text>
+                    <Text style={[styles.drawerNavText, activeTab === 'FLEET' && styles.drawerNavTextActive]}>Fleet & Rates</Text>
+                  </View>
+                  <Text style={[styles.drawerNavChevron, activeTab === 'FLEET' && styles.drawerNavChevronActive]}>›</Text>
+                </TouchableOpacity>
+
+                {/* 4. About Us */}
+                <TouchableOpacity
+                  style={[styles.drawerNavItem, activeTab === 'ABOUT' && styles.drawerNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('ABOUT');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <View style={styles.drawerNavLeft}>
+                    <Text style={[styles.drawerNavIcon, activeTab === 'ABOUT' && styles.drawerNavIconActive]}>ℹ️</Text>
+                    <Text style={[styles.drawerNavText, activeTab === 'ABOUT' && styles.drawerNavTextActive]}>About Us</Text>
+                  </View>
+                  <Text style={[styles.drawerNavChevron, activeTab === 'ABOUT' && styles.drawerNavChevronActive]}>›</Text>
+                </TouchableOpacity>
+
+                {/* 5. Contact */}
+                <TouchableOpacity
+                  style={[styles.drawerNavItem, activeTab === 'CONTACT' && styles.drawerNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('CONTACT');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <View style={styles.drawerNavLeft}>
+                    <Text style={[styles.drawerNavIcon, activeTab === 'CONTACT' && styles.drawerNavIconActive]}>🎧</Text>
+                    <Text style={[styles.drawerNavText, activeTab === 'CONTACT' && styles.drawerNavTextActive]}>Contact</Text>
+                  </View>
+                  <Text style={[styles.drawerNavChevron, activeTab === 'CONTACT' && styles.drawerNavChevronActive]}>›</Text>
+                </TouchableOpacity>
+
+                {/* 6. Need Assistance? */}
+                <TouchableOpacity
+                  style={styles.drawerNavItem}
+                  onPress={() => {
+                    setActiveTab('CONTACT');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <View style={styles.drawerNavLeft}>
+                    <Text style={styles.drawerNavIcon}>❓</Text>
+                    <Text style={styles.drawerNavText}>Need Assistance?</Text>
+                  </View>
+                  <Text style={styles.drawerNavChevron}>›</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Bottom Actions & 24x7 Support */}
+              <View style={styles.drawerBottomSection}>
+                {!isLoggedIn ? (
+                  <TouchableOpacity
+                    style={styles.drawerSignInBtn}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      setAuthModalOpen(true);
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={styles.drawerSignInIcon}>➔</Text>
+                      <Text style={styles.drawerSignInText}>SIGN IN / LOGIN</Text>
+                    </View>
+                    <Text style={styles.drawerSignInChevron}>›</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={styles.drawerPortalBtn}
+                      onPress={() => {
+                        setMenuOpen(false);
+                        setActiveTab('ACCOUNT');
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontSize: 16 }}>👤</Text>
+                        <Text style={styles.drawerPortalText}>Customer Portal (My Account)</Text>
+                      </View>
+                      <Text style={styles.drawerNavChevron}>›</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.drawerLogoutBtn} onPress={handleLogout}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontSize: 14 }}>🚪</Text>
+                        <Text style={styles.drawerLogoutText}>LOGOUT</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {/* 24x7 Support Box */}
+                <View style={styles.drawerSupportCard}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <Text style={{ fontSize: 16 }}>📞</Text>
+                    <View>
+                      <Text style={styles.drawerSupportLabel}>24×7 Support:</Text>
+                      <Text style={styles.drawerSupportNumber}>+91 98765 43210</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.drawerCallIconBtn}
+                    onPress={() => handleCallSupport('9876543210')}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontSize: 13 }}>📞</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Version Metadata */}
+                <Text style={styles.drawerVersionText}>v2.4.1</Text>
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -1698,110 +1805,54 @@ const styles = StyleSheet.create({
   },
   menuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     flexDirection: 'row',
     justifyContent: 'flex-end',
   },
   menuBackdrop: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   menuDrawer: {
     backgroundColor: '#FFFFFF',
     width: '85%',
-    maxWidth: 340,
+    maxWidth: 360,
     height: '100%',
-    padding: 20,
+    padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: -2, height: 0 },
+    shadowOffset: { width: -4, height: 0 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowRadius: 15,
     elevation: 10,
+    justifyContent: 'space-between',
   },
   menuHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   menuLogoImage: {
-    width: 130,
+    width: 135,
     height: 36,
   },
   menuCloseCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuCloseBtnText: {
-    color: '#475569',
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  menuContent: {
-    flex: 1,
-  },
-  menuLinkRow: {
-    paddingVertical: 14,
-  },
-  menuLinkText: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 16,
-  },
-  menuUserLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#64748B',
-    marginBottom: 14,
-    letterSpacing: 0.5,
-  },
-  driverPortalBtn: {
-    backgroundColor: '#0F172A',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  driverPortalBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  customerPortalBtn: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#EA580C',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  customerPortalBtnText: {
-    color: '#EA580C',
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  logoutDrawerBtn: {
-    backgroundColor: '#EF4444',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  logoutDrawerBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: '#334155',
+    fontSize: 14,
     fontWeight: '900',
   },
   menuCloseBtn: {
@@ -1809,17 +1860,245 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
   },
-  supportCallBtn: {
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 20,
+  menuContent: {
+    flex: 1,
   },
-  supportCallBtnText: {
+
+  // ─── WELCOME IDENTITY CARD (Exact Website SideMenu Style) ───
+  welcomeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 14,
+  },
+  welcomeCardLoggedIn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 14,
+  },
+  welcomeAvatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  welcomeAvatarIcon: {
+    fontSize: 20,
+    color: '#64748B',
+  },
+  welcomeAvatarCircleLoggedIn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFEDD5',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  welcomeAvatarIconLoggedIn: {
+    fontSize: 20,
+  },
+  welcomeTitle: {
+    fontSize: 13,
+    fontWeight: '900',
     color: '#0F172A',
+    lineHeight: 18,
+  },
+  welcomeSubtitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  welcomeSubLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  welcomeUserName: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  welcomeUserRole: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+
+  // ─── DRAWER NAV ITEMS LIST ───
+  drawerNavList: {
+    gap: 4,
+    marginBottom: 16,
+  },
+  drawerNavItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  drawerNavItemActive: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  drawerNavLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  drawerNavIcon: {
+    fontSize: 16,
+    width: 22,
+    textAlign: 'center',
+  },
+  drawerNavIconActive: {
+    fontSize: 16,
+  },
+  drawerNavText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  drawerNavTextActive: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#EA580C',
+  },
+  drawerNavChevron: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#94A3B8',
+  },
+  drawerNavChevronActive: {
+    color: '#EA580C',
+  },
+
+  // ─── BOTTOM SECTION: ACTIONS, 24x7 SUPPORT & APP VERSION ───
+  drawerBottomSection: {
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: 10,
+  },
+  drawerSignInBtn: {
+    backgroundColor: '#FF6B1A',
+    height: 46,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  drawerSignInIcon: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  drawerSignInText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  drawerSignInChevron: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  drawerPortalBtn: {
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  drawerPortalText: {
     fontSize: 12,
     fontWeight: '800',
+    color: '#334155',
+  },
+  drawerLogoutBtn: {
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerLogoutText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#DC2626',
+    letterSpacing: 0.5,
+  },
+  drawerSupportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 10,
+    paddingHorizontal: 12,
+  },
+  drawerSupportLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  drawerSupportNumber: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  drawerCallIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  drawerVersionText: {
+    textAlign: 'center',
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginTop: 4,
+    marginBottom: 8,
   },
   fleetTag: {
     fontSize: 9,
