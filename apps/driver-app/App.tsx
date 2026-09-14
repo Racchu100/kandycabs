@@ -24,7 +24,7 @@ import {
 } from './services/api';
 
 export default function App() {
-  const [driverPhone, setDriverPhone] = useState('8888888888');
+  const [driverPhone, setDriverPhone] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
   // Permission States for GPS + Camera Gating Enforcement

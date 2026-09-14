@@ -88,11 +88,10 @@ export async function sendOtp(phone: string) {
     });
   } catch (err: any) {
     console.warn('[sendOtp API fallback]', err.message);
-    const isKnown = norm === '9876543210' || norm === '9481086058' || norm === '9999999999';
     return {
       success: true,
-      isRegistered: isKnown,
-      fullName: isKnown ? 'Rakshith M' : undefined,
+      isRegistered: false,
+      fullName: undefined,
       message: `OTP sent to +91 ${norm}`,
       devOtp: '1234',
     };
@@ -118,7 +117,7 @@ export async function verifyOtp(phone: string, otp: string, fullName?: string) {
     console.warn('[verifyOtp API fallback]', err.message);
     if (otp === '1234') {
       const mockToken = `mock_token_${Date.now()}`;
-      const mockUser = { id: `u_${normalizePhone(phone)}`, phone: normalizePhone(phone), fullName: fullName || 'Valued Customer' };
+      const mockUser = { id: `u_${normalizePhone(phone)}`, phone: normalizePhone(phone), fullName: fullName || '' };
       setCustomerAuthToken(mockToken, mockUser);
       return {
         isRegistered: true,

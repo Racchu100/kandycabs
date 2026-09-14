@@ -10,7 +10,7 @@ import { Lock, ShieldCheck, AlertCircle, ArrowRight, User } from 'lucide-react';
 export default function UnifiedLoginPage() {
   const router = useRouter();
   const auth = useAuth();
-  const [phone, setPhone] = useState('9876543210');
+  const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [fullName, setFullName] = useState('');

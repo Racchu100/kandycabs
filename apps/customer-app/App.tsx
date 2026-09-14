@@ -188,17 +188,17 @@ export default function App() {
   const [tripType, setTripType] = useState<TripType>('ONEWAY');
   const [airportTripMode, setAirportTripMode] = useState<'PICKUP' | 'DROP'>('PICKUP');
   const [localPackage, setLocalPackage] = useState<string>('8hr / 80km');
-  const [pickupInput, setPickupInput] = useState<string>('Bangalore, KA');
-  const [dropInput, setDropInput] = useState<string>('Coorg (Madikeri), KA');
+  const [pickupInput, setPickupInput] = useState<string>('');
+  const [dropInput, setDropInput] = useState<string>('');
   const [stops, setStops] = useState<string[]>([]);
   const [activeStopIndex, setActiveStopIndex] = useState<number | null>(null);
-  const [pickupDate, setPickupDate] = useState<string>('15-09-2026');
-  const [returnDate, setReturnDate] = useState<string>('17-09-2026');
-  const [pickupTime, setPickupTime] = useState<string>('07:00');
+  const [pickupDate, setPickupDate] = useState<string>('');
+  const [returnDate, setReturnDate] = useState<string>('');
+  const [pickupTime, setPickupTime] = useState<string>('');
 
   // ─── DATE & TIME PICKER STATE & HELPERS ───
   const [datePickerTarget, setDatePickerTarget] = useState<'PICKUP' | 'RETURN' | null>(null);
-  const [datePickerMonth, setDatePickerMonth] = useState<Date>(() => new Date(2026, 8, 15));
+  const [datePickerMonth, setDatePickerMonth] = useState<Date>(() => new Date());
   const [timePickerOpen, setTimePickerOpen] = useState<boolean>(false);
 
   const MONTH_NAMES = [

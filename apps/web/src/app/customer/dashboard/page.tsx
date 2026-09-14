@@ -104,7 +104,7 @@ export default function CustomerDashboardPage() {
   const [cancelling, setCancelling] = useState(false);
 
   // OTP Login modal state
-  const [loginPhone, setLoginPhone] = useState('9876543210');
+  const [loginPhone, setLoginPhone] = useState('');
   const [loginOtp, setLoginOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
 

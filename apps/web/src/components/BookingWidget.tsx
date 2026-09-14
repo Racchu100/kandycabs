@@ -69,9 +69,9 @@ export function BookingWidget() {
   // Dynamic Intermediate Stops State (Exclusively for Round Trips, empty by default)
   const [stops, setStops] = useState<SelectedLocation[]>([]);
 
-  const [pickupDate, setPickupDate] = useState('2026-09-15');
-  const [pickupTime, setPickupTime] = useState('07:00');
-  const [returnDate, setReturnDate] = useState('2026-09-17');
+  const [pickupDate, setPickupDate] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
+  const [returnDate, setReturnDate] = useState('');
   const [localPackage, setLocalPackage] = useState('8hr / 80km');
 
   // Global Validation Error State
