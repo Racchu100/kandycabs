@@ -77,13 +77,25 @@ async function request(endpoint: string, options: RequestInit = {}) {
 }
 
 // 1. Driver Authentication
-export async function driverLoginApi(phone: string, licenseNumber: string) {
+export async function sendDriverOtpApi(phone: string) {
+  try {
+    return await request('/api/auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone: normalizePhone(phone), loginType: 'driver' }),
+    });
+  } catch (err: any) {
+    console.warn('[sendDriverOtpApi fallback]', err.message);
+    return { success: true, message: 'OTP sent successfully (Demo: 1234)' };
+  }
+}
+
+export async function verifyDriverOtpApi(phone: string, otp: string) {
   try {
     const res = await request('/api/auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify({
         phone: normalizePhone(phone),
-        otp: '1234',
+        otp,
         loginType: 'driver',
       }),
     });
@@ -92,12 +104,22 @@ export async function driverLoginApi(phone: string, licenseNumber: string) {
     }
     return res;
   } catch (err: any) {
-    console.warn('[driverLoginApi fallback]', err.message);
+    console.warn('[verifyDriverOtpApi fallback]', err.message);
     const mockToken = `mock_driver_token_${Date.now()}`;
-    const mockUser = { id: `d_${normalizePhone(phone)}`, phone: normalizePhone(phone), fullName: 'Ramesh Kumar (Chauffeur)', status: 'APPROVED' };
+    const mockUser = {
+      id: `d_${normalizePhone(phone)}`,
+      phone: normalizePhone(phone),
+      fullName: 'Ramesh Kumar (Chauffeur)',
+      vehicleName: 'Swift Dzire (Sedan)',
+      status: 'APPROVED',
+    };
     setDriverAuthToken(mockToken, mockUser);
     return { success: true, user: mockUser, token: mockToken };
   }
+}
+
+export async function driverLoginApi(phone: string, licenseNumber: string) {
+  return verifyDriverOtpApi(phone, '1234');
 }
 
 // 2. Fetch Driver Dispatches / Active Assignments

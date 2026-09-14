@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@kandycabs/shared": "file:../../packages/shared",
+    "@react-native-async-storage/async-storage": "1.23.1",
     "expo": "~51.0.0",
     "expo-camera": "~15.0.13",
     "expo-location": "~17.0.1",

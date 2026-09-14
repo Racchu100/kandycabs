@@ -24,7 +24,9 @@
       "package": "com.kandycabs.customer",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -39,11 +41,11 @@
         }
       ]
     ],
+    "owner": "rakshithm",
     "extra": {
       "eas": {
-        "projectId": "4b5c4ef1-0362-4f69-90be-2e7705d28122"
+        "projectId": "77d94b4e-e360-4d60-8d99-d9892fe10468"
       }
-    },
-    "owner": "rakshithms-team"
+    }
   }
 }
