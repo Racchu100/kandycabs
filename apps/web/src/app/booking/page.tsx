@@ -541,14 +541,14 @@ function BookingContent() {
           {/* Trust / Promotional Info Banner */}
           {!bannerDismissed && (
             <div className="relative bg-sky-50/90 border border-sky-200/80 text-sky-950 rounded-xl p-3.5 sm:py-2.5 sm:px-5 mb-3.5 sm:mb-4 shadow-xs transition-all">
-              {/* Dismiss Button (44x44px tap target in top-right corner on mobile) */}
+              {/* Dismiss Button (Mobile only, removed on tablet & laptop) */}
               <button
                 type="button"
                 onClick={() => setBannerDismissed(true)}
-                className="absolute top-1 right-1 sm:static w-11 h-11 sm:w-6 sm:h-6 flex items-center justify-center text-sky-400 hover:text-sky-700 active:text-sky-900 rounded-full hover:bg-sky-100/60 transition shrink-0 cursor-pointer z-10"
+                className="sm:hidden absolute top-1 right-1 w-11 h-11 flex items-center justify-center text-sky-400 hover:text-sky-700 active:text-sky-900 rounded-full hover:bg-sky-100/60 transition shrink-0 cursor-pointer z-10"
                 aria-label="Dismiss promotional banner"
               >
-                <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                <X className="w-4 h-4" />
               </button>
 
               {/* MOBILE LAYOUT: Stacked rows with 20px icons, vertical spacing & tap clearance (sm:hidden) */}
