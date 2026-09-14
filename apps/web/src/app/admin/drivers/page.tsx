@@ -246,7 +246,14 @@ export default function AdminDriversPage() {
             <tbody className="divide-y divide-gray-100 font-medium">
               {drivers.map((d) => (
                 <tr key={d.id} className="hover:bg-gray-50">
-                  <td className="p-2 sm:p-3.5 font-bold whitespace-nowrap">{d.fullName}</td>
+                  <td className="p-2 sm:p-3.5 font-bold whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      {d.isActive !== false && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0 shadow-sm animate-pulse" title="Online" />
+                      )}
+                      <span>{d.fullName}</span>
+                    </div>
+                  </td>
                   <td className="p-2 sm:p-3.5 whitespace-nowrap">+91 {d.user?.phone || '8888888888'}</td>
                   <td className="p-2 sm:p-3.5 font-mono whitespace-nowrap">{d.licenseNumber || 'PENDING'}</td>
                   <td className="p-2 sm:p-3.5 whitespace-nowrap">

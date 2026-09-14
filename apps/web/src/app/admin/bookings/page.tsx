@@ -823,10 +823,12 @@ export default function AdminBookingsPage() {
                     >
                       <div className="flex items-center gap-2">
                         <input type="checkbox" checked={isChecked} readOnly />
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0 shadow-sm animate-pulse" title="Online" />
                         <span>{d.fullName} (+91 {d.user?.phone || '8888888888'})</span>
                       </div>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">
-                        ACTIVE
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-black uppercase tracking-wider flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
+                        ONLINE
                       </span>
                     </div>
                   );
