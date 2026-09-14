@@ -13,7 +13,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { KANDY_THEME } from '@kandycabs/shared';
 import {
   sendDriverOtpApi,
@@ -27,7 +27,7 @@ import {
   sendGpsPingApi,
 } from './services/api';
 
-const SESSION_STORAGE_KEY = '@kandy_driver_session';
+const SESSION_STORAGE_KEY = 'kandy_driver_session';
 
 export default function App() {
   // ─── AUTHENTICATION STATE & SESSION PERSISTENCE ───
@@ -45,7 +45,7 @@ export default function App() {
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const savedSession = await AsyncStorage.getItem(SESSION_STORAGE_KEY);
+        const savedSession = await SecureStore.getItemAsync(SESSION_STORAGE_KEY);
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
           if (parsed?.token && parsed?.user) {
@@ -90,8 +90,8 @@ export default function App() {
     try {
       const res = await verifyDriverOtpApi(loginPhone, loginOtp);
       if (res.token && res.user) {
-        // Save session permanently to AsyncStorage
-        await AsyncStorage.setItem(
+        // Save session permanently to SecureStore
+        await SecureStore.setItemAsync(
           SESSION_STORAGE_KEY,
           JSON.stringify({
             token: res.token,
@@ -120,7 +120,7 @@ export default function App() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await AsyncStorage.removeItem(SESSION_STORAGE_KEY);
+              await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
             } catch (e) {}
             setDriverAuthToken(null);
             setDriverUser(null);
