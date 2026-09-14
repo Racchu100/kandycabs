@@ -63,7 +63,7 @@ export default function HomePage() {
           style={{ backgroundImage: "url('/hero-bg.jpg')" }}
         />
         {/* Soft White/Light Gradient Overlay for High Text & Header Contrast */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-white/75 via-white/60 to-white/90 md:from-white/80 md:via-white/65 md:to-white/85" />
+        <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/95 via-white/85 to-white/50 md:via-white/75 md:to-white/25" />
 
         {/* Top Header Navbar with Transparent Background */}
         <Navbar transparentOnTop={true} />

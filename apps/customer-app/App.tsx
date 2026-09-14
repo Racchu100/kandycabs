@@ -12,7 +12,6 @@ import {
   Linking,
   Modal,
   Image,
-  ImageBackground,
 } from 'react-native';
 import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
@@ -509,159 +508,149 @@ export default function App() {
       {/* TAB 1: HOME & BOOKING WIZARD */}
       {activeTab === 'HOME' && (
         <ScrollView style={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          {/* HERO BANNER SECTION WITH SCENIC MOUNTAIN ROAD BACKGROUND (Matching Image 2) */}
-          <ImageBackground
-            source={require('./assets/hero-bg.jpg')}
-            style={styles.heroWrapper}
-            imageStyle={styles.heroImageStyle}
-          >
-            <View style={styles.heroOverlay}>
-              <View style={styles.heroBadge}>
-                <Text style={styles.heroBadgeText}>✨ SOUTH INDIA'S PREMIUM INTERCITY CAB SERVICE</Text>
+          {/* HERO BANNER SECTION (Matching Image 2) */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeText}>✨ SOUTH INDIA'S PREMIUM INTERCITY CAB SERVICE</Text>
+            </View>
+            <Text style={styles.heroTitle}>
+              Book Outstation & Local Cabs with <Text style={{ color: KANDY_THEME.colors.primary }}>Transparent Fares</Text>
+            </Text>
+            <Text style={styles.heroSubtitle}>
+              Pay 25% advance only. Clean sanitized cabs, courteous verified drivers, and doorstep pickup.
+            </Text>
+          </View>
+
+          {/* STEP 1: INTERCITY CAB BOOKING WIDGET (Matching Image 2) */}
+          {currentStep === 'SEARCH' && (
+            <View style={styles.bookingCard}>
+              {/* PICKUP LOCATION WITH SEARCH DROPDOWN */}
+              <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
+              <View style={styles.inputSearchWrapper}>
+                <Text style={styles.inputIcon}>🔍</Text>
+                <TextInput
+                  style={styles.inputWithIcon}
+                  value={pickupInput}
+                  onChangeText={(val) => {
+                    setPickupInput(val);
+                    setShowPickupDropdown(true);
+                  }}
+                  onFocus={() => setShowPickupDropdown(true)}
+                  placeholder="Enter Pickup Place, Landmark, Railway Station..."
+                />
               </View>
-              <Text style={styles.heroTitle}>
-                Travel with confidence with <Text style={{ color: '#FF6B1A' }}>Kandy Cabs</Text>
-              </Text>
-              <Text style={styles.heroSubtitle}>
-                Safe, reliable, and hassle-free rides for local, airport, and outstation journeys.
-              </Text>
-
-              {/* STEP 1: INTERCITY CAB BOOKING WIDGET (Matching Image 2) */}
-              {currentStep === 'SEARCH' && (
-                <View style={styles.bookingCard}>
-                  {/* PICKUP LOCATION WITH SEARCH DROPDOWN */}
-                  <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
-                  <View style={styles.inputSearchWrapper}>
-                    <Text style={styles.inputIconOrange}>📍</Text>
-                    <TextInput
-                      style={styles.inputWithIcon}
-                      value={pickupInput}
-                      onChangeText={(val) => {
-                        setPickupInput(val);
-                        setShowPickupDropdown(true);
+              {showPickupDropdown && (
+                <View style={styles.suggestionsBox}>
+                  {POPULAR_LOCATIONS.filter(
+                    (loc) =>
+                      loc.name.toLowerCase().includes(pickupInput.toLowerCase()) ||
+                      loc.city.toLowerCase().includes(pickupInput.toLowerCase())
+                  ).map((loc, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.suggestionItem}
+                      onPress={() => {
+                        setPickupInput(loc.name);
+                        setShowPickupDropdown(false);
                       }}
-                      onFocus={() => setShowPickupDropdown(true)}
-                      placeholder="Enter Pickup Place, Landmark, Railway Station..."
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                  {showPickupDropdown && (
-                    <View style={styles.suggestionsBox}>
-                      {POPULAR_LOCATIONS.filter(
-                        (loc) =>
-                          loc.name.toLowerCase().includes(pickupInput.toLowerCase()) ||
-                          loc.city.toLowerCase().includes(pickupInput.toLowerCase())
-                      ).map((loc, idx) => (
-                        <TouchableOpacity
-                          key={idx}
-                          style={styles.suggestionItem}
-                          onPress={() => {
-                            setPickupInput(loc.name);
-                            setShowPickupDropdown(false);
-                          }}
-                        >
-                          <Text style={styles.suggestionName}>📍 {loc.name}</Text>
-                          <Text style={styles.suggestionAddr}>{loc.address}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* SWAP LOCATION BUTTON (⇅) */}
-                  <View style={styles.swapContainer}>
-                    <View style={styles.swapLine} />
-                    <TouchableOpacity style={styles.swapCircleBtn} onPress={handleSwapLocations}>
-                      <Text style={styles.swapIcon}>⇅</Text>
+                    >
+                      <Text style={styles.suggestionName}>📍 {loc.name}</Text>
+                      <Text style={styles.suggestionAddr}>{loc.address}</Text>
                     </TouchableOpacity>
-                    <View style={styles.swapLine} />
-                  </View>
-
-                  {/* DESTINATION LOCATION WITH SEARCH DROPDOWN */}
-                  <Text style={styles.inputLabel}>DESTINATION LOCATION</Text>
-                  <View style={styles.inputSearchWrapper}>
-                    <Text style={styles.inputIconOrange}>📍</Text>
-                    <TextInput
-                      style={styles.inputWithIcon}
-                      value={dropInput}
-                      onChangeText={(val) => {
-                        setDropInput(val);
-                        setShowDropDropdown(true);
-                      }}
-                      onFocus={() => setShowDropDropdown(true)}
-                      placeholder="Enter Drop City, Hotel, Landmark..."
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                  {showDropDropdown && (
-                    <View style={styles.suggestionsBox}>
-                      {POPULAR_LOCATIONS.filter(
-                        (loc) =>
-                          loc.name.toLowerCase().includes(dropInput.toLowerCase()) ||
-                          loc.city.toLowerCase().includes(dropInput.toLowerCase())
-                      ).map((loc, idx) => (
-                        <TouchableOpacity
-                          key={idx}
-                          style={styles.suggestionItem}
-                          onPress={() => {
-                            setDropInput(loc.name);
-                            setShowDropDropdown(false);
-                          }}
-                        >
-                          <Text style={styles.suggestionName}>🏁 {loc.name}</Text>
-                          <Text style={styles.suggestionAddr}>{loc.address}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* SIDE-BY-SIDE DATE & TIME PICKER GRID (Matching Image 2) */}
-                  <View style={styles.dateTimeGrid}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.inputLabel}>PICK UP DATE</Text>
-                      <View style={styles.inputSearchWrapper}>
-                        <Text style={styles.inputIconOrange}>📅</Text>
-                        <TextInput
-                          style={styles.inputWithIcon}
-                          value={pickupDate}
-                          onChangeText={setPickupDate}
-                          placeholder="DD-MM-YYYY"
-                          placeholderTextColor="#94A3B8"
-                        />
-                      </View>
-                    </View>
-
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.inputLabel}>PICK UP TIME</Text>
-                      <View style={styles.inputSearchWrapper}>
-                        <Text style={styles.inputIconOrange}>⏰</Text>
-                        <TextInput
-                          style={styles.inputWithIcon}
-                          value={pickupTime}
-                          onChangeText={setPickupTime}
-                          placeholder="HH:MM"
-                          placeholderTextColor="#94A3B8"
-                        />
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* BIG ORANGE ACTION BUTTON (Matching Image 2) */}
-                  <TouchableOpacity
-                    style={styles.exploreCabsBtn}
-                    onPress={() => {
-                      if (!pickupInput || !dropInput) {
-                        Alert.alert('Required', 'Please select both pickup and destination locations.');
-                        return;
-                      }
-                      setCurrentStep('VEHICLES');
-                    }}
-                  >
-                    <Text style={styles.exploreCabsBtnText}>EXPLORE CABS & RATES →</Text>
-                  </TouchableOpacity>
+                  ))}
                 </View>
               )}
+
+              {/* SWAP LOCATION BUTTON (⇅) */}
+              <View style={styles.swapContainer}>
+                <View style={styles.swapLine} />
+                <TouchableOpacity style={styles.swapCircleBtn} onPress={handleSwapLocations}>
+                  <Text style={styles.swapIcon}>⇅</Text>
+                </TouchableOpacity>
+                <View style={styles.swapLine} />
+              </View>
+
+              {/* DESTINATION LOCATION WITH SEARCH DROPDOWN */}
+              <Text style={styles.inputLabel}>DESTINATION LOCATION</Text>
+              <View style={styles.inputSearchWrapper}>
+                <Text style={styles.inputIcon}>🔍</Text>
+                <TextInput
+                  style={styles.inputWithIcon}
+                  value={dropInput}
+                  onChangeText={(val) => {
+                    setDropInput(val);
+                    setShowDropDropdown(true);
+                  }}
+                  onFocus={() => setShowDropDropdown(true)}
+                  placeholder="Enter Drop City, Hotel, Landmark..."
+                />
+              </View>
+              {showDropDropdown && (
+                <View style={styles.suggestionsBox}>
+                  {POPULAR_LOCATIONS.filter(
+                    (loc) =>
+                      loc.name.toLowerCase().includes(dropInput.toLowerCase()) ||
+                      loc.city.toLowerCase().includes(dropInput.toLowerCase())
+                  ).map((loc, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.suggestionItem}
+                      onPress={() => {
+                        setDropInput(loc.name);
+                        setShowDropDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.suggestionName}>🏁 {loc.name}</Text>
+                      <Text style={styles.suggestionAddr}>{loc.address}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* SIDE-BY-SIDE DATE & TIME PICKER GRID (Matching Image 2) */}
+              <View style={styles.dateTimeGrid}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>PICK UP DATE</Text>
+                  <View style={styles.inputSearchWrapper}>
+                    <Text style={styles.inputIcon}>📅</Text>
+                    <TextInput
+                      style={styles.inputWithIcon}
+                      value={pickupDate}
+                      onChangeText={setPickupDate}
+                      placeholder="DD-MM-YYYY"
+                    />
+                  </View>
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>PICK UP TIME</Text>
+                  <View style={styles.inputSearchWrapper}>
+                    <Text style={styles.inputIcon}>⏰</Text>
+                    <TextInput
+                      style={styles.inputWithIcon}
+                      value={pickupTime}
+                      onChangeText={setPickupTime}
+                      placeholder="HH:MM"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* BIG ORANGE ACTION BUTTON (Matching Image 2) */}
+              <TouchableOpacity
+                style={styles.exploreCabsBtn}
+                onPress={() => {
+                  if (!pickupInput || !dropInput) {
+                    Alert.alert('Required', 'Please select both pickup and destination locations.');
+                    return;
+                  }
+                  setCurrentStep('VEHICLES');
+                }}
+              >
+                <Text style={styles.exploreCabsBtnText}>EXPLORE CABS & RATES →</Text>
+              </TouchableOpacity>
             </View>
-          </ImageBackground>
+          )}
 
           {/* 4 TRUST BADGES GRID (Matching Image 2) */}
           <View style={styles.trustBadgesGrid}>
@@ -1538,93 +1527,72 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scrollContent: {
-    padding: 0,
-    backgroundColor: '#F8FAFC',
-  },
-  heroWrapper: {
-    width: '100%',
-    marginVertical: 0,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
-  },
-  heroImageStyle: {
-    borderRadius: 0,
-    opacity: 0.25,
-  },
-  heroOverlay: {
-    width: '100%',
+    padding: 14,
   },
   heroSection: {
     marginVertical: 10,
   },
   heroBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 247, 237, 0.95)',
+    backgroundColor: '#FFF7ED',
     borderWidth: 1,
     borderColor: '#FFEDD5',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 999,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   heroBadgeText: {
-    color: '#FF6B1A',
+    color: KANDY_THEME.colors.primary,
     fontSize: 10,
     fontWeight: '900',
-    letterSpacing: 0.5,
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
     color: '#0F172A',
-    lineHeight: 32,
+    lineHeight: 28,
     marginBottom: 6,
   },
   heroSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#475569',
-    lineHeight: 20,
-    marginBottom: 18,
+    lineHeight: 18,
+    marginBottom: 14,
   },
   bookingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 18,
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.8)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   inputLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#475569',
-    marginBottom: 6,
+    color: '#64748B',
+    marginBottom: 4,
     letterSpacing: 0.5,
   },
   inputSearchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    marginBottom: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 6,
   },
   inputIcon: {
     fontSize: 14,
     marginRight: 6,
-  },
-  inputIconOrange: {
-    fontSize: 16,
-    marginRight: 8,
-    color: '#FF6B1A',
   },
   inputWithIcon: {
     flex: 1,
@@ -2231,45 +2199,31 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFF',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    gap: 6,
-    elevation: 10,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
   bottomNavItem: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 9999,
-    backgroundColor: '#F1F5F9',
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   bottomNavItemActive: {
-    backgroundColor: '#FF6B1A',
-    shadowColor: '#FF6B1A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: KANDY_THEME.colors.primary,
   },
   bottomNavIcon: {
-    fontSize: 15,
+    fontSize: 16,
   },
   bottomNavText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '900',
-    color: '#334155',
+    color: '#475569',
     marginTop: 2,
-    letterSpacing: 0.3,
   },
   bottomNavTextActive: {
-    color: '#FFFFFF',
+    color: '#FFF',
   },
 });

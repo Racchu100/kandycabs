@@ -550,36 +550,10 @@ function BookingContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-kandy-bg pb-[calc(var(--bottom-bar-height,0px)+2.5rem)] sm:pb-0">
-      {/* Top Header & Hero Container with Seamless Mountain Road Background */}
-      <div className="relative overflow-hidden border-b border-kandy-border">
-        {/* Scenic Mountain Road Background Image */}
-        <div
-          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transform scale-105"
-          style={{ backgroundImage: "url('/hero-bg.jpg')" }}
-        />
-        {/* Soft White/Light Gradient Overlay for High Text & Header Contrast */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-white/75 via-white/60 to-white/90 md:from-white/80 md:via-white/65 md:to-white/85" />
+    <div className="min-h-screen flex flex-col bg-kandy-bg">
+      <Navbar />
 
-        {/* Top Header Navbar with Transparent Background */}
-        <Navbar transparentOnTop={true} />
-
-        {/* Hero Section Headline */}
-        <section className="relative pt-[calc(var(--header-height,64px)+0.5rem)] sm:pt-12 md:pt-16 lg:pt-20 pb-4 sm:pb-6 z-10">
-          <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 w-full">
-            <div className="text-left max-w-2xl">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#0F172A] tracking-tight leading-tight mb-1.5 sm:mb-2 drop-shadow-xs">
-                Travel with confidence with <span className="text-[#FF6B1A]">Kandy Cabs</span>
-              </h1>
-              <h2 className="text-xs sm:text-sm md:text-base text-[#334155] font-bold leading-relaxed max-w-xl drop-shadow-xs">
-                Safe, reliable, and hassle-free rides for local, airport, and outstation journeys
-              </h2>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <main className="flex-1 pt-3 sm:pt-6 pb-[calc(var(--bottom-bar-height,0px)+3rem)] sm:pb-8">
+      <main className="flex-1 pt-1 sm:pt-2 pb-[calc(var(--bottom-bar-height,0px)+3rem)] sm:pb-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
 
           {/* Trust / Promotional Info Banner */}
