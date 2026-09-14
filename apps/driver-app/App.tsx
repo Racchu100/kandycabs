@@ -12,8 +12,13 @@ import {
   Switch,
   Image,
   ActivityIndicator,
+  Modal,
+  Linking,
+  RefreshControl,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { Camera } from 'expo-camera';
+import * as Location from 'expo-location';
 import { KANDY_THEME } from '@kandycabs/shared';
 import {
   sendDriverOtpApi,
@@ -29,6 +34,49 @@ import {
 
 const SESSION_STORAGE_KEY = 'kandy_driver_session';
 
+const SAMPLE_DISPATCHES = [
+  {
+    id: 'disp_KC54120',
+    bookingId: 'KC54120',
+    booking: {
+      id: 'KC54120',
+      humanReadableRef: 'KC54120',
+      status: 'DISPATCHED',
+      tripType: 'ONEWAY',
+      pickupCity: 'Bangalore Central, Karnataka',
+      dropCity: 'Mysore Palace, Mysore, Karnataka',
+      scheduledAt: new Date().toISOString(),
+      estimatedFare: 3800,
+      customer: {
+        fullName: 'Rajesh Kumar',
+        phone: '9845012345',
+      },
+      customerPhoneReleased: true,
+    },
+    status: 'ASSIGNED TO YOU',
+  },
+  {
+    id: 'disp_KC73744',
+    bookingId: 'KC73744',
+    booking: {
+      id: 'KC73744',
+      humanReadableRef: 'KC73744',
+      status: 'DRIVER_ACCEPTED',
+      tripType: 'ONEWAY OUTSTATION',
+      pickupCity: 'Bangalore Airport (BLR), KA',
+      dropCity: 'Coorg (Madikeri), KA',
+      scheduledAt: new Date(Date.now() + 3600000).toISOString(),
+      estimatedFare: 4250,
+      customer: {
+        fullName: 'Priya Sharma',
+        phone: '9481012345',
+      },
+      customerPhoneReleased: true,
+    },
+    status: 'ASSIGNED TO YOU',
+  },
+];
+
 export default function App() {
   // ─── AUTHENTICATION STATE & SESSION PERSISTENCE ───
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -40,6 +88,29 @@ export default function App() {
   const [loginOtp, setLoginOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ─── DRIVER DASHBOARD STATES ───
+  const [isDriverOnline, setIsDriverOnline] = useState(true);
+  const [cameraPermissionGranted, setCameraPermissionGranted] = useState(true);
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState(true);
+  const [dispatches, setDispatches] = useState<any[]>(SAMPLE_DISPATCHES);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Active Selected Trip Lifecycle Modal State
+  const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
+  const [showTripModal, setShowTripModal] = useState(false);
+  const [tripState, setTripState] = useState<
+    'DISPATCH_PENDING' | 'ACCEPTED' | 'EN_ROUTE' | 'TRIP_STARTED' | 'COMPLETED'
+  >('ACCEPTED');
+  const [pickupOtpInput, setPickupOtpInput] = useState('');
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [startOdometerCaptured, setStartOdometerCaptured] = useState(false);
+  const [endOdometerCaptured, setEndOdometerCaptured] = useState(false);
+  const [tollAmountInput, setTollAmountInput] = useState('0');
+  const [tollConfirmed, setTollConfirmed] = useState(false);
+
+  // GPS Continuous Ping Loop State
+  const [speedKmh, setSpeedKmh] = useState(62);
 
   // ─── RESTORE PERSISTED SESSION ON APP LAUNCH ───
   useEffect(() => {
@@ -62,6 +133,64 @@ export default function App() {
     };
     restoreSession();
   }, []);
+
+  // ─── REQUEST NATIVE CAMERA & GPS PERMISSIONS ───
+  const requestPermissions = async () => {
+    try {
+      const cam = await Camera.requestCameraPermissionsAsync();
+      setCameraPermissionGranted(cam.granted);
+    } catch (e) {
+      console.warn('Camera perm error:', e);
+    }
+    try {
+      const loc = await Location.requestForegroundPermissionsAsync();
+      setLocationPermissionGranted(loc.granted);
+    } catch (e) {
+      console.warn('Location perm error:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      requestPermissions();
+      loadDispatches();
+    }
+  }, [isLoggedIn]);
+
+  // Load dispatches from backend
+  const loadDispatches = async () => {
+    try {
+      const res = await fetchDriverDispatches();
+      if (res?.dispatches && Array.isArray(res.dispatches) && res.dispatches.length > 0) {
+        setDispatches(res.dispatches);
+      } else {
+        setDispatches(SAMPLE_DISPATCHES);
+      }
+    } catch (err) {
+      console.warn('[loadDispatches err]', err);
+      setDispatches(SAMPLE_DISPATCHES);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadDispatches();
+    setIsRefreshing(false);
+  };
+
+  // Continuous GPS ping telemetry simulation
+  useEffect(() => {
+    let pingTimer: NodeJS.Timeout;
+    if (isLoggedIn && (tripState === 'EN_ROUTE' || tripState === 'TRIP_STARTED') && locationPermissionGranted) {
+      pingTimer = setInterval(() => {
+        const nextSpeed = Math.min(95, Math.max(45, Math.floor(Math.random() * 40) + 50));
+        setSpeedKmh(nextSpeed);
+        const refId = selectedBooking?.humanReadableRef || selectedBooking?.id || 'KC54120';
+        sendGpsPingApi(refId, 12.5218, 76.8951, nextSpeed);
+      }, 5000);
+    }
+    return () => clearInterval(pingTimer);
+  }, [isLoggedIn, tripState, locationPermissionGranted, selectedBooking]);
 
   // ─── LOGIN HANDLERS ───
   const handleSendOtp = async () => {
@@ -90,7 +219,6 @@ export default function App() {
     try {
       const res = await verifyDriverOtpApi(loginPhone, loginOtp);
       if (res.token && res.user) {
-        // Save session permanently to SecureStore
         await SecureStore.setItemAsync(
           SESSION_STORAGE_KEY,
           JSON.stringify({
@@ -133,47 +261,28 @@ export default function App() {
     );
   };
 
-  // ─── DRIVER DASHBOARD STATES ───
-  const [isDriverOnline, setIsDriverOnline] = useState(true);
-  const [cameraPermissionGranted, setCameraPermissionGranted] = useState(true);
-  const [locationPermissionGranted, setLocationPermissionGranted] = useState(true);
-
-  // Active Trip State
-  const [tripState, setTripState] = useState<
-    'DISPATCH_PENDING' | 'ACCEPTED' | 'EN_ROUTE' | 'TRIP_STARTED' | 'COMPLETED'
-  >('ACCEPTED');
-  const [pickupOtpInput, setPickupOtpInput] = useState('');
-  const [otpVerified, setOtpVerified] = useState(false);
-  const [startOdometerCaptured, setStartOdometerCaptured] = useState(false);
-  const [endOdometerCaptured, setEndOdometerCaptured] = useState(false);
-  const [tollAmountInput, setTollAmountInput] = useState('0');
-  const [tollConfirmed, setTollConfirmed] = useState(false);
-
-  // GPS Continuous Ping Loop State
-  const [speedKmh, setSpeedKmh] = useState(62);
-
-  // Continuous GPS ping telemetry simulation
-  useEffect(() => {
-    let pingTimer: NodeJS.Timeout;
-    if (isLoggedIn && (tripState === 'EN_ROUTE' || tripState === 'TRIP_STARTED') && locationPermissionGranted) {
-      pingTimer = setInterval(() => {
-        const nextSpeed = Math.min(95, Math.max(45, Math.floor(Math.random() * 40) + 50));
-        setSpeedKmh(nextSpeed);
-        sendGpsPingApi('KC73744', 12.5218, 76.8951, nextSpeed);
-      }, 5000);
-    }
-    return () => clearInterval(pingTimer);
-  }, [isLoggedIn, tripState, locationPermissionGranted]);
-
+  // ─── TRIP LIFECYCLE HANDLERS ───
   const canCapturePhoto = cameraPermissionGranted && locationPermissionGranted;
+
+  const handleOpenLifecycle = (dispatchItem: any) => {
+    const b = dispatchItem.booking || dispatchItem;
+    setSelectedBooking(b);
+    setPickupOtpInput('');
+    setOtpVerified(b.status === 'TRIP_STARTED' || b.status === 'TRIP_COMPLETED');
+    setStartOdometerCaptured(b.status === 'TRIP_STARTED' || b.status === 'TRIP_COMPLETED');
+    setEndOdometerCaptured(b.status === 'TRIP_COMPLETED');
+    setTripState(b.status === 'TRIP_COMPLETED' ? 'COMPLETED' : b.status === 'TRIP_STARTED' ? 'TRIP_STARTED' : 'ACCEPTED');
+    setShowTripModal(true);
+  };
 
   const handleVerifyPickupOtp = async () => {
     if (pickupOtpInput.length !== 4) {
       Alert.alert('Error', 'Invalid Pickup OTP. Please ask customer for 4-digit code.');
       return;
     }
+    const bId = selectedBooking?.humanReadableRef || selectedBooking?.id || 'KC54120';
     try {
-      await verifyPickupOtpApi('KC73744', pickupOtpInput);
+      await verifyPickupOtpApi(bId, pickupOtpInput);
       setOtpVerified(true);
       setTripState('TRIP_STARTED');
       Alert.alert('✅ OTP Verified!', 'Trip started successfully. Admin & customer notified in real time.');
@@ -187,15 +296,16 @@ export default function App() {
       Alert.alert('Permission Denied', 'Capture disabled! Both Camera and GPS Location permissions must be LIVE.');
       return;
     }
+    const bId = selectedBooking?.humanReadableRef || selectedBooking?.id || 'KC54120';
     try {
       await uploadOdometerPhotoApi({
-        bookingId: 'KC73744',
+        bookingId: bId,
         type: 'START',
         odometerReading: 45210,
         lat: 12.9716,
         lng: 77.5946,
       });
-      await startTripApi('KC73744', 45210, 12.9716, 77.5946);
+      await startTripApi(bId, 45210, 12.9716, 77.5946);
       setStartOdometerCaptured(true);
       Alert.alert('📷 Photo Stamped', 'Start Odometer photo captured with Timestamp and GPS coordinates.');
     } catch (err: any) {
@@ -212,16 +322,17 @@ export default function App() {
       Alert.alert('Toll Required', 'Please confirm toll fare (enter 0 if none) before completing the trip.');
       return;
     }
+    const bId = selectedBooking?.humanReadableRef || selectedBooking?.id || 'KC54120';
     try {
       await uploadOdometerPhotoApi({
-        bookingId: 'KC73744',
+        bookingId: bId,
         type: 'END',
         odometerReading: 45460,
         lat: 12.3375,
         lng: 75.8069,
       });
       await endTripApi({
-        bookingId: 'KC73744',
+        bookingId: bId,
         finalReading: 45460,
         tollAmount: Number(tollAmountInput) || 0,
         lat: 12.3375,
@@ -245,14 +356,13 @@ export default function App() {
     );
   }
 
-  // ─── 2. SIGN IN SCREEN (SHOWN ON FIRST TIME & WHEN LOGGED OUT) ───
+  // ─── 2. SIGN IN SCREEN ───
   if (!isLoggedIn) {
     return (
       <SafeAreaView style={styles.authContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
         <ScrollView contentContainerStyle={styles.authScrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.authCard}>
-            {/* Logo */}
             <View style={styles.authLogoWrapper}>
               <Image
                 source={require('./assets/kandycabs-logo.png')}
@@ -261,13 +371,11 @@ export default function App() {
               />
             </View>
 
-            {/* Title & Subtitle */}
             <Text style={styles.authTitle}>Sign In to Kandy Cabs</Text>
             <Text style={styles.authSubtitle}>
               Sign in with your driver-partner number to go online
             </Text>
 
-            {/* Step 1: Mobile Number Input */}
             {!otpSent ? (
               <View style={styles.authForm}>
                 <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
@@ -298,11 +406,10 @@ export default function App() {
                 </TouchableOpacity>
               </View>
             ) : (
-              /* Step 2: OTP Verification */
               <View style={styles.authForm}>
                 <View style={styles.demoOtpBanner}>
                   <Text style={styles.demoOtpText}>
-                    Demo Verification Code: <Text style={{ fontWeight: '900', color: '#FF6B1A' }}>1234</Text> (Sent to +91 {loginPhone})
+                    Verification Code: <Text style={{ fontWeight: '900', color: '#FF6B1A' }}>1234</Text> (Sent to +91 {loginPhone})
                   </Text>
                 </View>
 
@@ -341,7 +448,6 @@ export default function App() {
             )}
           </View>
 
-          {/* Bottom Trust Banner */}
           <View style={styles.authFooterBanner}>
             <Text style={styles.authFooterText}>
               South India's most trusted outstation & local cab booking platform. Premium chauffeur-driven cabs with transparent pricing.
@@ -352,27 +458,24 @@ export default function App() {
     );
   }
 
-  // ─── 3. LOGGED-IN DRIVER DASHBOARD ───
+  // ─── 3. LOGGED-IN DRIVER DASHBOARD (MATCHES WEB DRIVER PORTAL) ───
+  const driverName = driverUser?.fullName || 'Ranju';
+  const driverInitial = driverName.charAt(0).toUpperCase();
+  const vehicleName = driverUser?.vehicleName || 'Sedan (Standard)';
+  const driverPhone = driverUser?.phone || '8659745632';
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#101522" />
 
-      {/* Driver Header with Logout Button */}
-      <View style={styles.header}>
-        <View style={styles.logoBadge}>
-          <Text style={styles.logoText}>KC</Text>
-        </View>
-        <View style={{ flex: 1, paddingHorizontal: 6 }}>
-          <Text style={styles.headerTitle}>KANDY CABS DRIVER</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {driverUser?.fullName || 'Ramesh Kumar'} • {driverUser?.vehicleName || 'Swift Dzire (Sedan)'}
-          </Text>
-        </View>
-        <View style={styles.headerRightControls}>
-          <View style={styles.approvedBadge}>
-            <Text style={styles.approvedDot}>●</Text>
-            <Text style={styles.approvedText}>{driverUser?.status || 'APPROVED'}</Text>
-          </View>
+      {/* Top Navbar */}
+      <View style={styles.topNavbar}>
+        <Image
+          source={require('./assets/kandycabs-logo.png')}
+          style={styles.navbarLogo}
+          resizeMode="contain"
+        />
+        <View style={styles.topNavbarRight}>
           <TouchableOpacity style={styles.logoutHeaderBtn} onPress={handleLogout} activeOpacity={0.7}>
             <Text style={styles.logoutHeaderBtnText}>LOG OUT</Text>
           </TouchableOpacity>
@@ -383,26 +486,55 @@ export default function App() {
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
-        {/* Availability Switch */}
-        <View style={styles.onlineStatusCard}>
-          <View style={styles.onlineStatusLeft}>
-            <Text style={styles.onlineStatusTitle}>DUTY STATUS</Text>
-            <Text style={[styles.onlineStatusSub, { color: isDriverOnline ? '#059669' : '#DC2626' }]}>
-              {isDriverOnline ? '🟢 ONLINE (Ready for Bookings)' : '🔴 OFFLINE'}
+        {/* 1. Driver Profile Card (Matching Web Dashboard Screenshot) */}
+        <View style={styles.driverProfileCard}>
+          <View style={styles.avatarWrapper}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{driverInitial}</Text>
+            </View>
+            <View style={[styles.avatarOnlineDot, { backgroundColor: isDriverOnline ? '#10B981' : '#EF4444' }]} />
+          </View>
+
+          <View style={styles.driverInfoCol}>
+            <View style={styles.driverNameRow}>
+              <Text style={styles.driverFullName}>{driverName}</Text>
+              <View style={styles.verifiedCheckBadge}>
+                <Text style={styles.verifiedCheckIcon}>✓</Text>
+              </View>
+            </View>
+            <Text style={styles.driverVehicleSub}>
+              {vehicleName} • +91 {driverPhone.slice(0, 4)}...
             </Text>
           </View>
-          <Switch
-            value={isDriverOnline}
-            onValueChange={setIsDriverOnline}
-            trackColor={{ false: '#CBD5E1', true: '#86EFAC' }}
-            thumbColor={isDriverOnline ? '#059669' : '#F8FAFC'}
-          />
+
+          <View style={styles.dutySwitchCol}>
+            <Switch
+              value={isDriverOnline}
+              onValueChange={setIsDriverOnline}
+              trackColor={{ false: '#CBD5E1', true: '#10B981' }}
+              thumbColor={isDriverOnline ? '#FFFFFF' : '#F1F5F9'}
+            />
+          </View>
         </View>
 
-        {/* Permission Hardware Controls */}
+        {/* 2. Pending Document Verification Banner */}
+        <TouchableOpacity
+          style={styles.pendingDocsBanner}
+          activeOpacity={0.8}
+          onPress={() => Alert.alert('Documents', 'All driver documents and vehicle photos are recorded.')}
+        >
+          <View style={styles.pendingDocsLeft}>
+            <Text style={styles.pendingDocsIcon}>⚠️</Text>
+            <Text style={styles.pendingDocsText}>9 Pending Verification Documents ...</Text>
+          </View>
+          <Text style={styles.pendingDocsChevron}>›</Text>
+        </TouchableOpacity>
+
+        {/* 3. Hardware Permissions & Telemetry */}
         <View style={styles.permissionBox}>
-          <View style={styles.sectionHeaderRow}>
+          <View style={styles.permissionHeaderRow}>
             <Text style={styles.permissionTitle}>GPS & CAMERA GATED HARDWARE CHECK (§6)</Text>
           </View>
 
@@ -450,126 +582,236 @@ export default function App() {
           </View>
         </View>
 
-        {/* Active Trip Execution Card */}
-        <View style={styles.tripCard}>
-          <View style={styles.tripHeader}>
-            <Text style={styles.tripRef}>Trip Ref: KC73744</Text>
-            <View style={styles.tripTypeBadge}>
-              <Text style={styles.tripType}>ONEWAY OUTSTATION</Text>
+        {/* 4. Available Dispatches Header */}
+        <View style={styles.dispatchesSectionHeader}>
+          <View style={styles.dispatchesHeaderLeft}>
+            <View style={styles.broadcastIconBox}>
+              <Text style={styles.broadcastIcon}>((•))</Text>
+            </View>
+            <View>
+              <Text style={styles.dispatchesTitle}>Available Dispatches</Text>
+              <Text style={styles.dispatchesSub}>First accept wins broadcast</Text>
             </View>
           </View>
-
-          {/* Route Visualizer */}
-          <View style={styles.routeContainer}>
-            <View style={styles.routeRow}>
-              <Text style={styles.routeText}>📍 Pickup: Bangalore, KA</Text>
-            </View>
-            <View style={styles.routeRow}>
-              <Text style={styles.routeText}>🏁 Drop: Coorg (Madikeri), KA</Text>
-            </View>
-          </View>
-
-          {/* STEP 1: Pickup OTP Verification */}
-          <View style={[styles.stepBox, !otpVerified && styles.stepBoxActive]}>
-            <Text style={styles.stepTitle}>STEP 1: PICKUP ARRIVAL & OTP</Text>
-            {!otpVerified ? (
-              <>
-                <Text style={styles.stepDesc}>Ask customer for 4-digit pickup OTP:</Text>
-                <TextInput
-                  style={styles.otpInput}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  value={pickupOtpInput}
-                  onChangeText={setPickupOtpInput}
-                  placeholder="Enter OTP (e.g. 1234)"
-                  placeholderTextColor="#94A3B8"
-                />
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={handleVerifyPickupOtp}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.actionButtonText}>VERIFY PICKUP OTP →</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={styles.successBanner}>
-                <Text style={styles.successText}>✓ Pickup OTP Verified (DRIVER_ARRIVED logged)</Text>
-              </View>
-            )}
-          </View>
-
-          {/* STEP 2: GPS+Camera Gated Start Odometer */}
-          <View style={[styles.stepBox, otpVerified && !startOdometerCaptured && styles.stepBoxActive]}>
-            <Text style={styles.stepTitle}>STEP 2: START ODOMETER & CLEANLINESS PHOTO</Text>
-            {!startOdometerCaptured ? (
-              <TouchableOpacity
-                style={[styles.actionButton, !canCapturePhoto && styles.disabledButton]}
-                onPress={handleCaptureStartOdometer}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.actionButtonText}>📷 CAPTURE STAMPED START ODOMETER</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.successBanner}>
-                <Text style={styles.successText}>✓ Start Odometer Stamped with GPS & Timestamp</Text>
-              </View>
-            )}
-          </View>
-
-          {/* STEP 3: Toll Fare Gating */}
-          <View style={[styles.stepBox, startOdometerCaptured && !tollConfirmed && styles.stepBoxActive]}>
-            <Text style={styles.stepTitle}>STEP 3: TOLL FARE ENTRY (BLOCKS TRIP END)</Text>
-            {!tollConfirmed ? (
-              <>
-                <Text style={styles.stepDesc}>Enter total toll amount paid (₹0 if none):</Text>
-                <TextInput
-                  style={styles.otpInput}
-                  keyboardType="number-pad"
-                  value={tollAmountInput}
-                  onChangeText={setTollAmountInput}
-                  placeholder="0"
-                  placeholderTextColor="#94A3B8"
-                />
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => {
-                    setTollConfirmed(true);
-                    Alert.alert('Toll Confirmed', `Toll fare ₹${tollAmountInput} recorded for billing close-out.`);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.actionButtonText}>CONFIRM TOLL FARE (₹{tollAmountInput}) →</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={styles.successBanner}>
-                <Text style={styles.successText}>✓ Toll Fare Confirmed: ₹{tollAmountInput}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* STEP 4: End Odometer & Trip Completion */}
-          <View style={[styles.stepBox, tollConfirmed && tripState !== 'COMPLETED' && styles.stepBoxActive]}>
-            <Text style={styles.stepTitle}>STEP 4: END ODOMETER & COMPLETE TRIP</Text>
-            {tripState !== 'COMPLETED' ? (
-              <TouchableOpacity
-                style={[styles.completeButton, (!canCapturePhoto || !tollConfirmed) && styles.disabledButton]}
-                onPress={handleCaptureEndOdometer}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.actionButtonText}>🏁 CAPTURE END ODOMETER & COMPLETE TRIP</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={[styles.successBanner, { backgroundColor: '#ECFDF5', borderColor: '#34D399' }]}>
-                <Text style={[styles.successText, { color: '#059669', fontSize: 13 }]}>
-                  🎉 TRIP COMPLETED & BILLED
-                </Text>
-              </View>
-            )}
+          <View style={styles.liveFeedBadge}>
+            <Text style={styles.liveFeedDot}>●</Text>
+            <Text style={styles.liveFeedText}>Live Feed</Text>
           </View>
         </View>
+
+        {/* 5. Dispatched Bookings List (Matching Web Portal Cards) */}
+        {dispatches.map((disp, idx) => {
+          const b = disp.booking || disp;
+          const refCode = b.humanReadableRef || b.id || 'KC54120';
+          const tripType = b.tripType || 'ONEWAY';
+          const customerName = b.customer?.fullName || 'Rajesh Kumar';
+          const customerPhone = b.customer?.phone || '9845012345';
+          const pickup = b.pickupCity || 'Bangalore Central, Karnataka';
+          const drop = b.dropCity || 'Mysore Palace, Mysore, Karnataka';
+          const fare = b.estimatedFare || 3800;
+          const isAssigned = disp.status === 'ASSIGNED TO YOU' || b.status === 'DRIVER_ACCEPTED' || b.status === 'TRIP_STARTED';
+
+          return (
+            <View key={disp.id || idx} style={styles.dispatchCard}>
+              {/* Top Row: Ref & Assigned Tag */}
+              <View style={styles.dispatchCardHeader}>
+                <View>
+                  <Text style={styles.dispatchRefText}>Ref: {refCode}</Text>
+                  <View style={styles.dispatchTripTypeBadge}>
+                    <Text style={styles.dispatchTripTypeText}>{tripType}</Text>
+                  </View>
+                </View>
+                <View style={styles.assignedBadge}>
+                  <Text style={styles.assignedBadgeIcon}>✓</Text>
+                  <Text style={styles.assignedBadgeText}>{isAssigned ? 'ASSIGNED TO YOU' : 'BROADCAST'}</Text>
+                </View>
+              </View>
+
+              {/* Customer Name */}
+              <View style={styles.dispatchFieldBlock}>
+                <Text style={styles.fieldLabel}>CUSTOMER NAME</Text>
+                <Text style={styles.customerNameValue}>👤 {customerName}</Text>
+              </View>
+
+              {/* Contact Phone */}
+              <View style={styles.dispatchFieldBlock}>
+                <Text style={styles.fieldLabel}>CONTACT PHONE</Text>
+                <TouchableOpacity
+                  style={styles.callPhonePill}
+                  onPress={() => Linking.openURL(`tel:+91${customerPhone}`)}
+                >
+                  <Text style={styles.callPhoneText}>📞 +91 {customerPhone} (Call)</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Pickup Location */}
+              <View style={styles.dispatchFieldBlock}>
+                <Text style={styles.fieldLabel}>PICKUP LOCATION</Text>
+                <Text style={styles.locationValue}>📍 {pickup}</Text>
+              </View>
+
+              {/* Drop Location */}
+              <View style={styles.dispatchFieldBlock}>
+                <Text style={styles.fieldLabel}>DROP LOCATION</Text>
+                <Text style={styles.locationValue}>↗️ {drop}</Text>
+              </View>
+
+              {/* Time & Fare Row */}
+              <View style={styles.timeFareRow}>
+                <View style={styles.pickupTimeWrap}>
+                  <Text style={styles.clockIcon}>🕒</Text>
+                  <Text style={styles.pickupTimeText}>
+                    Pickup Time: {new Date(b.scheduledAt || Date.now()).toLocaleDateString('en-IN')}, {new Date(b.scheduledAt || Date.now()).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
+                <Text style={styles.fareAmountText}>₹{fare.toLocaleString()}</Text>
+              </View>
+
+              {/* Action Button */}
+              <TouchableOpacity
+                style={styles.manageTripBtn}
+                onPress={() => handleOpenLifecycle(disp)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.manageTripBtnText}>VIEW / MANAGE TRIP LIFECYCLE →</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
       </ScrollView>
+
+      {/* ─── 6. TRIP LIFECYCLE MODAL ─── */}
+      <Modal
+        visible={showTripModal}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowTripModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <StatusBar barStyle="light-content" backgroundColor="#101522" />
+
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.modalTitle}>Trip Lifecycle</Text>
+              <Text style={styles.modalSubtitle}>
+                Ref: {selectedBooking?.humanReadableRef || selectedBooking?.id || 'KC54120'} ({selectedBooking?.tripType || 'ONEWAY'})
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowTripModal(false)}>
+              <Text style={styles.modalCloseBtnText}>✕ Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScroll} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+            {/* Route Summary */}
+            <View style={styles.routeContainer}>
+              <Text style={styles.routeText}>📍 Pickup: {selectedBooking?.pickupCity || 'Bangalore Central, KA'}</Text>
+              <Text style={styles.routeText}>🏁 Drop: {selectedBooking?.dropCity || 'Mysore Palace, KA'}</Text>
+            </View>
+
+            {/* STEP 1: Pickup OTP Verification */}
+            <View style={[styles.stepBox, !otpVerified && styles.stepBoxActive]}>
+              <Text style={styles.stepTitle}>STEP 1: PICKUP ARRIVAL & OTP</Text>
+              {!otpVerified ? (
+                <>
+                  <Text style={styles.stepDesc}>Ask customer for 4-digit pickup OTP:</Text>
+                  <TextInput
+                    style={styles.otpInput}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    value={pickupOtpInput}
+                    onChangeText={setPickupOtpInput}
+                    placeholder="Enter OTP (e.g. 1234)"
+                    placeholderTextColor="#94A3B8"
+                  />
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={handleVerifyPickupOtp}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.actionButtonText}>VERIFY PICKUP OTP →</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.successBanner}>
+                  <Text style={styles.successText}>✓ Pickup OTP Verified (DRIVER_ARRIVED logged)</Text>
+                </View>
+              )}
+            </View>
+
+            {/* STEP 2: Start Odometer */}
+            <View style={[styles.stepBox, otpVerified && !startOdometerCaptured && styles.stepBoxActive]}>
+              <Text style={styles.stepTitle}>STEP 2: START ODOMETER & CLEANLINESS PHOTO</Text>
+              {!startOdometerCaptured ? (
+                <TouchableOpacity
+                  style={[styles.actionButton, !canCapturePhoto && styles.disabledButton]}
+                  onPress={handleCaptureStartOdometer}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.actionButtonText}>📷 CAPTURE STAMPED START ODOMETER</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.successBanner}>
+                  <Text style={styles.successText}>✓ Start Odometer Stamped with GPS & Timestamp</Text>
+                </View>
+              )}
+            </View>
+
+            {/* STEP 3: Toll Fare */}
+            <View style={[styles.stepBox, startOdometerCaptured && !tollConfirmed && styles.stepBoxActive]}>
+              <Text style={styles.stepTitle}>STEP 3: TOLL FARE ENTRY (BLOCKS TRIP END)</Text>
+              {!tollConfirmed ? (
+                <>
+                  <Text style={styles.stepDesc}>Enter total toll amount paid (₹0 if none):</Text>
+                  <TextInput
+                    style={styles.otpInput}
+                    keyboardType="number-pad"
+                    value={tollAmountInput}
+                    onChangeText={setTollAmountInput}
+                    placeholder="0"
+                    placeholderTextColor="#94A3B8"
+                  />
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => {
+                      setTollConfirmed(true);
+                      Alert.alert('Toll Confirmed', `Toll fare ₹${tollAmountInput} recorded for billing close-out.`);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.actionButtonText}>CONFIRM TOLL FARE (₹{tollAmountInput}) →</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.successBanner}>
+                  <Text style={styles.successText}>✓ Toll Fare Confirmed: ₹{tollAmountInput}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* STEP 4: End Odometer */}
+            <View style={[styles.stepBox, tollConfirmed && tripState !== 'COMPLETED' && styles.stepBoxActive]}>
+              <Text style={styles.stepTitle}>STEP 4: END ODOMETER & COMPLETE TRIP</Text>
+              {tripState !== 'COMPLETED' ? (
+                <TouchableOpacity
+                  style={[styles.completeButton, (!canCapturePhoto || !tollConfirmed) && styles.disabledButton]}
+                  onPress={handleCaptureEndOdometer}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.actionButtonText}>🏁 CAPTURE END ODOMETER & COMPLETE TRIP</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.successBanner, { backgroundColor: '#ECFDF5', borderColor: '#34D399' }]}>
+                  <Text style={[styles.successText, { color: '#059669', fontSize: 13 }]}>
+                    🎉 TRIP COMPLETED & BILLED
+                  </Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -588,7 +830,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
 
-  // ─── AUTH SCREEN STYLES (MATCHES SCREENSHOT) ───
+  // ─── AUTH SCREEN STYLES ───
   authContainer: {
     flex: 1,
     backgroundColor: '#0F172A',
@@ -749,95 +991,41 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // ─── LOGGED-IN DASHBOARD STYLES ───
+  // ─── LOGGED-IN DASHBOARD (WEB THEME) ───
   container: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
   },
-  header: {
-    backgroundColor: '#101522',
+  topNavbar: {
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    borderBottomColor: '#E2E8F0',
   },
-  logoBadge: {
-    width: 38,
+  navbarLogo: {
+    width: 130,
     height: 38,
-    backgroundColor: '#FF6B1A',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#FF6B1A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  logoText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 16,
-    letterSpacing: -0.5,
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: 0.4,
-  },
-  headerSubtitle: {
-    color: '#94A3B8',
-    fontSize: 11.5,
-    fontWeight: '600',
-    marginTop: 1,
-  },
-  headerRightControls: {
+  topNavbarRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  approvedBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-  },
-  approvedDot: {
-    color: '#10B981',
-    fontSize: 8,
-  },
-  approvedText: {
-    color: '#10B981',
-    fontWeight: '900',
-    fontSize: 10,
-    letterSpacing: 0.3,
   },
   logoutHeaderBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
   },
   logoutHeaderBtnText: {
-    color: '#F87171',
+    color: '#EF4444',
     fontWeight: '900',
-    fontSize: 10,
-    letterSpacing: 0.4,
+    fontSize: 11,
   },
   scrollContent: {
     flex: 1,
@@ -847,40 +1035,120 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // 1. Online Status Card
-  onlineStatusCard: {
+  // Driver Profile Card
+  driverProfileCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FF8A00',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  avatarOnlineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  driverInfoCol: {
+    flex: 1,
+  },
+  driverNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  driverFullName: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  verifiedCheckBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verifiedCheckIcon: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  driverVehicleSub: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  dutySwitchCol: {
+    paddingLeft: 8,
+  },
+
+  // Pending Docs Banner
+  pendingDocsBanner: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    marginBottom: 14,
   },
-  onlineStatusLeft: {
+  pendingDocsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     flex: 1,
   },
-  onlineStatusTitle: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#64748B',
-    letterSpacing: 0.8,
-    marginBottom: 2,
+  pendingDocsIcon: {
+    fontSize: 16,
   },
-  onlineStatusSub: {
-    fontSize: 13.5,
+  pendingDocsText: {
+    color: '#B45309',
+    fontSize: 13,
     fontWeight: '800',
+    flex: 1,
+  },
+  pendingDocsChevron: {
+    color: '#B45309',
+    fontSize: 20,
+    fontWeight: '900',
   },
 
-  // 2. Permission Hardware Controls
+  // Hardware Permissions Card
   permissionBox: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -894,8 +1162,8 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  sectionHeaderRow: {
-    marginBottom: 12,
+  permissionHeaderRow: {
+    marginBottom: 10,
   },
   permissionTitle: {
     fontSize: 11.5,
@@ -928,16 +1196,15 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     fontSize: 11.5,
     fontWeight: '700',
-    lineHeight: 16,
   },
 
-  // 3. Live GPS Telemetry
+  // Telemetry Card
   telemetryCard: {
     backgroundColor: '#101522',
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginBottom: 14,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     shadowColor: '#000',
@@ -962,7 +1229,6 @@ const styles = StyleSheet.create({
     color: '#FF6B1A',
     fontSize: 26,
     fontWeight: '900',
-    letterSpacing: -0.5,
   },
   pingBadge: {
     backgroundColor: 'rgba(5, 150, 105, 0.2)',
@@ -985,70 +1251,258 @@ const styles = StyleSheet.create({
     color: '#F87171',
   },
 
-  // 4. Active Trip Card
-  tripCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  tripHeader: {
+  // Dispatches Section Header
+  dispatchesSectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  dispatchesHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  broadcastIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFEDD5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  broadcastIcon: {
+    fontSize: 14,
+    color: '#EA580C',
+    fontWeight: '900',
+  },
+  dispatchesTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  dispatchesSub: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  liveFeedBadge: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  liveFeedDot: {
+    color: '#10B981',
+    fontSize: 8,
+  },
+  liveFeedText: {
+    color: '#065F46',
+    fontWeight: '800',
+    fontSize: 11,
+  },
+
+  // Dispatched Card
+  dispatchCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  dispatchCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 12,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  tripRef: {
+  dispatchRefText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#FF6B1A',
-    letterSpacing: -0.2,
+    color: '#0F172A',
   },
-  tripTypeBadge: {
+  dispatchTripTypeBadge: {
     backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  dispatchTripTypeText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: '#475569',
+  },
+  assignedBadge: {
+    backgroundColor: '#E2E8F0',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  tripType: {
+  assignedBadgeIcon: {
+    fontSize: 10,
+    color: '#334155',
+  },
+  assignedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#334155',
+  },
+  dispatchFieldBlock: {
+    marginBottom: 10,
+  },
+  fieldLabel: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#334155',
+    color: '#94A3B8',
+    letterSpacing: 0.6,
+    marginBottom: 2,
+  },
+  customerNameValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  callPhonePill: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  callPhoneText: {
+    color: '#16A34A',
+    fontWeight: '800',
+    fontSize: 12.5,
+  },
+  locationValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  timeFareRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  pickupTimeWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  clockIcon: {
+    fontSize: 13,
+  },
+  pickupTimeText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
+  },
+  fareAmountText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  manageTripBtn: {
+    backgroundColor: '#10B981',
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 6,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  manageTripBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '900',
     letterSpacing: 0.4,
   },
-  routeContainer: {
+
+  // ─── MODAL STYLES ───
+  modalContainer: {
+    flex: 1,
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
+  },
+  modalHeader: {
+    backgroundColor: '#101522',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  modalSubtitle: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalCloseBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  modalCloseBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  modalScroll: {
+    flex: 1,
+  },
+  routeContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: 8,
-  },
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    gap: 6,
   },
   routeText: {
     fontSize: 13.5,
     fontWeight: '800',
     color: '#0F172A',
   },
-
-  // Steps
   stepBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     padding: 14,
     borderRadius: 14,
     marginTop: 10,
@@ -1056,7 +1510,6 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   stepBoxActive: {
-    backgroundColor: '#FFFFFF',
     borderColor: '#FFD4B8',
     borderWidth: 1.5,
     shadowColor: '#FF6B1A',
@@ -1079,7 +1532,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   otpInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1.5,
     borderColor: '#CBD5E1',
     borderRadius: 10,
