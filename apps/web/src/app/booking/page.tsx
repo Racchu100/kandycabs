@@ -1093,10 +1093,76 @@ function BookingContent() {
                     </h2>
                     <button
                       onClick={() => setStep(1)}
-                      className="text-xs font-bold text-kandy-muted hover:text-kandy-ink flex items-center gap-1 shrink-0 ml-2"
+                      className="text-xs font-bold text-kandy-muted hover:text-kandy-ink flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
                     >
                       <ArrowLeft className="w-3.5 h-3.5" /> Back to Vehicles
                     </button>
+                  </div>
+
+                  {/* TRIP TYPE SELECTOR IN STEP 2 (Allows changing/viewing trip type on Step 2) */}
+                  <div className="p-3 bg-gray-50/90 rounded-xl border border-gray-200/80 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-700">
+                        Selected Trip Type
+                      </span>
+                      <span className="text-[10px] font-black text-kandy-orange bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full uppercase">
+                        {tripType === 'ROUND' ? 'ROUND TRIP' : tripType.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleTripTypeChange(TripType.ONEWAY)}
+                        className={`py-2 px-2.5 rounded-lg font-extrabold text-[11px] uppercase tracking-tight flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                          tripType === TripType.ONEWAY
+                            ? 'bg-kandy-orange text-white shadow-xs font-black'
+                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                        }`}
+                      >
+                        <Car className="w-3.5 h-3.5 shrink-0" />
+                        <span>One Way</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTripTypeChange(TripType.ROUND)}
+                        className={`py-2 px-2.5 rounded-lg font-extrabold text-[11px] uppercase tracking-tight flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                          tripType === TripType.ROUND
+                            ? 'bg-kandy-orange text-white shadow-xs font-black'
+                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                        }`}
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                        <span>Round Trip</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTripTypeChange(TripType.LOCAL)}
+                        className={`py-2 px-2.5 rounded-lg font-extrabold text-[11px] uppercase tracking-tight flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                          tripType === TripType.LOCAL
+                            ? 'bg-kandy-orange text-white shadow-xs font-black'
+                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                        }`}
+                      >
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                        <span>Local</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTripTypeChange(TripType.AIRPORT)}
+                        className={`py-2 px-2.5 rounded-lg font-extrabold text-[11px] uppercase tracking-tight flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                          tripType === TripType.AIRPORT
+                            ? 'bg-kandy-orange text-white shadow-xs font-black'
+                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                        }`}
+                      >
+                        <Plane className="w-3.5 h-3.5 shrink-0" />
+                        <span>Airport</span>
+                      </button>
+                    </div>
                   </div>
 
                   {stepError && (
