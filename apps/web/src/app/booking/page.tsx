@@ -33,6 +33,8 @@ import {
   User,
   CheckCircle2,
   X,
+  RefreshCw,
+  Plane,
 } from 'lucide-react';
 
 const INITIAL_VEHICLE_OPTIONS = [
@@ -168,9 +170,25 @@ function BookingContent() {
   const [returnDate, setReturnDate] = useState(
     searchParams?.get('returnDate') || '2026-09-17'
   );
+  const [airportTripMode, setAirportTripMode] = useState<'PICKUP' | 'DROP'>(
+    (searchParams?.get('airportMode') as 'PICKUP' | 'DROP') || 'PICKUP'
+  );
+  const [localPackage, setLocalPackage] = useState<string>(
+    searchParams?.get('localPackage') || '8hr / 80km'
+  );
 
   const [stepError, setStepError] = useState<string | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  const handleTripTypeChange = (newType: TripType) => {
+    setTripType(newType);
+    setStepError(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tripType', newType);
+      window.history.replaceState({}, '', url.toString());
+    } catch (e) {}
+  };
 
   const [vehicleOptions, setVehicleOptions] = useState(INITIAL_VEHICLE_OPTIONS);
   const [selectedCategory, setSelectedCategory] = useState<VehicleCategory>(
@@ -750,6 +768,74 @@ function BookingContent() {
               {/* STEP 1: Select Vehicle */}
               {step === 1 && (
                 <div className="space-y-4">
+                  {/* TRIP TYPE SELECTOR (Same 4-Tab options as Home Page: ONE WAY, ROUND TRIP, LOCAL, AIRPORT) */}
+                  <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-kandy-border shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-kandy-orange animate-pulse" />
+                        <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-gray-900">
+                          Select Trip Type
+                        </h3>
+                      </div>
+                      <span className="text-[11px] font-black text-kandy-orange bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full uppercase">
+                        Selected: <strong>{tripType === 'ROUND' ? 'ROUND TRIP' : tripType.replace(/_/g, ' ')}</strong>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => handleTripTypeChange(TripType.ONEWAY)}
+                        className={`py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-tight flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer ${
+                          tripType === TripType.ONEWAY
+                            ? 'bg-kandy-orange text-white shadow-md'
+                            : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
+                        }`}
+                      >
+                        <Car className="w-4 h-4 shrink-0" />
+                        <span>One Way</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTripTypeChange(TripType.ROUND)}
+                        className={`py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-tight flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer ${
+                          tripType === TripType.ROUND
+                            ? 'bg-kandy-orange text-white shadow-md'
+                            : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
+                        }`}
+                      >
+                        <RefreshCw className="w-4 h-4 shrink-0" />
+                        <span>Round Trip</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTripTypeChange(TripType.LOCAL)}
+                        className={`py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-tight flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer ${
+                          tripType === TripType.LOCAL
+                            ? 'bg-kandy-orange text-white shadow-md'
+                            : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
+                        }`}
+                      >
+                        <MapPin className="w-4 h-4 shrink-0" />
+                        <span>Local</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTripTypeChange(TripType.AIRPORT)}
+                        className={`py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-tight flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer ${
+                          tripType === TripType.AIRPORT
+                            ? 'bg-kandy-orange text-white shadow-md'
+                            : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
+                        }`}
+                      >
+                        <Plane className="w-4 h-4 shrink-0" />
+                        <span>Airport</span>
+                      </button>
+                    </div>
+                  </div>
                   {vehicleOptions.map((v) => {
                     const availableFuelTypes = getAvailableFuelTypesForCategory(v.category, tripType);
                     const currentFuel = getSelectedFuelForCategory(v.category, tripType);
@@ -1086,6 +1172,56 @@ function BookingContent() {
                         />
                       </div>
                     )}
+
+                    {tripType === TripType.LOCAL && (
+                      <div className="bg-blue-50/70 p-3 rounded-card border border-blue-200 space-y-1.5 col-span-1 sm:col-span-2">
+                        <label className="block text-[10px] sm:text-xs font-extrabold text-blue-900 uppercase">
+                          Select Local Rental Package
+                        </label>
+                        <select
+                          value={localPackage}
+                          onChange={(e) => setLocalPackage(e.target.value)}
+                          className="w-full px-2.5 py-1.5 sm:py-2 bg-white border border-blue-200 rounded text-xs sm:text-sm font-bold text-blue-950 cursor-pointer"
+                        >
+                          <option value="8hr / 80km">8 Hours / 80 KMs (Standard Day)</option>
+                          <option value="12hr / 120km">12 Hours / 120 KMs (Full Day)</option>
+                          <option value="4hr / 40km">4 Hours / 40 KMs (Half Day)</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {tripType === TripType.AIRPORT && (
+                      <div className="bg-sky-50/70 p-3 rounded-card border border-sky-200 space-y-2 col-span-1 sm:col-span-2">
+                        <label className="block text-[10px] sm:text-xs font-extrabold uppercase text-sky-900 tracking-wider">
+                          Airport Transfer Service Mode
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAirportTripMode('PICKUP')}
+                            className={`py-2 px-3 rounded-lg font-extrabold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                              airportTripMode === 'PICKUP'
+                                ? 'bg-[#0073E6] text-white shadow-sm'
+                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                            }`}
+                          >
+                            <span>✈️ Pickup from Airport</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setAirportTripMode('DROP')}
+                            className={`py-2 px-3 rounded-lg font-extrabold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                              airportTripMode === 'DROP'
+                                ? 'bg-[#0073E6] text-white shadow-sm'
+                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                            }`}
+                          >
+                            <span>🛫 Drop to Airport</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* DYNAMIC INTERMEDIATE STOPS UI (ROUND TRIP ONLY) */}
@@ -1147,7 +1283,13 @@ function BookingContent() {
                         </h3>
                       </div>
                       <span className="self-start sm:self-auto bg-orange-500/20 text-orange-400 border border-orange-500/40 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0">
-                        {tripType === TripType.ROUND ? 'ROUND TRIP ROUTE' : 'ONE WAY ROUTE'}
+                        {tripType === TripType.ROUND
+                          ? 'ROUND TRIP ROUTE'
+                          : tripType === TripType.LOCAL
+                          ? 'LOCAL PACKAGE ROUTE'
+                          : tripType === TripType.AIRPORT
+                          ? 'AIRPORT TRANSFER ROUTE'
+                          : 'ONE WAY ROUTE'}
                       </span>
                     </div>
 
