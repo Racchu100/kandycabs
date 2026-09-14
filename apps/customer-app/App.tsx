@@ -260,13 +260,6 @@ export default function App() {
     });
   }, []);
 
-  // Location Swap Handler (Reverse Pickup and Drop)
-  const handleSwapLocations = () => {
-    const temp = pickupInput;
-    setPickupInput(dropInput);
-    setDropInput(temp);
-  };
-
   // Fare Calculation Rules (Matching Web Engine)
   const calculatedFare = Math.max(selectedVehicle.baseFare, estimatedDistanceKm * selectedVehicle.ratePerKm);
   const advancePayable = Math.round(calculatedFare * 0.25);
