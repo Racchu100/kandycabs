@@ -25,6 +25,7 @@ import {
   verifyDriverOtpApi,
   setDriverAuthToken,
   fetchDriverDispatches,
+  acceptDriverDispatchApi,
   verifyPickupOtpApi,
   uploadOdometerPhotoApi,
   startTripApi,
@@ -36,12 +37,32 @@ const SESSION_STORAGE_KEY = 'kandy_driver_session';
 
 const SAMPLE_DISPATCHES = [
   {
+    id: 'disp_KC73744',
+    bookingId: 'KC73744',
+    booking: {
+      id: 'KC73744',
+      humanReadableRef: 'KC73744',
+      status: 'DISPATCHED',
+      tripType: 'ONEWAY',
+      pickupCity: 'Bangalore Central, Karnataka',
+      dropCity: 'Coorg (Madikeri), Karnataka',
+      scheduledAt: new Date(Date.now() + 1800000).toISOString(),
+      estimatedFare: 4250,
+      customer: {
+        fullName: 'Praveen Rao',
+        phone: '9481012345',
+      },
+      customerPhoneReleased: false,
+    },
+    status: 'DISPATCHED',
+  },
+  {
     id: 'disp_KC54120',
     bookingId: 'KC54120',
     booking: {
       id: 'KC54120',
       humanReadableRef: 'KC54120',
-      status: 'DISPATCHED',
+      status: 'DRIVER_ACCEPTED',
       tripType: 'ONEWAY',
       pickupCity: 'Bangalore Central, Karnataka',
       dropCity: 'Mysore Palace, Mysore, Karnataka',
@@ -50,26 +71,6 @@ const SAMPLE_DISPATCHES = [
       customer: {
         fullName: 'Rajesh Kumar',
         phone: '9845012345',
-      },
-      customerPhoneReleased: true,
-    },
-    status: 'ASSIGNED TO YOU',
-  },
-  {
-    id: 'disp_KC73744',
-    bookingId: 'KC73744',
-    booking: {
-      id: 'KC73744',
-      humanReadableRef: 'KC73744',
-      status: 'DRIVER_ACCEPTED',
-      tripType: 'ONEWAY OUTSTATION',
-      pickupCity: 'Bangalore Airport (BLR), KA',
-      dropCity: 'Coorg (Madikeri), KA',
-      scheduledAt: new Date(Date.now() + 3600000).toISOString(),
-      estimatedFare: 4250,
-      customer: {
-        fullName: 'Priya Sharma',
-        phone: '9481012345',
       },
       customerPhoneReleased: true,
     },
@@ -157,25 +158,53 @@ export default function App() {
     }
   }, [isLoggedIn]);
 
-  // Load dispatches from backend
+  // Load dispatches from backend & poll every 3.5 seconds
   const loadDispatches = async () => {
     try {
       const res = await fetchDriverDispatches();
       if (res?.dispatches && Array.isArray(res.dispatches) && res.dispatches.length > 0) {
         setDispatches(res.dispatches);
-      } else {
-        setDispatches(SAMPLE_DISPATCHES);
       }
     } catch (err) {
       console.warn('[loadDispatches err]', err);
-      setDispatches(SAMPLE_DISPATCHES);
     }
   };
+
+  // Real-time live polling from admin
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoggedIn && isDriverOnline) {
+      timer = setInterval(() => {
+        loadDispatches();
+      }, 3500);
+    }
+    return () => clearInterval(timer);
+  }, [isLoggedIn, isDriverOnline]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await loadDispatches();
     setIsRefreshing(false);
+  };
+
+  const handleAcceptDispatch = async (disp: any) => {
+    const b = disp.booking || disp;
+    const bId = b.id || b.humanReadableRef;
+    const dId = disp.id || `disp_${bId}`;
+    try {
+      await acceptDriverDispatchApi({
+        dispatchId: dId,
+        bookingId: bId,
+        driverId: driverUser?.id || 'd_1',
+        driverPhone: driverUser?.phone || '8888888888',
+        driverName: driverUser?.fullName || 'Driver Partner',
+      });
+      Alert.alert('🎉 Ride Accepted!', `You are now assigned to trip Ref: ${b.humanReadableRef || bId}. You can now manage the trip lifecycle.`);
+      await loadDispatches();
+    } catch (err: any) {
+      Alert.alert('Accept Failed', err.message || 'Another driver may have already accepted this ride.');
+      await loadDispatches();
+    }
   };
 
   // Continuous GPS ping telemetry simulation
@@ -606,25 +635,40 @@ export default function App() {
           const tripType = b.tripType || 'ONEWAY';
           const customerName = b.customer?.fullName || 'Rajesh Kumar';
           const customerPhone = b.customer?.phone || '9845012345';
+          const isPhoneReleased = !!b.customerPhoneReleased;
           const pickup = b.pickupCity || 'Bangalore Central, Karnataka';
           const drop = b.dropCity || 'Mysore Palace, Mysore, Karnataka';
           const fare = b.estimatedFare || 3800;
-          const isAssigned = disp.status === 'ASSIGNED TO YOU' || b.status === 'DRIVER_ACCEPTED' || b.status === 'TRIP_STARTED';
+          const isAssigned = disp.status === 'ASSIGNED TO YOU' || b.status === 'DRIVER_ACCEPTED' || b.status === 'TRIP_STARTED' || b.status === 'TRIP_COMPLETED';
+          const isAvailable = !isAssigned || b.status === 'DISPATCHED' || disp.status === 'DISPATCHED';
 
           return (
-            <View key={disp.id || idx} style={styles.dispatchCard}>
-              {/* Top Row: Ref & Assigned Tag */}
+            <View
+              key={disp.id || idx}
+              style={[
+                styles.dispatchCard,
+                isAvailable && styles.availableDispatchCard,
+              ]}
+            >
+              {/* Top Row: Ref & Tag */}
               <View style={styles.dispatchCardHeader}>
-                <View>
+                <View style={styles.refTypeRow}>
                   <Text style={styles.dispatchRefText}>Ref: {refCode}</Text>
                   <View style={styles.dispatchTripTypeBadge}>
                     <Text style={styles.dispatchTripTypeText}>{tripType}</Text>
                   </View>
                 </View>
-                <View style={styles.assignedBadge}>
-                  <Text style={styles.assignedBadgeIcon}>✓</Text>
-                  <Text style={styles.assignedBadgeText}>{isAssigned ? 'ASSIGNED TO YOU' : 'BROADCAST'}</Text>
-                </View>
+
+                {isAvailable ? (
+                  <View style={styles.availableBadge}>
+                    <Text style={styles.availableBadgeText}>AVAILABLE</Text>
+                  </View>
+                ) : (
+                  <View style={styles.assignedBadge}>
+                    <Text style={styles.assignedBadgeIcon}>✓</Text>
+                    <Text style={styles.assignedBadgeText}>ASSIGNED TO YOU</Text>
+                  </View>
+                )}
               </View>
 
               {/* Customer Name */}
@@ -636,12 +680,18 @@ export default function App() {
               {/* Contact Phone */}
               <View style={styles.dispatchFieldBlock}>
                 <Text style={styles.fieldLabel}>CONTACT PHONE</Text>
-                <TouchableOpacity
-                  style={styles.callPhonePill}
-                  onPress={() => Linking.openURL(`tel:+91${customerPhone}`)}
-                >
-                  <Text style={styles.callPhoneText}>📞 +91 {customerPhone} (Call)</Text>
-                </TouchableOpacity>
+                {isPhoneReleased ? (
+                  <TouchableOpacity
+                    style={styles.callPhonePill}
+                    onPress={() => Linking.openURL(`tel:+91${customerPhone}`)}
+                  >
+                    <Text style={styles.callPhoneText}>📞 +91 {customerPhone} (Call)</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.contactHiddenPill}>
+                    <Text style={styles.contactHiddenText}>🔒 Contact Hidden (Pending Admin Release)</Text>
+                  </View>
+                )}
               </View>
 
               {/* Pickup Location */}
@@ -667,14 +717,31 @@ export default function App() {
                 <Text style={styles.fareAmountText}>₹{fare.toLocaleString()}</Text>
               </View>
 
-              {/* Action Button */}
-              <TouchableOpacity
-                style={styles.manageTripBtn}
-                onPress={() => handleOpenLifecycle(disp)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.manageTripBtnText}>VIEW / MANAGE TRIP LIFECYCLE →</Text>
-              </TouchableOpacity>
+              {/* Action Button: Swipe/Accept or Manage Lifecycle */}
+              {isAvailable ? (
+                <TouchableOpacity
+                  style={styles.swipeToAcceptBtn}
+                  onPress={() => handleAcceptDispatch(disp)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.swipeCircleIcon}>
+                    <Text style={styles.swipeChevronText}>»</Text>
+                  </View>
+                  <View style={styles.swipeTextCol}>
+                    <Text style={styles.swipeMainText}>SWIPE TO ACCEPT</Text>
+                    <Text style={styles.swipeSubText}>Be the first to get this ride</Text>
+                  </View>
+                  <Text style={styles.swipeRightArrow}>→</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.manageTripBtn}
+                  onPress={() => handleOpenLifecycle(disp)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.manageTripBtnText}>VIEW / MANAGE TRIP LIFECYCLE →</Text>
+                </TouchableOpacity>
+              )}
             </View>
           );
         })}
@@ -1322,6 +1389,10 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  availableDispatchCard: {
+    borderLeftWidth: 5,
+    borderLeftColor: '#10B981',
+  },
   dispatchCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1331,23 +1402,42 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
+  refTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   dispatchRefText: {
     fontSize: 16,
     fontWeight: '900',
     color: '#0F172A',
   },
   dispatchTripTypeBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 4,
-    alignSelf: 'flex-start',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'center',
   },
   dispatchTripTypeText: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '900',
-    color: '#475569',
+    color: '#1D4ED8',
+    letterSpacing: 0.3,
+  },
+  availableBadge: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  availableBadgeText: {
+    color: '#059669',
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 0.4,
   },
   assignedBadge: {
     backgroundColor: '#E2E8F0',
@@ -1375,10 +1465,10 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#94A3B8',
     letterSpacing: 0.6,
-    marginBottom: 2,
+    marginBottom: 3,
   },
   customerNameValue: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '800',
     color: '#1E293B',
   },
@@ -1397,8 +1487,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 12.5,
   },
+  contactHiddenPill: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  contactHiddenText: {
+    color: '#64748B',
+    fontWeight: '700',
+    fontSize: 12,
+  },
   locationValue: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '700',
     color: '#1E293B',
   },
@@ -1421,14 +1526,64 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   pickupTimeText: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#64748B',
     fontWeight: '700',
   },
   fareAmountText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '900',
     color: '#0F172A',
+  },
+  swipeToAcceptBtn: {
+    backgroundColor: '#059669',
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  swipeCircleIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  swipeChevronText: {
+    color: '#059669',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  swipeTextCol: {
+    flex: 1,
+  },
+  swipeMainText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+  },
+  swipeSubText: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 10.5,
+    fontWeight: '600',
+  },
+  swipeRightArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+    paddingRight: 8,
   },
   manageTripBtn: {
     backgroundColor: '#10B981',

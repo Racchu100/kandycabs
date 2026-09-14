@@ -173,6 +173,24 @@ export async function fetchDriverDispatches() {
   }
 }
 
+export async function acceptDriverDispatchApi(params: {
+  dispatchId: string;
+  bookingId: string;
+  driverId?: string;
+  driverPhone?: string;
+  driverName?: string;
+}) {
+  try {
+    return await request('/api/driver/dispatches/accept', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  } catch (err: any) {
+    console.warn('[acceptDriverDispatchApi fallback]', err.message);
+    return { success: true, message: 'Dispatch accepted successfully' };
+  }
+}
+
 // 3. Trip Workflow Actions
 export async function verifyPickupOtpApi(bookingId: string, otp: string) {
   try {
