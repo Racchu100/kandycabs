@@ -30,6 +30,9 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  User,
+  CheckCircle2,
+  X,
 } from 'lucide-react';
 
 const INITIAL_VEHICLE_OPTIONS = [
@@ -167,6 +170,7 @@ function BookingContent() {
   );
 
   const [stepError, setStepError] = useState<string | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const [vehicleOptions, setVehicleOptions] = useState(INITIAL_VEHICLE_OPTIONS);
   const [selectedCategory, setSelectedCategory] = useState<VehicleCategory>(
@@ -509,7 +513,7 @@ function BookingContent() {
         return;
       }
     }
-    setStep(2);
+    setStep(3);
   };
 
   const handleApplyCoupon = (e: React.FormEvent) => {
@@ -531,61 +535,84 @@ function BookingContent() {
     <div className="min-h-screen flex flex-col bg-kandy-bg">
       <Navbar />
 
-      <main className="flex-1 pt-1 sm:pt-2 pb-6">
+      <main className="flex-1 pt-1 sm:pt-2 pb-[calc(var(--bottom-bar-height,0px)+3rem)] sm:pb-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
 
-          {/* Trust Banner (1 single row, compact padding & spacing) */}
-          <div className="bg-gradient-to-r from-sky-500 to-sky-700 text-white rounded-lg sm:rounded-xl py-1.5 px-2 sm:py-2 sm:px-4 mb-2.5 sm:mb-3.5 shadow-md flex items-center justify-between gap-1.5 sm:gap-4 text-[9.5px] sm:text-xs font-extrabold tracking-tight overflow-x-auto whitespace-nowrap">
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <span className="text-xs sm:text-base">₹</span>
-              <div>
-                <div className="leading-tight text-[9.5px] sm:text-xs font-black">Book Now</div>
-                <div className="text-[8px] sm:text-[10px] font-medium text-sky-100 leading-none">at Zero Cost</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <span className="text-xs sm:text-base">🚫</span>
-              <div>
-                <div className="leading-tight text-[9.5px] sm:text-xs font-black">Free Cancellations</div>
-                <div className="text-[8px] sm:text-[10px] font-medium text-sky-100 leading-none">Upto 1 Hour</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <span className="text-xs sm:text-base">🎧</span>
-              <div>
-                <div className="leading-tight text-[9.5px] sm:text-xs font-black">24x7 Support</div>
-              </div>
-            </div>
-          </div>
+          {/* Trust Banner (Lighter, spaced-out horizontal strip with subtle dividers and optional dismiss button) */}
+          {!bannerDismissed && (
+            <div className="bg-sky-50/90 border border-sky-200/80 text-sky-950 rounded-xl py-2 px-3 sm:px-5 mb-3.5 sm:mb-4 shadow-xs flex items-center justify-between gap-2 text-xs font-bold transition-all">
+              <div className="flex items-center justify-around flex-1 gap-2 sm:gap-4 overflow-x-auto py-0.5 no-scrollbar">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-sky-500/15 text-sky-700 font-extrabold flex items-center justify-center text-[11px]">₹</span>
+                  <div>
+                    <span className="font-black text-sky-950 text-[11px] sm:text-xs">Book Now</span>
+                    <span className="text-[10px] text-sky-700 font-semibold ml-1 hidden xs:inline">at Zero Cost</span>
+                  </div>
+                </div>
 
-          {/* Progress Indicator (Auto-triggers step progress as user completes details) */}
-          <div className="mb-3 sm:mb-4 bg-white p-2 sm:p-3 rounded-xl border border-kandy-border shadow-sm">
-            <div className="flex items-center justify-between max-w-3xl mx-auto text-xs font-bold text-kandy-muted">
+                <div className="h-4 w-px bg-sky-200 shrink-0" />
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-700 font-extrabold flex items-center justify-center text-[10px]">🛡️</span>
+                  <div>
+                    <span className="font-black text-sky-950 text-[11px] sm:text-xs">Free Cancellations</span>
+                    <span className="text-[10px] text-sky-700 font-semibold ml-1 hidden xs:inline">Up to 1 Hr</span>
+                  </div>
+                </div>
+
+                <div className="h-4 w-px bg-sky-200 shrink-0" />
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-700 font-extrabold flex items-center justify-center text-[10px]">🎧</span>
+                  <div>
+                    <span className="font-black text-sky-950 text-[11px] sm:text-xs">24x7 Support</span>
+                    <span className="text-[10px] text-sky-700 font-semibold ml-1 hidden xs:inline">Live Dispatch</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setBannerDismissed(true)}
+                className="text-sky-400 hover:text-sky-700 p-1 rounded-md transition shrink-0 ml-1 cursor-pointer"
+                aria-label="Dismiss reassurance banner"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Progress Indicator (Labels below step circles + thicker connecting lines) */}
+          <div className="mb-4 sm:mb-5 bg-white p-3 sm:p-4 rounded-xl border border-kandy-border shadow-xs">
+            <div className="flex items-center justify-between max-w-3xl mx-auto px-1 sm:px-4">
               {/* Step 1 */}
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className={`flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-1 rounded-lg transition ${
-                  step === 1
-                    ? 'text-kandy-orange font-black cursor-default'
-                    : 'text-emerald-700 font-bold hover:bg-orange-50 cursor-pointer'
-                }`}
+                className="flex flex-col items-center gap-1 group cursor-pointer"
               >
                 <div
-                  className={`w-7 h-7 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                     step === 1
-                      ? 'bg-kandy-orange text-white shadow-sm ring-2 ring-orange-200'
+                      ? 'bg-kandy-orange text-white shadow-md ring-4 ring-orange-100'
                       : step > 1
                       ? 'bg-emerald-600 text-white'
-                      : 'bg-gray-200 text-gray-700'
+                      : 'bg-gray-100 text-gray-400 border border-gray-200'
                   }`}
                 >
                   {step > 1 ? '✓' : '1'}
                 </div>
-                <span className="hidden sm:inline">Select Vehicle</span>
+                <span
+                  className={`text-[10px] sm:text-xs font-extrabold tracking-tight text-center ${
+                    step === 1 ? 'text-kandy-orange font-black' : step > 1 ? 'text-emerald-700 font-bold' : 'text-gray-400'
+                  }`}
+                >
+                  Vehicle
+                </span>
               </button>
 
-              <ChevronRight className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${step > 1 ? 'text-emerald-600' : 'text-gray-300'}`} />
+              {/* Connecting Line 1 -> 2 */}
+              <div className={`flex-1 h-1 sm:h-1.5 mx-1.5 sm:mx-3 rounded-full transition-all duration-300 ${step > 1 ? 'bg-emerald-500' : 'bg-gray-200'}`} />
 
               {/* Step 2 */}
               <button
@@ -594,29 +621,30 @@ function BookingContent() {
                   if (step > 2) setStep(2);
                 }}
                 disabled={step < 2}
-                className={`flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-1 rounded-lg transition ${
-                  step === 2
-                    ? 'text-kandy-orange font-black cursor-default'
-                    : step > 2
-                    ? 'text-emerald-700 font-bold hover:bg-orange-50 cursor-pointer'
-                    : 'text-gray-400 cursor-not-allowed pointer-events-none'
-                }`}
+                className={`flex flex-col items-center gap-1 group ${step >= 2 ? 'cursor-pointer' : 'cursor-not-allowed'}`}
               >
                 <div
-                  className={`w-7 h-7 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                     step === 2
-                      ? 'bg-kandy-orange text-white shadow-sm ring-2 ring-orange-200'
+                      ? 'bg-kandy-orange text-white shadow-md ring-4 ring-orange-100'
                       : step > 2
                       ? 'bg-emerald-600 text-white'
-                      : 'bg-gray-200 text-gray-400'
+                      : 'bg-gray-100 text-gray-400 border border-gray-200'
                   }`}
                 >
                   {step > 2 ? '✓' : '2'}
                 </div>
-                <span className="hidden sm:inline">Route & Schedule</span>
+                <span
+                  className={`text-[10px] sm:text-xs font-extrabold tracking-tight text-center ${
+                    step === 2 ? 'text-kandy-orange font-black' : step > 2 ? 'text-emerald-700 font-bold' : 'text-gray-400'
+                  }`}
+                >
+                  Route
+                </span>
               </button>
 
-              <ChevronRight className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${step > 2 ? 'text-emerald-600' : 'text-gray-300'}`} />
+              {/* Connecting Line 2 -> 3 */}
+              <div className={`flex-1 h-1 sm:h-1.5 mx-1.5 sm:mx-3 rounded-full transition-all duration-300 ${step > 2 ? 'bg-emerald-500' : 'bg-gray-200'}`} />
 
               {/* Step 3 */}
               <button
@@ -625,29 +653,30 @@ function BookingContent() {
                   if (step > 3) setStep(3);
                 }}
                 disabled={step < 3}
-                className={`flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-1 rounded-lg transition ${
-                  step === 3
-                    ? 'text-kandy-orange font-black cursor-default'
-                    : step > 3
-                    ? 'text-emerald-700 font-bold hover:bg-orange-50 cursor-pointer'
-                    : 'text-gray-400 cursor-not-allowed pointer-events-none'
-                }`}
+                className={`flex flex-col items-center gap-1 group ${step >= 3 ? 'cursor-pointer' : 'cursor-not-allowed'}`}
               >
                 <div
-                  className={`w-7 h-7 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                     step === 3
-                      ? 'bg-kandy-orange text-white shadow-sm ring-2 ring-orange-200'
+                      ? 'bg-kandy-orange text-white shadow-md ring-4 ring-orange-100'
                       : step > 3
                       ? 'bg-emerald-600 text-white'
-                      : 'bg-gray-200 text-gray-400'
+                      : 'bg-gray-100 text-gray-400 border border-gray-200'
                   }`}
                 >
                   {step > 3 ? '✓' : '3'}
                 </div>
-                <span className="hidden sm:inline">Apply Coupon</span>
+                <span
+                  className={`text-[10px] sm:text-xs font-extrabold tracking-tight text-center ${
+                    step === 3 ? 'text-kandy-orange font-black' : step > 3 ? 'text-emerald-700 font-bold' : 'text-gray-400'
+                  }`}
+                >
+                  Coupon
+                </span>
               </button>
 
-              <ChevronRight className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${step > 3 ? 'text-emerald-600' : 'text-gray-300'}`} />
+              {/* Connecting Line 3 -> 4 */}
+              <div className={`flex-1 h-1 sm:h-1.5 mx-1.5 sm:mx-3 rounded-full transition-all duration-300 ${step > 3 ? 'bg-emerald-500' : 'bg-gray-200'}`} />
 
               {/* Step 4 */}
               <button
@@ -656,22 +685,24 @@ function BookingContent() {
                   if (step > 4) setStep(4);
                 }}
                 disabled={step < 4}
-                className={`flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-1 rounded-lg transition ${
-                  step === 4
-                    ? 'text-kandy-orange font-black cursor-default'
-                    : 'text-gray-400 cursor-not-allowed pointer-events-none'
-                }`}
+                className="flex flex-col items-center gap-1 group cursor-default"
               >
                 <div
-                  className={`w-7 h-7 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                     step === 4
-                      ? 'bg-kandy-orange text-white shadow-sm ring-2 ring-orange-200'
-                      : 'bg-gray-200 text-gray-400'
+                      ? 'bg-kandy-orange text-white shadow-md ring-4 ring-orange-100'
+                      : 'bg-gray-100 text-gray-400 border border-gray-200'
                   }`}
                 >
                   4
                 </div>
-                <span className="hidden sm:inline">Review & Pay 25%</span>
+                <span
+                  className={`text-[10px] sm:text-xs font-extrabold tracking-tight text-center ${
+                    step === 4 ? 'text-kandy-orange font-black' : 'text-gray-400'
+                  }`}
+                >
+                  Details
+                </span>
               </button>
             </div>
           </div>
@@ -1061,67 +1092,79 @@ function BookingContent() {
                   )}
 
                   {/* TEXT-BASED LOCATION & ROUTE KM ANALYSIS */}
-                  <div className="bg-kandy-ink text-white p-3 sm:p-4 rounded-card border border-gray-800 space-y-2.5 sm:space-y-3">
-                    <div className="flex items-center justify-between border-b border-gray-800 pb-2">
+                  <div className="bg-kandy-ink text-white p-3.5 sm:p-4 rounded-card border border-gray-800 space-y-3 shadow-md">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-800 pb-3 gap-2">
                       <div className="flex items-center gap-2">
-                        <Compass className="w-4 h-4 sm:w-5 sm:h-5 text-kandy-orange" />
-                        <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-white">
-                          Route & Distance Analysis (Coordinate Derived)
+                        <MapPin className="w-5 h-5 text-kandy-orange shrink-0" />
+                        <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-white line-clamp-2">
+                          Route & Distance Analysis <span className="text-[10px] text-gray-400 font-semibold lowercase tracking-normal">(coordinate derived)</span>
                         </h3>
                       </div>
-                      <span className="bg-kandy-orange text-white text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded shadow-sm flex items-center gap-1">
+                      <span className="self-start sm:self-auto bg-orange-500/20 text-orange-400 border border-orange-500/40 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0">
                         {tripType === TripType.ROUND ? 'ROUND TRIP ROUTE' : 'ONE WAY ROUTE'}
                       </span>
                     </div>
 
                     {/* Multi-Leg Route Breakdown */}
                     <div className="space-y-2">
-                      <div className="text-[11px] sm:text-xs font-bold text-gray-300">Sequential Route Breakdown:</div>
+                      <div className="text-[11px] sm:text-xs font-bold text-gray-300">
+                        Sequential Route Breakdown:
+                      </div>
                       
                       {routeEstimate?.legBreakdown && routeEstimate.legBreakdown.length > 0 ? (
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {routeEstimate.legBreakdown.map((leg, lIdx) => (
                             <div
                               key={lIdx}
-                              className="flex items-center justify-between bg-gray-900/80 p-2 sm:p-2.5 rounded border border-gray-800 text-xs"
+                              className="flex items-start justify-between bg-gray-900/90 p-2.5 sm:p-3 rounded-xl border border-gray-800 gap-3 text-xs"
                             >
-                              <div className="flex items-center gap-2 truncate max-w-[75%]">
-                                <span className="w-4.5 h-4.5 rounded-full bg-kandy-orange text-white font-extrabold text-[9px] sm:text-[10px] flex items-center justify-center shrink-0">
+                              <div className="flex items-start gap-2 min-w-0 flex-1">
+                                <span className="w-5 h-5 rounded-full bg-kandy-orange text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
                                   {lIdx + 1}
                                 </span>
-                                <span className="font-bold text-gray-200 truncate text-[11px] sm:text-xs">{leg.from}</span>
-                                <span className="text-kandy-orange font-bold shrink-0">➔</span>
-                                <span className="font-bold text-white truncate text-[11px] sm:text-xs">{leg.to}</span>
+                                <div className="min-w-0 flex-1 font-bold text-gray-100 break-words leading-relaxed">
+                                  <span>{leg.from}</span>
+                                  <span className="text-kandy-orange font-bold mx-1.5 inline-block">➔</span>
+                                  <span className="text-white">{leg.to}</span>
+                                </div>
                               </div>
-                              <span className="font-extrabold text-kandy-orange bg-black/60 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded border border-orange-500/30 shrink-0 text-[11px] sm:text-xs">
+                              <span className="font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 rounded-lg text-xs shrink-0 whitespace-nowrap">
                                 {leg.km} km
                               </span>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between bg-gray-900 p-2 sm:p-2.5 rounded border border-gray-800 text-xs">
-                          <div className="flex items-center gap-2 truncate max-w-[75%]">
-                            <span className="font-bold text-gray-200 truncate text-[11px] sm:text-xs">{pickupLocation.placeName}</span>
-                            <span className="text-kandy-orange font-bold shrink-0">➔</span>
-                            <span className="font-bold text-white truncate text-[11px] sm:text-xs">{dropLocation.placeName}</span>
+                        <div className="flex items-start justify-between bg-gray-900/90 p-2.5 sm:p-3 rounded-xl border border-gray-800 gap-3 text-xs">
+                          <div className="flex items-start gap-2 min-w-0 flex-1">
+                            <span className="w-5 h-5 rounded-full bg-kandy-orange text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                              1
+                            </span>
+                            <div className="min-w-0 flex-1 font-bold text-gray-100 break-words leading-relaxed">
+                              <span>{pickupLocation.placeName || 'Pickup Location'}</span>
+                              <span className="text-kandy-orange font-bold mx-1.5 inline-block">➔</span>
+                              <span className="text-white">{dropLocation.placeName || 'Destination'}</span>
+                            </div>
                           </div>
-                          <span className="font-extrabold text-kandy-orange text-[11px] sm:text-xs">{distanceKm} km</span>
+                          <span className="font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 rounded-lg text-xs shrink-0 whitespace-nowrap">
+                            {distanceKm} km
+                          </span>
                         </div>
                       )}
                     </div>
 
                     {/* Total Cumulative & Billed KM Summary */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-gray-800 text-xs">
-                      <div className="bg-gray-900 p-2 sm:p-2.5 rounded border border-gray-800">
-                        <div className="text-gray-400 text-[10px] sm:text-[11px] mb-0.5">Total Cumulative Route Distance</div>
+                      <div className="bg-gray-900/90 p-2.5 sm:p-3 rounded-xl border border-gray-800">
+                        <div className="text-gray-400 text-[10px] sm:text-[11px] mb-0.5 font-medium">Total Cumulative Route Distance</div>
                         <div className="text-base sm:text-lg font-black text-white">{distanceKm} KM</div>
                       </div>
-                      <div className="bg-gray-900 p-2 sm:p-2.5 rounded border border-gray-800">
-                        <div className="text-gray-400 text-[10px] sm:text-[11px] mb-0.5">
+                      <div className="bg-gray-900/90 p-2.5 sm:p-3 rounded-xl border border-gray-800">
+                        <div className="text-gray-400 text-[10px] sm:text-[11px] mb-0.5 font-medium">
                           Billed Distance ({tripType === TripType.ROUND ? `Min ${250 * durationDays} km for ${durationDays} days` : 'Actuals'})
                         </div>
-                        <div className="text-base sm:text-lg font-black text-kandy-orange">
+                        <div className="text-base sm:text-lg font-black text-emerald-400">
                           {fareResult.actualDistance} KM
                         </div>
                       </div>
@@ -1242,12 +1285,12 @@ function BookingContent() {
                 <div className="bg-white p-3.5 sm:p-4.5 rounded-card border border-kandy-border shadow-card">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm sm:text-lg md:text-xl font-bold text-kandy-ink flex items-center gap-2">
-                      <CreditCard className="w-5 h-5 text-kandy-orange shrink-0" />
+                      <User className="w-5 h-5 text-kandy-orange shrink-0" />
                       <span>Step 4: Customer Details & 25% Advance</span>
                     </h2>
                     <button
                       onClick={() => setStep(3)}
-                      className="text-xs font-bold text-kandy-muted hover:text-kandy-ink flex items-center gap-1 shrink-0 ml-2"
+                      className="text-xs font-bold text-kandy-muted hover:text-kandy-ink flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
                     >
                       <ArrowLeft className="w-3.5 h-3.5" /> Back
                     </button>
@@ -1256,7 +1299,7 @@ function BookingContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-3.5 sm:mb-4">
                     <div>
                       <label className="block text-[10px] sm:text-xs font-bold text-kandy-muted uppercase mb-0.5 sm:mb-1">
-                        Full Name *
+                        Full Name <span className="text-red-500 font-bold ml-0.5" aria-label="required">*</span>
                       </label>
                       <input
                         type="text"
@@ -1269,7 +1312,7 @@ function BookingContent() {
                     </div>
                     <div>
                       <label className="block text-[10px] sm:text-xs font-bold text-kandy-muted uppercase mb-0.5 sm:mb-1">
-                        Mobile Number *
+                        Mobile Number <span className="text-red-500 font-bold ml-0.5" aria-label="required">*</span>
                       </label>
                       <input
                         type="tel"
@@ -1282,7 +1325,7 @@ function BookingContent() {
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] sm:text-xs font-bold text-kandy-muted uppercase mb-0.5 sm:mb-1">
-                        Email Address (for PDF Invoice)
+                        Email Address <span className="text-gray-400 font-normal text-[10px] sm:text-xs lowercase">(optional for PDF invoice)</span>
                       </label>
                       <input
                         type="email"
@@ -1312,6 +1355,7 @@ function BookingContent() {
                     )}
                   </div>
 
+                  {/* Razorpay 25% Advance Checkout box - preserved exactly as-is */}
                   <div className="bg-emerald-50 border border-emerald-200 p-2.5 sm:p-3 rounded-md mb-3.5 sm:mb-4">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[11px] sm:text-xs font-bold text-emerald-800 uppercase">
@@ -1329,7 +1373,7 @@ function BookingContent() {
                   <button
                     onClick={handleCreateBooking}
                     disabled={bookingLoading || !fareResult.isConfigured}
-                    className="w-full py-2.5 sm:py-3 bg-kandy-orange hover:bg-kandy-orangeHover text-white font-extrabold rounded-md text-[10.5px] sm:text-xs md:text-sm uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-1.5 sm:gap-2"
+                    className="w-full py-2.5 sm:py-3 bg-kandy-orange hover:bg-kandy-orangeHover text-white font-extrabold rounded-md text-xs sm:text-sm uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer"
                   >
                     <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
                     <span>
@@ -1339,7 +1383,7 @@ function BookingContent() {
                         ? !otpSent
                           ? 'VERIFY PHONE & CONFIRM BOOKING →'
                           : 'VERIFY OTP & PAY ADVANCE →'
-                        : `PAY ₹${fareResult.advanceAmount.toLocaleString()} ADVANCE & CONFIRM BOOKING →`}
+                        : `Pay ₹${fareResult.advanceAmount.toLocaleString()} & Confirm Booking →`}
                     </span>
                   </button>
                 </div>
