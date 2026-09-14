@@ -176,8 +176,8 @@ export default function App() {
   // Authentication State
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
-  const [customerName, setCustomerName] = useState<string>('Rakshith M');
-  const [phone, setPhone] = useState<string>('9876543210');
+  const [customerName, setCustomerName] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
   const [otp, setOtp] = useState<string>('');
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [isRegisteredUser, setIsRegisteredUser] = useState<boolean>(false);
@@ -339,7 +339,7 @@ export default function App() {
   const [estimatedDistanceKm] = useState<number>(250);
 
   // Customer Contact Info for Booking
-  const [customerEmail, setCustomerEmail] = useState<string>('customer@kandycabs.com');
+  const [customerEmail, setCustomerEmail] = useState<string>('');
   const [specialNotes, setSpecialNotes] = useState<string>('');
 
   const handleAddStop = () => {
@@ -481,17 +481,10 @@ export default function App() {
       }
       setOtpSent(true);
     } catch (err: any) {
-      if (cleanPhone === '9876543210' || cleanPhone === '9481086058') {
-        setIsRegisteredUser(true);
-        setExistingName('Rakshith M');
-        setCustomerName('Rakshith M');
-        setIsNewUser(false);
-      } else {
-        setIsRegisteredUser(false);
-        setExistingName('');
-        setCustomerName('');
-        setIsNewUser(true);
-      }
+      setIsRegisteredUser(false);
+      setExistingName('');
+      setCustomerName('');
+      setIsNewUser(true);
       setOtpSent(true);
     } finally {
       setIsSubmitting(false);
@@ -515,11 +508,11 @@ export default function App() {
       const finalName = isRegisteredUser ? (existingName || customerName) : customerName.trim();
       const res = await verifyOtp(cleanPhone, otp, finalName);
       setIsLoggedIn(true);
-      setCustomerName(finalName);
+      setCustomerName(finalName || 'Customer');
       setAuthModalOpen(false);
       setMenuOpen(false);
       setActiveTab('ACCOUNT');
-      Alert.alert('Welcome!', res.message || `Logged in successfully as ${finalName}`);
+      Alert.alert('Welcome!', res.message || `Logged in successfully as ${finalName || 'Customer'}`);
       
       // Load user's bookings from backend API with safe normalization
       fetchCustomerBookings(cleanPhone).then((bRes) => {
@@ -548,7 +541,7 @@ export default function App() {
         setUserBookings([]);
       });
     } catch (err: any) {
-      const finalName = isRegisteredUser ? (existingName || 'Rakshith M') : (customerName.trim() || 'Valued Customer');
+      const finalName = isRegisteredUser ? (existingName || customerName.trim()) : (customerName.trim() || 'Customer');
       setIsLoggedIn(true);
       setCustomerName(finalName);
       setAuthModalOpen(false);
@@ -568,12 +561,26 @@ export default function App() {
     setIsRegisteredUser(false);
     setIsNewUser(false);
     setExistingName('');
+    setCustomerName('');
+    setPhone('');
+    setCustomerEmail('');
     setUserBookings([]);
     Alert.alert('Logged Out', 'You have been logged out.');
   };
 
   // Confirm Final Booking Action
   const handleConfirmFinalBooking = async () => {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      Alert.alert('Mobile Number Required', 'Please enter a valid 10-digit mobile number so we can send your trip & driver details.');
+      return;
+    }
+
+    if (!customerName.trim()) {
+      Alert.alert('Full Name Required', 'Please enter your full name for the booking.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const newRef = `KC${Math.floor(10000 + Math.random() * 90000)}`;
@@ -589,9 +596,9 @@ export default function App() {
         estimatedFare: calculatedFare,
         advanceAmount: advancePayable,
         balanceAmount: balancePayable,
-        customerName,
-        customerPhone: phone,
-        customerEmail,
+        customerName: customerName.trim(),
+        customerPhone: cleanPhone,
+        customerEmail: customerEmail.trim(),
         specialNotes,
       };
 
@@ -873,7 +880,7 @@ export default function App() {
                     maxLength={10}
                     value={phone}
                     onChangeText={setPhone}
-                    placeholder="9876543210"
+                    placeholder="10-digit mobile number"
                     placeholderTextColor="#94A3B8"
                   />
                 </View>
@@ -2075,14 +2082,41 @@ export default function App() {
                 </View>
 
                 <Text style={styles.cardSectionTitle}>PASSENGER CONTACT DETAILS</Text>
-                <Text style={styles.inputLabel}>FULL NAME</Text>
-                <TextInput style={styles.input} value={customerName} onChangeText={setCustomerName} placeholder="Your Full Name" />
-                <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
-                <TextInput style={styles.input} keyboardType="phone-pad" value={phone} onChangeText={setPhone} placeholder="10-digit mobile number" />
-                <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-                <TextInput style={styles.input} keyboardType="email-address" value={customerEmail} onChangeText={setCustomerEmail} placeholder="customer@email.com" />
+                <Text style={styles.inputLabel}>FULL NAME *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={customerName}
+                  onChangeText={setCustomerName}
+                  placeholder="Enter your full name"
+                  placeholderTextColor="#94A3B8"
+                />
+                <Text style={styles.inputLabel}>MOBILE NUMBER *</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="10-digit mobile number"
+                  placeholderTextColor="#94A3B8"
+                />
+                <Text style={styles.inputLabel}>EMAIL ADDRESS (OPTIONAL)</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="email-address"
+                  value={customerEmail}
+                  onChangeText={setCustomerEmail}
+                  placeholder="name@example.com (optional)"
+                  placeholderTextColor="#94A3B8"
+                />
                 <Text style={styles.inputLabel}>SPECIAL INSTRUCTIONS (OPTIONAL)</Text>
-                <TextInput style={styles.input} value={specialNotes} onChangeText={setSpecialNotes} placeholder="e.g. Flight number, extra luggage space" />
+                <TextInput
+                  style={styles.input}
+                  value={specialNotes}
+                  onChangeText={setSpecialNotes}
+                  placeholder="e.g. Flight number, extra luggage space"
+                  placeholderTextColor="#94A3B8"
+                />
 
                 <View style={styles.fareBreakdownBox}>
                   <Text style={styles.fareBreakdownTitle}>TRANSPARENT FARE BREAKDOWN</Text>
@@ -2338,7 +2372,7 @@ export default function App() {
                       maxLength={10}
                       value={phone}
                       onChangeText={setPhone}
-                      placeholder="9876543210"
+                      placeholder="10-digit mobile number"
                       placeholderTextColor="#94A3B8"
                     />
                   </View>
