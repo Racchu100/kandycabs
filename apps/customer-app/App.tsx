@@ -17,7 +17,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import MapView, { Marker, Region, UrlTile } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
 import {
@@ -430,32 +430,86 @@ export default function App() {
     }
   };
 
-  const mapRef = useRef<MapView | null>(null);
+  const webViewRef = useRef<WebView | null>(null);
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleMapRegionChangeComplete = (region: Region) => {
-    setTempMapCoords((prev) => ({
-      ...prev,
-      latitude: region.latitude,
-      longitude: region.longitude,
-    }));
+  const getLeafletHtml = (lat: number, lng: number) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #map { width: 100%; height: 100%; overflow: hidden; background: #e5e9ec; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([${lat}, ${lng}], 16);
 
-    if (geocodeTimeoutRef.current) {
-      clearTimeout(geocodeTimeoutRef.current);
-    }
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
 
-    setIsReverseGeocoding(true);
-    geocodeTimeoutRef.current = setTimeout(async () => {
-      try {
-        const geo = await reverseGeocodeCoordinates(region.latitude, region.longitude);
-        setTempGeocodedAddress(geo.formattedAddress);
-        setTempShortAddress(geo.shortAddress);
-      } catch (err) {
-        console.log('[handleMapRegionChangeComplete geocode error]', err);
-      } finally {
-        setIsReverseGeocoding(false);
+    map.on('moveend', function() {
+      var center = map.getCenter();
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'MOVE_END',
+        latitude: center.lat,
+        longitude: center.lng
+      }));
+    });
+
+    window.recenterMap = function(newLat, newLng) {
+      map.setView([newLat, newLng], 16, { animate: true });
+    };
+
+    window.zoomIn = function() { map.zoomIn(); };
+    window.zoomOut = function() { map.zoomOut(); };
+  </script>
+</body>
+</html>
+`;
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'MOVE_END') {
+        const lat = data.latitude;
+        const lng = data.longitude;
+        setTempMapCoords((prev) => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng,
+        }));
+
+        if (geocodeTimeoutRef.current) {
+          clearTimeout(geocodeTimeoutRef.current);
+        }
+
+        setIsReverseGeocoding(true);
+        geocodeTimeoutRef.current = setTimeout(async () => {
+          try {
+            const geo = await reverseGeocodeCoordinates(lat, lng);
+            setTempGeocodedAddress(geo.formattedAddress);
+            setTempShortAddress(geo.shortAddress);
+          } catch (err) {
+            console.log('[handleWebViewMessage geocode error]', err);
+          } finally {
+            setIsReverseGeocoding(false);
+          }
+        }, 600);
       }
-    }, 600);
+    } catch (err) {
+      console.warn('Error parsing webview message', err);
+    }
   };
 
   const handleRecenterGps = async () => {
@@ -471,12 +525,7 @@ export default function App() {
       setTempGeocodedAddress(geo.formattedAddress);
       setTempShortAddress(geo.shortAddress);
 
-      mapRef.current?.animateToRegion({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      }, 800);
+      webViewRef.current?.injectJavaScript(`window.recenterMap && window.recenterMap(${coords.latitude}, ${coords.longitude}); true;`);
     } catch (err: any) {
       Alert.alert('GPS Recenter', 'Unable to re-acquire GPS position.');
     } finally {
@@ -485,13 +534,11 @@ export default function App() {
   };
 
   const handleMapZoom = (direction: 'in' | 'out') => {
-    const factor = direction === 'in' ? 0.5 : 2.0;
-    mapRef.current?.animateToRegion({
-      latitude: tempMapCoords.latitude,
-      longitude: tempMapCoords.longitude,
-      latitudeDelta: 0.005 * factor,
-      longitudeDelta: 0.005 * factor,
-    }, 400);
+    if (direction === 'in') {
+      webViewRef.current?.injectJavaScript('window.zoomIn && window.zoomIn(); true;');
+    } else {
+      webViewRef.current?.injectJavaScript('window.zoomOut && window.zoomOut(); true;');
+    }
   };
 
   const handleConfirmMapPickup = () => {
@@ -3203,34 +3250,18 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            {/* Interactive Map Visual Area using react-native-maps */}
+            {/* Interactive Map Visual Area using Leaflet WebView */}
             <View style={styles.mapCanvasWrapper}>
-              <MapView
-                ref={mapRef}
+              <WebView
+                ref={webViewRef}
                 style={StyleSheet.absoluteFillObject}
-                mapType={Platform.OS === 'android' ? 'none' : 'standard'}
-                initialRegion={{
-                  latitude: tempMapCoords.latitude,
-                  longitude: tempMapCoords.longitude,
-                  latitudeDelta: 0.005,
-                  longitudeDelta: 0.005,
-                }}
-                onRegionChangeComplete={handleMapRegionChangeComplete}
-                showsUserLocation={true}
-                showsMyLocationButton={false}
-                showsCompass={true}
-                rotateEnabled={true}
-                scrollEnabled={true}
-                zoomEnabled={true}
-                pitchEnabled={true}
-              >
-                <UrlTile
-                  urlTemplate="https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
-                  maximumZ={19}
-                  flipY={false}
-                  zIndex={1}
-                />
-              </MapView>
+                originWhitelist={['*']}
+                source={{ html: getLeafletHtml(tempMapCoords.latitude, tempMapCoords.longitude) }}
+                onMessage={handleWebViewMessage}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                scrollEnabled={false}
+              />
 
               {/* Fixed Center Pin on Top of Interactive Map */}
               <View style={styles.centerPinFixedWrapper} pointerEvents="none">
