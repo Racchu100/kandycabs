@@ -205,3 +205,52 @@ export async function reverseGeocodeCoordinates(
     longitude,
   };
 }
+
+/**
+ * Forward-geocodes a typed place name or address query into GPS coordinates.
+ */
+export async function geocodeAddress(
+  query: string
+): Promise<{ latitude: number; longitude: number; formattedAddress?: string } | null> {
+  if (!query || query.trim().length === 0) return null;
+
+  // Strategy 1: Expo native geocode
+  try {
+    const results = await Location.geocodeAsync(query);
+    if (results && results.length > 0) {
+      return {
+        latitude: results[0].latitude,
+        longitude: results[0].longitude,
+      };
+    }
+  } catch (err) {
+    console.log('[locationService] Expo native geocode fallback:', err);
+  }
+
+  // Strategy 2: OpenStreetMap Nominatim Search
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+      {
+        headers: {
+          'User-Agent': 'KandyCabsCustomerApp/1.0 (operations@kandycabs.com)',
+          'Accept-Language': 'en',
+        },
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return {
+          latitude: parseFloat(data[0].lat),
+          longitude: parseFloat(data[0].lon),
+          formattedAddress: data[0].display_name,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[locationService] Nominatim search error:', err);
+  }
+
+  return null;
+}
