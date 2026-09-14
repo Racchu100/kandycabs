@@ -583,21 +583,6 @@ export default function App() {
                   </View>
                   <Text style={[styles.drawerNavChevron, activeTab === 'CONTACT' && styles.drawerNavChevronActive]}>›</Text>
                 </TouchableOpacity>
-
-                {/* 6. Need Assistance? */}
-                <TouchableOpacity
-                  style={styles.drawerNavItem}
-                  onPress={() => {
-                    setActiveTab('CONTACT');
-                    setMenuOpen(false);
-                  }}
-                >
-                  <View style={styles.drawerNavLeft}>
-                    <Text style={styles.drawerNavIcon}>❓</Text>
-                    <Text style={styles.drawerNavText}>Need Assistance?</Text>
-                  </View>
-                  <Text style={styles.drawerNavChevron}>›</Text>
-                </TouchableOpacity>
               </View>
 
               {/* Bottom Actions & 24x7 Support */}
