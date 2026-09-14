@@ -250,12 +250,12 @@ export default function AdminDriversPage() {
                   <tr key={d.id} className="hover:bg-gray-50">
                     <td className="p-2 sm:p-3.5 font-bold whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        {isOnline && (
-                          <span
-                            className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0 shadow-sm animate-pulse"
-                            title="Online"
-                          />
-                        )}
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 shadow-sm ${
+                            isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
+                          }`}
+                          title={isOnline ? 'Online' : 'Offline'}
+                        />
                         <span>{d.fullName}</span>
                       </div>
                     </td>
@@ -281,7 +281,7 @@ export default function AdminDriversPage() {
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-black uppercase transition-all shadow-sm cursor-pointer ${
                           isOnline
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200'
+                            : 'bg-red-100 text-red-800 border border-red-300 hover:bg-red-200'
                         }`}
                       >
                         {isOnline ? (
@@ -292,8 +292,8 @@ export default function AdminDriversPage() {
                           </>
                         ) : (
                           <>
-                            <span className="w-2 h-2 rounded-full bg-slate-400" />
-                            <ToggleLeft className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span className="w-2 h-2 rounded-full bg-red-500" />
+                            <ToggleLeft className="w-3.5 h-3.5 text-red-500 shrink-0" />
                             <span>OFFLINE</span>
                           </>
                         )}

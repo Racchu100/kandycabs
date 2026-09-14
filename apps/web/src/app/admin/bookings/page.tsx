@@ -824,9 +824,12 @@ export default function AdminBookingsPage() {
                     >
                       <div className="flex items-center gap-2">
                         <input type="checkbox" checked={isChecked} readOnly />
-                        {isOnline && (
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0 shadow-sm animate-pulse" title="Online" />
-                        )}
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 shadow-sm ${
+                            isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
+                          }`}
+                          title={isOnline ? 'Online' : 'Offline'}
+                        />
                         <span>{d.fullName} (+91 {d.user?.phone || '8888888888'})</span>
                       </div>
                       {isOnline ? (
@@ -835,8 +838,8 @@ export default function AdminBookingsPage() {
                           ONLINE
                         </span>
                       ) : (
-                        <span className="text-[10px] bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block shrink-0" />
+                        <span className="text-[10px] bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded font-extrabold uppercase tracking-wider flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0" />
                           OFFLINE
                         </span>
                       )}
