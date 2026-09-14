@@ -44,7 +44,7 @@ export default function AdminDriversPage() {
             licenseDocUrl: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2',
             rcDocUrl: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2',
             insuranceDocUrl: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2',
-            vehiclePhotos: ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d'],
+            vehiclePhotos: ['https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&auto=format&fit=crop&q=60'],
             isActive: true,
             isVerifiedByAdmin: true,
             status: 'APPROVED',

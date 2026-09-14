@@ -54,7 +54,7 @@ async function main() {
       driverAllowance: 350,
       nightChargeRules: '₹250 night allowance for pickup/drop between 10:00 PM and 6:00 AM',
       images: [
-        'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&auto=format&fit=crop&q=60',
+        'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&auto=format&fit=crop&q=60',
       ],
     },
     {

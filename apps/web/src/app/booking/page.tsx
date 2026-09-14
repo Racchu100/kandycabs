@@ -50,7 +50,7 @@ const INITIAL_VEHICLE_OPTIONS = [
     seats: 4,
     perKmRate: 13.5,
     driverAllowance: 350,
-    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&auto=format&fit=crop&q=60',
+    image: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&auto=format&fit=crop&q=60',
   },
   {
     category: VehicleCategory.SUV,
@@ -787,75 +787,82 @@ function BookingContent() {
                           isSelected ? 'border-2 border-kandy-orange' : 'border-gray-200'
                         }`}
                       >
-                        <div className="p-0 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-0 sm:gap-6">
+                        <div className="p-0 sm:p-4 md:p-5 lg:p-6 flex flex-col md:flex-row md:items-stretch justify-between gap-0 sm:gap-4 md:gap-5 lg:gap-6">
                           {/* Left: Car Image & Details */}
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-0 sm:gap-6 flex-1 w-full">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-stretch gap-0 sm:gap-4 md:gap-5 lg:gap-6 flex-1 w-full">
                             <img
                               src={v.image}
                               alt={v.name}
-                              className="w-full sm:w-60 md:w-64 h-48 sm:h-40 object-cover sm:object-contain rounded-t-xl sm:rounded-xl shrink-0"
+                              className="w-full sm:w-56 md:w-48 lg:w-64 h-48 sm:h-40 md:h-36 lg:h-40 object-cover sm:object-contain rounded-t-xl sm:rounded-xl shrink-0 self-center md:self-start bg-gray-50/50"
                             />
-                            <div className="p-3 pt-2.5 sm:p-0 space-y-1.5 text-left min-w-0 flex-1 w-full">
-                              <div className="flex items-center gap-2 justify-start flex-wrap">
-                                <h3 className="text-base sm:text-lg font-black text-gray-900">
-                                  {v.name}
-                                </h3>
-                                <span className="bg-black text-amber-400 text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                  4.8 ★
-                                </span>
-                              </div>
-                              <p className="text-[11px] sm:text-xs text-gray-500 font-semibold">
-                                {v.seats} seater AC Cab
-                              </p>
-
-                              <div className="pt-0.5 space-y-0.5 text-[11px] sm:text-xs text-gray-700 font-medium">
-                                <div className="flex items-center gap-1.5 justify-start">
-                                  <span>🧑‍✈️</span>
-                                  <span>Driver allowance Included</span>
+                            <div className="p-3 pt-2.5 sm:p-0 space-y-1.5 text-left min-w-0 flex-1 w-full flex flex-col justify-between">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 justify-start flex-wrap">
+                                  <h3 className="text-base sm:text-lg font-black text-gray-900">
+                                    {v.name}
+                                  </h3>
+                                  <span className="bg-black text-amber-400 text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                    4.8 ★
+                                  </span>
+                                  {isSelected && (
+                                    <span className="bg-orange-100 text-orange-800 border border-orange-200 text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                      Selected
+                                    </span>
+                                  )}
                                 </div>
-                                {vFare.isConfigured ? (
+                                <p className="text-[11px] sm:text-xs text-gray-500 font-semibold">
+                                  {v.seats} seater AC Cab
+                                </p>
+
+                                <div className="pt-0.5 space-y-0.5 text-[11px] sm:text-xs text-gray-700 font-medium">
                                   <div className="flex items-center gap-1.5 justify-start">
-                                    <span>🧳</span>
-                                    <span>{vFare.includedKm} kms included | Post limit: ₹{vFare.extraKmRate}/km</span>
+                                    <span>🧑‍✈️</span>
+                                    <span>Driver allowance Included</span>
+                                  </div>
+                                  {vFare.isConfigured ? (
+                                    <div className="flex items-center gap-1.5 justify-start">
+                                      <span>🧳</span>
+                                      <span>{vFare.includedKm} kms included | Post limit: ₹{vFare.extraKmRate}/km</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5 justify-start text-rose-600 font-bold">
+                                      <span>⚠️</span>
+                                      <span>Pricing rule not configured in Admin</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Fuel Type Selector (Larger Touch Targets on Tablet md:) */}
+                                {availableFuelTypes.length > 0 ? (
+                                  <div className="pt-1 flex flex-wrap items-center gap-2 sm:gap-3 justify-start text-[11px] sm:text-xs">
+                                    <span className="font-bold text-gray-700">Select Fuel Type</span>
+                                    {availableFuelTypes.map((ft) => (
+                                      <label key={ft} className="inline-flex items-center gap-1.5 text-gray-700 cursor-pointer font-semibold md:py-1 md:px-2 md:rounded-lg md:hover:bg-gray-50 transition">
+                                        <input
+                                          type="radio"
+                                          name={`fuel_${v.category}`}
+                                          checked={currentFuel === ft}
+                                          onChange={() =>
+                                            setSelectedFuelMap((prev) => ({
+                                              ...prev,
+                                              [v.category]: ft,
+                                            }))
+                                          }
+                                          className="accent-kandy-orange w-3.5 h-3.5 md:w-5 md:h-5 cursor-pointer shrink-0"
+                                        />
+                                        <span className="text-xs md:text-sm font-bold">{ft}</span>
+                                      </label>
+                                    ))}
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1.5 justify-start text-rose-600 font-bold">
-                                    <span>⚠️</span>
-                                    <span>Pricing rule not configured in Admin</span>
+                                  <div className="pt-1 text-[11px] sm:text-xs font-bold text-rose-600">
+                                    ✕ Unavailable for {tripType.replace(/_/g, ' ')}
                                   </div>
                                 )}
                               </div>
 
-                              {/* Fuel Type Selector */}
-                              {availableFuelTypes.length > 0 ? (
-                                <div className="pt-1 flex flex-wrap items-center gap-2 sm:gap-3 justify-start text-[11px] sm:text-xs">
-                                  <span className="font-bold text-gray-700">Select Fuel Type</span>
-                                  {availableFuelTypes.map((ft) => (
-                                    <label key={ft} className="inline-flex items-center gap-1 text-gray-700 cursor-pointer font-semibold">
-                                      <input
-                                        type="radio"
-                                        name={`fuel_${v.category}`}
-                                        checked={currentFuel === ft}
-                                        onChange={() =>
-                                          setSelectedFuelMap((prev) => ({
-                                            ...prev,
-                                            [v.category]: ft,
-                                          }))
-                                        }
-                                        className="accent-kandy-orange"
-                                      />
-                                      <span>{ft}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="pt-1 text-[11px] sm:text-xs font-bold text-rose-600">
-                                  ✕ Unavailable for {tripType.replace(/_/g, ' ')}
-                                </div>
-                              )}
-
-                              {/* Toggle Inclusions & Exclusions Pill Button (Matching reference screenshot) */}
-                              <div className="pt-2">
+                              {/* Toggle Inclusions & Exclusions Pill Button (Matching baseline on tablet) */}
+                              <div className="pt-2 mt-auto">
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -903,10 +910,10 @@ function BookingContent() {
                             </div>
                           </div>
 
-                          {/* Right: Pricing Box & SELECT CAR CTA Button (Matching reference screenshot) */}
-                          <div className="px-2 pb-2.5 sm:p-0 shrink-0 space-y-2 sm:space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-2.5 md:pt-0 md:pl-6 w-full md:w-64">
+                          {/* Right: Pricing Box & SELECT CAR CTA Button (Proportionate padding & bottom-aligned button on tablet) */}
+                          <div className="px-2 pb-2.5 sm:p-0 shrink-0 space-y-2 sm:space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-2.5 md:pt-0 md:pl-5 md:pr-1 lg:pl-6 lg:pr-0 w-full md:w-56 lg:w-64 flex flex-col justify-between">
                             {isAvailable ? (
-                              <div className="space-y-2 sm:space-y-3">
+                              <div className="space-y-2 sm:space-y-3 flex-1 flex flex-col justify-between">
                                 {/* Sky Blue Rounded Pricing Box */}
                                 <div className="bg-[#F0F7FF] border border-sky-100/90 rounded-2xl p-2.5 sm:p-3.5 text-left space-y-1">
                                   {/* Discount & Strikethrough Row */}
@@ -937,7 +944,7 @@ function BookingContent() {
                                     setSelectedCategory(v.category);
                                     setStep(2);
                                   }}
-                                  className="w-full py-2.5 px-4 sm:py-3.5 sm:px-6 bg-[#FF6B1A] hover:bg-orange-600 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer"
+                                  className="w-full py-2.5 px-4 sm:py-3.5 sm:px-6 bg-[#FF6B1A] hover:bg-orange-600 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer mt-auto"
                                 >
                                   <span>SELECT CAR →</span>
                                 </button>

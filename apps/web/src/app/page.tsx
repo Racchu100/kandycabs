@@ -26,7 +26,7 @@ const FLEET_TEASER = [
     perKmRate: 13.5,
     extraKmRate: 14.0,
     rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&auto=format&fit=crop&q=60',
+    image: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&auto=format&fit=crop&q=60',
   },
   {
     name: 'SUV',
