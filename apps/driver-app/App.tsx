@@ -264,7 +264,7 @@ export default function App() {
             {/* Title & Subtitle */}
             <Text style={styles.authTitle}>Sign In to Kandy Cabs</Text>
             <Text style={styles.authSubtitle}>
-              Unified Portal — Driver partners & customers are automatically directed to their account.
+              Sign in with your driver-partner number to go online
             </Text>
 
             {/* Step 1: Mobile Number Input */}
