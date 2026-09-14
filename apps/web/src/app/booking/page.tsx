@@ -861,8 +861,8 @@ function BookingContent() {
                                 )}
                               </div>
 
-                              {/* Toggle Inclusions & Exclusions Pill Button (Matching baseline on tablet/desktop) */}
-                              <div className="pt-2 mt-auto">
+                              {/* Toggle Inclusions & Exclusions Pill Button (TABLET & DESKTOP ONLY: hidden md:block) */}
+                              <div className="hidden md:block pt-2 mt-auto">
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -887,7 +887,7 @@ function BookingContent() {
                             </div>
                           </div>
 
-                          {/* Right: Pricing Box & SELECT CAR CTA Button (Proportionate padding & bottom-aligned button on tablet/desktop) */}
+                          {/* Right: Pricing Box & SELECT CAR CTA Button */}
                           <div className="px-2 pb-2.5 sm:p-0 shrink-0 space-y-2 sm:space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-2.5 md:pt-0 md:pl-5 md:pr-1 lg:pl-6 lg:pr-0 w-full md:w-56 lg:w-64 flex flex-col justify-between">
                             {isAvailable ? (
                               <div className="space-y-2 sm:space-y-3 flex-1 flex flex-col justify-between">
@@ -925,6 +925,30 @@ function BookingContent() {
                                 >
                                   <span>SELECT CAR →</span>
                                 </button>
+
+                                {/* Toggle Inclusions & Exclusions Pill Button (MOBILE ONLY: below SELECT CAR) */}
+                                <div className="pt-1 md:hidden">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedInclusionsCategory((prev) => (prev === v.category ? null : v.category));
+                                    }}
+                                    className="w-full bg-[#F0F6FF] hover:bg-blue-100/70 border border-blue-100/90 rounded-xl p-2 px-3 flex items-center justify-between transition cursor-pointer"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-5 h-5 rounded-full bg-[#0F52BA] text-white flex items-center justify-center shrink-0">
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                      </div>
+                                      <span className="text-xs font-bold text-[#1E3A8A]">Inclusions and Exclusions</span>
+                                    </div>
+                                    {expandedInclusionsCategory === v.category ? (
+                                      <ChevronUp className="w-4 h-4 text-[#0073E6] shrink-0" />
+                                    ) : (
+                                      <ChevronDown className="w-4 h-4 text-[#0073E6] shrink-0" />
+                                    )}
+                                  </button>
+                                </div>
                               </div>
                             ) : (
                               <div className="space-y-1.5 py-1">
