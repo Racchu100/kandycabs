@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -16,6 +16,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import MapView, { Marker, Region } from 'react-native-maps';
 import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
 import {
@@ -428,26 +429,32 @@ export default function App() {
     }
   };
 
-  const handleNudgeMapLocation = async (dLat: number, dLng: number) => {
-    const newLat = tempMapCoords.latitude + dLat;
-    const newLng = tempMapCoords.longitude + dLng;
+  const mapRef = useRef<MapView | null>(null);
+  const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const handleMapRegionChangeComplete = (region: Region) => {
     setTempMapCoords((prev) => ({
       ...prev,
-      latitude: newLat,
-      longitude: newLng,
+      latitude: region.latitude,
+      longitude: region.longitude,
     }));
 
-    setIsReverseGeocoding(true);
-    try {
-      const geo = await reverseGeocodeCoordinates(newLat, newLng);
-      setTempGeocodedAddress(geo.formattedAddress);
-      setTempShortAddress(geo.shortAddress);
-    } catch (err) {
-      console.warn('[handleNudgeMapLocation geocode error]', err);
-    } finally {
-      setIsReverseGeocoding(false);
+    if (geocodeTimeoutRef.current) {
+      clearTimeout(geocodeTimeoutRef.current);
     }
+
+    setIsReverseGeocoding(true);
+    geocodeTimeoutRef.current = setTimeout(async () => {
+      try {
+        const geo = await reverseGeocodeCoordinates(region.latitude, region.longitude);
+        setTempGeocodedAddress(geo.formattedAddress);
+        setTempShortAddress(geo.shortAddress);
+      } catch (err) {
+        console.log('[handleMapRegionChangeComplete geocode error]', err);
+      } finally {
+        setIsReverseGeocoding(false);
+      }
+    }, 600);
   };
 
   const handleRecenterGps = async () => {
@@ -462,11 +469,28 @@ export default function App() {
       });
       setTempGeocodedAddress(geo.formattedAddress);
       setTempShortAddress(geo.shortAddress);
+
+      mapRef.current?.animateToRegion({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      }, 800);
     } catch (err: any) {
       Alert.alert('GPS Recenter', 'Unable to re-acquire GPS position.');
     } finally {
       setIsReverseGeocoding(false);
     }
+  };
+
+  const handleMapZoom = (direction: 'in' | 'out') => {
+    const factor = direction === 'in' ? 0.5 : 2.0;
+    mapRef.current?.animateToRegion({
+      latitude: tempMapCoords.latitude,
+      longitude: tempMapCoords.longitude,
+      latitudeDelta: 0.005 * factor,
+      longitudeDelta: 0.005 * factor,
+    }, 400);
   };
 
   const handleConfirmMapPickup = () => {
@@ -3178,81 +3202,56 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            {/* Interactive Map Visual Area */}
+            {/* Interactive Map Visual Area using react-native-maps */}
             <View style={styles.mapCanvasWrapper}>
-              {/* Map Canvas Background Grid */}
-              <View style={styles.mapCanvasBackground}>
-                {/* Street Lines & Route Blocks */}
-                <View style={styles.mapRoadH1} />
-                <View style={styles.mapRoadH2} />
-                <View style={styles.mapRoadV1} />
-                <View style={styles.mapRoadV2} />
-                <View style={styles.mapBuildingBlock1} />
-                <View style={styles.mapBuildingBlock2} />
-                <View style={styles.mapBuildingBlock3} />
-                <View style={styles.mapGreenArea} />
+              <MapView
+                ref={mapRef}
+                style={StyleSheet.absoluteFillObject}
+                initialRegion={{
+                  latitude: tempMapCoords.latitude,
+                  longitude: tempMapCoords.longitude,
+                  latitudeDelta: 0.005,
+                  longitudeDelta: 0.005,
+                }}
+                onRegionChangeComplete={handleMapRegionChangeComplete}
+                showsUserLocation={true}
+                showsMyLocationButton={false}
+                showsCompass={true}
+                rotateEnabled={true}
+                scrollEnabled={true}
+                zoomEnabled={true}
+                pitchEnabled={true}
+              />
 
-                {/* Accuracy Circle & Center Pin */}
-                <View style={styles.mapAccuracyCircle} />
-                <View style={styles.mapPinContainer}>
-                  <View style={styles.mapPinBadge}>
-                    <Text style={styles.mapPinBadgeText}>📍 PICKUP HERE</Text>
-                  </View>
-                  <Text style={styles.mapPinIcon}>📍</Text>
-                  <View style={styles.mapPinShadow} />
+              {/* Fixed Center Pin on Top of Interactive Map */}
+              <View style={styles.centerPinFixedWrapper} pointerEvents="none">
+                <View style={styles.mapPinBadge}>
+                  <Text style={styles.mapPinBadgeText}>📍 PICKUP HERE</Text>
                 </View>
+                <Text style={styles.mapPinIcon}>📍</Text>
+                <View style={styles.mapPinShadow} />
+              </View>
 
-                {/* Map Floating Controls: Zoom & Recenter */}
-                <View style={styles.mapFloatingControls}>
-                  <TouchableOpacity
-                    style={styles.mapControlBtn}
-                    onPress={() => setMapZoomLevel((prev) => Math.min(prev + 1, 19))}
-                  >
-                    <Text style={styles.mapControlBtnText}>+</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.mapControlBtn}
-                    onPress={() => setMapZoomLevel((prev) => Math.max(prev - 1, 12))}
-                  >
-                    <Text style={styles.mapControlBtnText}>−</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.mapControlBtn, { marginTop: 8, backgroundColor: '#FF6B1A' }]}
-                    onPress={handleRecenterGps}
-                  >
-                    <Text style={[styles.mapControlBtnText, { color: '#FFF' }]}>🎯</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Map Directional Nudge Pad (To move pin smoothly on all devices) */}
-                <View style={styles.mapNudgePad}>
-                  <TouchableOpacity
-                    style={styles.nudgeBtn}
-                    onPress={() => handleNudgeMapLocation(0.0003, 0)}
-                  >
-                    <Text style={styles.nudgeText}>▲</Text>
-                  </TouchableOpacity>
-                  <View style={{ flexDirection: 'row', gap: 14 }}>
-                    <TouchableOpacity
-                      style={styles.nudgeBtn}
-                      onPress={() => handleNudgeMapLocation(0, -0.0003)}
-                    >
-                      <Text style={styles.nudgeText}>◀</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.nudgeBtn}
-                      onPress={() => handleNudgeMapLocation(0, 0.0003)}
-                    >
-                      <Text style={styles.nudgeText}>▶</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.nudgeBtn}
-                    onPress={() => handleNudgeMapLocation(-0.0003, 0)}
-                  >
-                    <Text style={styles.nudgeText}>▼</Text>
-                  </TouchableOpacity>
-                </View>
+              {/* Map Floating Controls: Zoom & Recenter */}
+              <View style={styles.mapFloatingControls}>
+                <TouchableOpacity
+                  style={styles.mapControlBtn}
+                  onPress={() => handleMapZoom('in')}
+                >
+                  <Text style={styles.mapControlBtnText}>+</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.mapControlBtn}
+                  onPress={() => handleMapZoom('out')}
+                >
+                  <Text style={styles.mapControlBtnText}>−</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.mapControlBtn, { marginTop: 8, backgroundColor: '#FF6B1A' }]}
+                  onPress={handleRecenterGps}
+                >
+                  <Text style={[styles.mapControlBtnText, { color: '#FFF' }]}>🎯</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -6207,6 +6206,16 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255, 107, 26, 0.4)',
     borderStyle: 'dashed',
+  },
+  centerPinFixedWrapper: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 30,
   },
   mapPinContainer: {
     alignItems: 'center',
