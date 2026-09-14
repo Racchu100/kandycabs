@@ -41,7 +41,14 @@ export async function GET() {
     for (const d of dbDrivers) {
       const p = d.user?.phone ? normalizePhone(d.user.phone) : '';
       if (p) phoneSet.add(p);
-      drivers.push(d);
+      const stored = storedDrivers.find(
+        (s) => (p && s.user?.phone && normalizePhone(s.user.phone) === p) || s.id === d.id
+      );
+      const isOnline = stored ? stored.isOnline !== false : (d.isOnline !== false);
+      drivers.push({
+        ...d,
+        isOnline,
+      });
     }
 
     for (const s of storedDrivers) {

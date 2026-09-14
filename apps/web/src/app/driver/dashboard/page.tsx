@@ -444,6 +444,13 @@ export default function DriverDashboardPage() {
 
     const phone = user.phone;
     if (phone) {
+      // Sync live duty status with server
+      fetch('/api/driver/duty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isOnline: true, phone }),
+      }).catch(() => {});
+
       fetch('/api/admin/drivers')
         .then((res) => res.json())
         .then((data) => {

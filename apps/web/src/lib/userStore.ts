@@ -429,14 +429,22 @@ export function toggleStoredDriverActive(phoneOrId: string, isActive: boolean): 
 
 export function updateStoredDriverDuty(phoneOrId: string, isOnline: boolean): boolean {
   const cleanPhone = normalizePhone(phoneOrId);
+  let updated = false;
   for (const [phone, user] of userRegistry.entries()) {
-    if (phone === cleanPhone || user.id === phoneOrId || `d_${phone}` === phoneOrId) {
+    const normPhone = normalizePhone(phone);
+    if (
+      (cleanPhone && normPhone === cleanPhone) ||
+      user.id === phoneOrId ||
+      `d_${phone}` === phoneOrId ||
+      (cleanPhone && cleanPhone.length >= 7 && normPhone.includes(cleanPhone)) ||
+      (phoneOrId && user.fullName.toLowerCase().includes(phoneOrId.toLowerCase()))
+    ) {
       (user as any).isOnline = isOnline;
       userRegistry.set(phone, user);
-      return true;
+      updated = true;
     }
   }
-  return false;
+  return updated;
 }
 
 export interface StoredDriverApplication {
