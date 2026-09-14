@@ -355,224 +355,219 @@ export default function App() {
   // ─── 3. LOGGED-IN DRIVER DASHBOARD ───
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B132B" />
+      <StatusBar barStyle="light-content" backgroundColor="#101522" />
 
       {/* Driver Header with Logout Button */}
       <View style={styles.header}>
         <View style={styles.logoBadge}>
           <Text style={styles.logoText}>KC</Text>
         </View>
-        <View style={{ flex: 1, marginLeft: 10 }}>
+        <View style={{ flex: 1, paddingHorizontal: 6 }}>
           <Text style={styles.headerTitle}>KANDY CABS DRIVER</Text>
-          <Text style={styles.headerSubtitle}>
-            {driverUser?.fullName || 'Ranju'} - {driverUser?.vehicleName || 'Swift Dzire (Sedan)'}
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
+            {driverUser?.fullName || 'Ramesh Kumar'} • {driverUser?.vehicleName || 'Swift Dzire (Sedan)'}
           </Text>
         </View>
         <View style={styles.headerRightControls}>
           <View style={styles.approvedBadge}>
-            <Text style={styles.approvedCheck}>✔</Text>
-            <Text style={styles.approvedText}>APPROVED</Text>
+            <Text style={styles.approvedDot}>●</Text>
+            <Text style={styles.approvedText}>{driverUser?.status || 'APPROVED'}</Text>
           </View>
-          <TouchableOpacity style={styles.logoutHeaderBtn} onPress={handleLogout}>
-            <Text style={styles.logoutHeaderBtnIcon}>[→</Text>
+          <TouchableOpacity style={styles.logoutHeaderBtn} onPress={handleLogout} activeOpacity={0.7}>
             <Text style={styles.logoutHeaderBtnText}>LOG OUT</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
-        {/* GPS Location Permission Live Card */}
-        <View style={styles.gpsPermCard}>
-          <View style={styles.gpsPermIconBox}>
-            <Text style={styles.gpsPermIcon}>📍</Text>
-          </View>
-          <View style={{ flex: 1, marginHorizontal: 10 }}>
-            <Text style={styles.gpsPermTitle}>GPS Location Permission Live (§6a):</Text>
-            <Text style={styles.gpsPermSub}>Your location is being tracked for better service.</Text>
+      <ScrollView
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollContentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Availability Switch */}
+        <View style={styles.onlineStatusCard}>
+          <View style={styles.onlineStatusLeft}>
+            <Text style={styles.onlineStatusTitle}>DUTY STATUS</Text>
+            <Text style={[styles.onlineStatusSub, { color: isDriverOnline ? '#059669' : '#DC2626' }]}>
+              {isDriverOnline ? '🟢 ONLINE (Ready for Bookings)' : '🔴 OFFLINE'}
+            </Text>
           </View>
           <Switch
-            value={locationPermissionGranted}
-            onValueChange={setLocationPermissionGranted}
-            trackColor={{ false: '#CBD5E1', true: '#10B981' }}
-            thumbColor="#FFFFFF"
+            value={isDriverOnline}
+            onValueChange={setIsDriverOnline}
+            trackColor={{ false: '#CBD5E1', true: '#86EFAC' }}
+            thumbColor={isDriverOnline ? '#059669' : '#F8FAFC'}
           />
+        </View>
+
+        {/* Permission Hardware Controls */}
+        <View style={styles.permissionBox}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.permissionTitle}>GPS & CAMERA GATED HARDWARE CHECK (§6)</Text>
+          </View>
+
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Camera Permission Live:</Text>
+            <Switch
+              value={cameraPermissionGranted}
+              onValueChange={setCameraPermissionGranted}
+              trackColor={{ false: '#CBD5E1', true: '#FED7AA' }}
+              thumbColor={cameraPermissionGranted ? '#FF6B1A' : '#F8FAFC'}
+            />
+          </View>
+
+          <View style={[styles.switchRow, { borderBottomWidth: 0 }]}>
+            <Text style={styles.switchLabel}>GPS Location Permission Live (§6a):</Text>
+            <Switch
+              value={locationPermissionGranted}
+              onValueChange={setLocationPermissionGranted}
+              trackColor={{ false: '#CBD5E1', true: '#FED7AA' }}
+              thumbColor={locationPermissionGranted ? '#FF6B1A' : '#F8FAFC'}
+            />
+          </View>
+
+          {!locationPermissionGranted && (
+            <View style={styles.alertWarning}>
+              <Text style={styles.alertWarningText}>
+                ⚠️ GPS Location Disabled! Live tracking lost alert triggered for admin view.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Live GPS Telemetry Indicator */}
         <View style={styles.telemetryCard}>
-          <View style={styles.telemetryLeft}>
-            <Text style={styles.speedometerIcon}>⏲️</Text>
+          <View style={styles.telemetryRow}>
             <View>
               <Text style={styles.telemetryLabel}>GPS TRACKING LOOP (§6a)</Text>
-              <Text style={styles.telemetrySpeed}>{speedKmh} <Text style={styles.speedUnit}>km/h</Text></Text>
+              <Text style={styles.telemetrySpeed}>{speedKmh} km/h</Text>
             </View>
-          </View>
-          <View style={styles.pingBadge}>
-            <Text style={styles.pingIcon}>📡</Text>
-            <Text style={styles.pingText}>
-              {locationPermissionGranted ? 'PINGING (5s)' : 'LOST'}
-            </Text>
-            <Text style={styles.pingChevron}>›</Text>
+            <View style={[styles.pingBadge, !locationPermissionGranted && styles.pingBadgeLost]}>
+              <Text style={[styles.pingText, !locationPermissionGranted && styles.pingTextLost]}>
+                {locationPermissionGranted ? '📡 PINGING (5s)' : '❌ TRACKING LOST'}
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* Active Trip Execution Card */}
         <View style={styles.tripCard}>
           <View style={styles.tripHeader}>
-            <View style={styles.tripRefRow}>
-              <Text style={styles.carIcon}>🚖</Text>
-              <Text style={styles.tripRefLabel}>Trip Ref: </Text>
-              <Text style={styles.tripRefVal}>KC73744</Text>
-            </View>
+            <Text style={styles.tripRef}>Trip Ref: KC73744</Text>
             <View style={styles.tripTypeBadge}>
-              <Text style={styles.tripTypeText}>ONEWAY OUTSTATION</Text>
+              <Text style={styles.tripType}>ONEWAY OUTSTATION</Text>
             </View>
           </View>
 
-          {/* Route Info */}
+          {/* Route Visualizer */}
           <View style={styles.routeContainer}>
-            <View style={styles.routeTextCol}>
-              <View style={styles.routeRow}>
-                <Text style={styles.pickupPin}>📍</Text>
-                <Text style={styles.routeLabel}>Pickup: </Text>
-                <Text style={styles.routeCity}>Bangalore, KA</Text>
-              </View>
-              <View style={styles.routeDottedLine} />
-              <View style={styles.routeRow}>
-                <Text style={styles.dropPin}>🏁</Text>
-                <Text style={styles.routeLabel}>Drop: </Text>
-                <Text style={styles.routeCity}>Coorg (Madikeri), KA</Text>
-              </View>
+            <View style={styles.routeRow}>
+              <Text style={styles.routeText}>📍 Pickup: Bangalore, KA</Text>
             </View>
-            <View style={styles.mountainGraphic}>
-              <Text style={styles.mountainIcon}>⛰️ 🌲</Text>
+            <View style={styles.routeRow}>
+              <Text style={styles.routeText}>🏁 Drop: Coorg (Madikeri), KA</Text>
             </View>
           </View>
 
           {/* STEP 1: Pickup OTP Verification */}
-          <View style={styles.stepBox1}>
-            <View style={styles.stepTitleRow}>
-              <View style={styles.stepCircle1}>
-                <Text style={styles.stepNum}>1</Text>
-              </View>
-              <Text style={styles.stepTitle1}>STEP 1: PICKUP ARRIVAL & OTP</Text>
-            </View>
+          <View style={[styles.stepBox, !otpVerified && styles.stepBoxActive]}>
+            <Text style={styles.stepTitle}>STEP 1: PICKUP ARRIVAL & OTP</Text>
             {!otpVerified ? (
               <>
                 <Text style={styles.stepDesc}>Ask customer for 4-digit pickup OTP:</Text>
-                <View style={styles.otpInputBox}>
-                  <Text style={styles.shieldIcon}>🛡️</Text>
-                  <TextInput
-                    style={styles.otpInput}
-                    keyboardType="number-pad"
-                    maxLength={4}
-                    value={pickupOtpInput}
-                    onChangeText={setPickupOtpInput}
-                    placeholder="Enter OTP (e.g. 1234)"
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
-                <TouchableOpacity style={styles.actionButton1} onPress={handleVerifyPickupOtp}>
+                <TextInput
+                  style={styles.otpInput}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  value={pickupOtpInput}
+                  onChangeText={setPickupOtpInput}
+                  placeholder="Enter OTP (e.g. 1234)"
+                  placeholderTextColor="#94A3B8"
+                />
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={handleVerifyPickupOtp}
+                  activeOpacity={0.8}
+                >
                   <Text style={styles.actionButtonText}>VERIFY PICKUP OTP →</Text>
                 </TouchableOpacity>
               </>
             ) : (
-              <View style={styles.stepCompletedBox}>
-                <Text style={styles.successText1}>✓ Pickup OTP Verified (DRIVER_ARRIVED logged)</Text>
+              <View style={styles.successBanner}>
+                <Text style={styles.successText}>✓ Pickup OTP Verified (DRIVER_ARRIVED logged)</Text>
               </View>
             )}
           </View>
 
           {/* STEP 2: GPS+Camera Gated Start Odometer */}
-          <View style={styles.stepBox2}>
-            <View style={styles.stepTitleRow}>
-              <View style={styles.stepCircle2}>
-                <Text style={styles.stepNum}>2</Text>
-              </View>
-              <Text style={styles.stepTitle2}>STEP 2: START ODOMETER & CLEANLINESS PHOTO</Text>
-            </View>
+          <View style={[styles.stepBox, otpVerified && !startOdometerCaptured && styles.stepBoxActive]}>
+            <Text style={styles.stepTitle}>STEP 2: START ODOMETER & CLEANLINESS PHOTO</Text>
             {!startOdometerCaptured ? (
               <TouchableOpacity
-                style={[styles.actionButton2, !canCapturePhoto && styles.disabledButton]}
+                style={[styles.actionButton, !canCapturePhoto && styles.disabledButton]}
                 onPress={handleCaptureStartOdometer}
+                activeOpacity={0.8}
               >
-                <Text style={styles.camIconGreen}>📷</Text>
-                <Text style={styles.actionButtonText2}>CAPTURE STAMPED START ODOMETER</Text>
-                <Text style={styles.chevronGreen}>›</Text>
+                <Text style={styles.actionButtonText}>📷 CAPTURE STAMPED START ODOMETER</Text>
               </TouchableOpacity>
             ) : (
-              <View style={styles.stepCompletedBox}>
-                <Text style={styles.successText2}>✓ Start Odometer Stamped with GPS & Timestamp</Text>
+              <View style={styles.successBanner}>
+                <Text style={styles.successText}>✓ Start Odometer Stamped with GPS & Timestamp</Text>
               </View>
             )}
           </View>
 
           {/* STEP 3: Toll Fare Gating */}
-          <View style={styles.stepBox3}>
-            <View style={styles.stepTitleRow}>
-              <View style={styles.stepCircle3}>
-                <Text style={styles.stepNum}>3</Text>
-              </View>
-              <Text style={styles.stepTitle3}>STEP 3: TOLL FARE ENTRY (BLOCKS TRIP END)</Text>
-            </View>
+          <View style={[styles.stepBox, startOdometerCaptured && !tollConfirmed && styles.stepBoxActive]}>
+            <Text style={styles.stepTitle}>STEP 3: TOLL FARE ENTRY (BLOCKS TRIP END)</Text>
             {!tollConfirmed ? (
               <>
                 <Text style={styles.stepDesc}>Enter total toll amount paid (₹0 if none):</Text>
-                <View style={styles.tollInputBox}>
-                  <Text style={styles.rupeePrefix}>₹</Text>
-                  <TextInput
-                    style={styles.tollInput}
-                    keyboardType="number-pad"
-                    value={tollAmountInput}
-                    onChangeText={setTollAmountInput}
-                    placeholder="0"
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
+                <TextInput
+                  style={styles.otpInput}
+                  keyboardType="number-pad"
+                  value={tollAmountInput}
+                  onChangeText={setTollAmountInput}
+                  placeholder="0"
+                  placeholderTextColor="#94A3B8"
+                />
                 <TouchableOpacity
-                  style={styles.actionButton3}
+                  style={styles.actionButton}
                   onPress={() => {
                     setTollConfirmed(true);
                     Alert.alert('Toll Confirmed', `Toll fare ₹${tollAmountInput} recorded for billing close-out.`);
                   }}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.actionButtonText}>CONFIRM TOLL FARE (₹{tollAmountInput || '0'}) →</Text>
+                  <Text style={styles.actionButtonText}>CONFIRM TOLL FARE (₹{tollAmountInput}) →</Text>
                 </TouchableOpacity>
               </>
             ) : (
-              <View style={styles.stepCompletedBox}>
-                <Text style={styles.successText3}>✓ Toll Fare Confirmed: ₹{tollAmountInput}</Text>
+              <View style={styles.successBanner}>
+                <Text style={styles.successText}>✓ Toll Fare Confirmed: ₹{tollAmountInput}</Text>
               </View>
             )}
           </View>
 
           {/* STEP 4: End Odometer & Trip Completion */}
-          <View style={styles.stepBox4}>
-            <View style={styles.stepTitleRow}>
-              <View style={styles.stepCircle4}>
-                <Text style={styles.stepNum}>4</Text>
-              </View>
-              <Text style={styles.stepTitle4}>STEP 4: END ODOMETER & COMPLETE TRIP</Text>
-            </View>
+          <View style={[styles.stepBox, tollConfirmed && tripState !== 'COMPLETED' && styles.stepBoxActive]}>
+            <Text style={styles.stepTitle}>STEP 4: END ODOMETER & COMPLETE TRIP</Text>
             {tripState !== 'COMPLETED' ? (
               <TouchableOpacity
-                style={[styles.actionButton4, (!canCapturePhoto || !tollConfirmed) && styles.disabledButton]}
+                style={[styles.completeButton, (!canCapturePhoto || !tollConfirmed) && styles.disabledButton]}
                 onPress={handleCaptureEndOdometer}
+                activeOpacity={0.8}
               >
-                <Text style={styles.camIconWhite}>📷</Text>
-                <Text style={styles.actionButtonText4}>CAPTURE END ODOMETER & COMPLETE TRIP</Text>
+                <Text style={styles.actionButtonText}>🏁 CAPTURE END ODOMETER & COMPLETE TRIP</Text>
               </TouchableOpacity>
             ) : (
-              <View style={styles.stepCompletedBox}>
-                <Text style={styles.successText4}>🎉 TRIP COMPLETED & BILLED</Text>
+              <View style={[styles.successBanner, { backgroundColor: '#ECFDF5', borderColor: '#34D399' }]}>
+                <Text style={[styles.successText, { color: '#059669', fontSize: 13 }]}>
+                  🎉 TRIP COMPLETED & BILLED
+                </Text>
               </View>
             )}
           </View>
-        </View>
-
-        {/* Footer Accent */}
-        <View style={styles.bottomFooter}>
-          <Text style={styles.driveSafeText}>—— Drive Safe ——</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -757,14 +752,21 @@ const styles = StyleSheet.create({
   // ─── LOGGED-IN DASHBOARD STYLES ───
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F1F5F9',
   },
   header: {
-    backgroundColor: '#0B132B',
+    backgroundColor: '#101522',
     paddingHorizontal: 16,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   logoBadge: {
     width: 38,
@@ -773,23 +775,29 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   logoText: {
     color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 18,
+    fontSize: 16,
+    letterSpacing: -0.5,
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
   headerSubtitle: {
     color: '#94A3B8',
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 1,
   },
   headerRightControls: {
     flexDirection: 'row',
@@ -797,160 +805,197 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   approvedBadge: {
-    backgroundColor: '#10B981',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 14,
-    gap: 3,
-  },
-  approvedCheck: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '900',
-  },
-  approvedText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 9,
-    letterSpacing: 0.5,
-  },
-  logoutHeaderBtn: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     borderWidth: 1,
-    borderColor: '#EF4444',
-    backgroundColor: 'transparent',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     gap: 4,
   },
-  logoutHeaderBtnIcon: {
-    color: '#EF4444',
-    fontSize: 10,
+  approvedDot: {
+    color: '#10B981',
+    fontSize: 8,
+  },
+  approvedText: {
+    color: '#10B981',
     fontWeight: '900',
+    fontSize: 10,
+    letterSpacing: 0.3,
+  },
+  logoutHeaderBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   logoutHeaderBtnText: {
-    color: '#EF4444',
-    fontWeight: '800',
-    fontSize: 9,
-    letterSpacing: 0.5,
+    color: '#F87171',
+    fontWeight: '900',
+    fontSize: 10,
+    letterSpacing: 0.4,
   },
   scrollContent: {
     flex: 1,
   },
-  scrollInner: {
-    padding: 14,
-    gap: 12,
-    paddingBottom: 24,
+  scrollContentContainer: {
+    padding: 16,
+    paddingBottom: 40,
   },
-  gpsPermCard: {
+
+  // 1. Online Status Card
+  onlineStatusCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
     elevation: 2,
   },
-  gpsPermIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#0D9488',
-    justifyContent: 'center',
-    alignItems: 'center',
+  onlineStatusLeft: {
+    flex: 1,
   },
-  gpsPermIcon: {
-    fontSize: 14,
-  },
-  gpsPermTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#1E293B',
-  },
-  gpsPermSub: {
-    fontSize: 10.5,
+  onlineStatusTitle: {
+    fontSize: 10,
+    fontWeight: '900',
     color: '#64748B',
-    marginTop: 2,
+    letterSpacing: 0.8,
+    marginBottom: 2,
   },
-  telemetryCard: {
-    backgroundColor: '#0F172A',
+  onlineStatusSub: {
+    fontSize: 13.5,
+    fontWeight: '800',
+  },
+
+  // 2. Permission Hardware Controls
+  permissionBox: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  sectionHeaderRow: {
+    marginBottom: 12,
+  },
+  permissionTitle: {
+    fontSize: 11.5,
+    fontWeight: '900',
+    color: '#FF6B1A',
+    letterSpacing: 0.4,
+  },
+  switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  switchLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  alertWarning: {
+    backgroundColor: '#FEF2F2',
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  alertWarningText: {
+    color: '#DC2626',
+    fontSize: 11.5,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+
+  // 3. Live GPS Telemetry
+  telemetryCard: {
+    backgroundColor: '#101522',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
     elevation: 3,
   },
-  telemetryLeft: {
+  telemetryRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
-  },
-  speedometerIcon: {
-    fontSize: 24,
   },
   telemetryLabel: {
     color: '#94A3B8',
-    fontSize: 9.5,
+    fontSize: 10.5,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+    marginBottom: 2,
   },
   telemetrySpeed: {
-    color: '#F59E0B',
-    fontSize: 24,
+    color: '#FF6B1A',
+    fontSize: 26,
     fontWeight: '900',
-  },
-  speedUnit: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#F59E0B',
+    letterSpacing: -0.5,
   },
   pingBadge: {
-    backgroundColor: '#059669',
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(5, 150, 105, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.35)',
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    borderRadius: 10,
   },
-  pingIcon: {
-    fontSize: 11,
+  pingBadgeLost: {
+    backgroundColor: 'rgba(220, 38, 38, 0.2)',
+    borderColor: 'rgba(248, 113, 113, 0.35)',
   },
   pingText: {
-    color: '#FFFFFF',
+    color: '#34D399',
     fontWeight: '800',
-    fontSize: 10,
-    letterSpacing: 0.5,
+    fontSize: 11,
   },
-  pingChevron: {
-    color: '#A7F3D0',
-    fontWeight: '900',
-    fontSize: 14,
+  pingTextLost: {
+    color: '#F87171',
   },
+
+  // 4. Active Trip Card
   tripCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowRadius: 6,
     elevation: 3,
   },
   tripHeader: {
@@ -958,354 +1003,140 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
-  },
-  tripRefRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  carIcon: {
-    fontSize: 18,
-    marginRight: 6,
-  },
-  tripRefLabel: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FF6B1A',
-  },
-  tripRefVal: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#FF6B1A',
-  },
-  tripTypeBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  tripTypeText: {
-    color: '#92400E',
-    fontSize: 9.5,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  routeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 14,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
-    marginBottom: 14,
   },
-  routeTextCol: {
-    flex: 1,
+  tripRef: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FF6B1A',
+    letterSpacing: -0.2,
+  },
+  tripTypeBadge: {
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  tripType: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#334155',
+    letterSpacing: 0.4,
+  },
+  routeContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
   },
   routeRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  pickupPin: {
-    fontSize: 12,
-    marginRight: 6,
-  },
-  dropPin: {
-    fontSize: 12,
-    marginRight: 6,
-  },
-  routeLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  routeCity: {
-    fontSize: 12.5,
+  routeText: {
+    fontSize: 13.5,
     fontWeight: '800',
     color: '#0F172A',
   },
-  routeDottedLine: {
-    width: 2,
-    height: 10,
-    marginLeft: 5,
-    borderLeftWidth: 1.5,
-    borderLeftColor: '#CBD5E1',
-    borderStyle: 'dotted',
-    marginVertical: 2,
-  },
-  mountainGraphic: {
-    opacity: 0.6,
-    paddingRight: 4,
-  },
-  mountainIcon: {
-    fontSize: 24,
-  },
-  stepBox1: {
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    borderRadius: 16,
+
+  // Steps
+  stepBox: {
+    backgroundColor: '#F8FAFC',
     padding: 14,
-    marginBottom: 12,
-  },
-  stepBox2: {
-    backgroundColor: '#F0FDF4',
+    borderRadius: 14,
+    marginTop: 10,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+    borderColor: '#E2E8F0',
   },
-  stepBox3: {
-    backgroundColor: '#F5F3FF',
-    borderWidth: 1,
-    borderColor: '#DDD6FE',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+  stepBoxActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFD4B8',
+    borderWidth: 1.5,
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  stepBox4: {
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-    borderRadius: 16,
-    padding: 14,
-  },
-  stepTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  stepTitle: {
+    fontSize: 11.5,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.4,
     marginBottom: 8,
-  },
-  stepCircle1: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#2563EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  stepCircle2: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#059669',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  stepCircle3: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#7C3AED',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  stepCircle4: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#EA580C',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  stepNum: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  stepTitle1: {
-    color: '#1E3A8A',
-    fontSize: 11.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
-  stepTitle2: {
-    color: '#065F46',
-    fontSize: 11.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
-  stepTitle3: {
-    color: '#4C1D95',
-    fontSize: 11.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
-  stepTitle4: {
-    color: '#9A3412',
-    fontSize: 11.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
   },
   stepDesc: {
-    fontSize: 11,
-    color: '#475569',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
     marginBottom: 8,
   },
-  otpInputBox: {
+  otpInput: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#93C5FD',
-    borderRadius: 12,
-    height: 46,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
     marginBottom: 10,
   },
-  shieldIcon: {
-    fontSize: 15,
-    marginRight: 8,
-  },
-  otpInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  actionButton1: {
+  actionButton: {
     backgroundColor: '#FF6B1A',
-    height: 46,
+    height: 48,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#FF6B1A',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
     elevation: 3,
   },
-  actionButton2: {
-    backgroundColor: '#DCFCE7',
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-    height: 44,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    gap: 8,
-  },
-  camIconGreen: {
-    fontSize: 15,
-  },
-  actionButtonText2: {
-    color: '#065F46',
-    fontSize: 11.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-    flex: 1,
-    textAlign: 'center',
-  },
-  chevronGreen: {
-    color: '#059669',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  tollInputBox: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#C4B5FD',
-    borderRadius: 12,
-    height: 46,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    marginBottom: 10,
-  },
-  rupeePrefix: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#6B7280',
-    marginRight: 8,
-  },
-  tollInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  actionButton3: {
-    backgroundColor: '#6366F1',
-    height: 46,
+  completeButton: {
+    backgroundColor: '#059669',
+    height: 50,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366F1',
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
     elevation: 3,
   },
-  actionButton4: {
-    backgroundColor: '#64748B',
-    height: 46,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  camIconWhite: {
-    fontSize: 15,
-  },
-  actionButtonText4: {
-    color: '#FFFFFF',
-    fontSize: 11.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
+  disabledButton: {
+    backgroundColor: '#CBD5E1',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   actionButtonText: {
     color: '#FFFFFF',
-    fontSize: 12,
     fontWeight: '900',
+    fontSize: 12.5,
     letterSpacing: 0.5,
   },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  stepCompletedBox: {
-    backgroundColor: 'rgba(255,255,255,0.7)',
+  successBanner: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
     borderRadius: 10,
     padding: 10,
-    marginTop: 4,
+    alignItems: 'center',
   },
-  successText1: {
-    color: '#2563EB',
-    fontWeight: '800',
-    fontSize: 11.5,
-  },
-  successText2: {
+  successText: {
     color: '#059669',
     fontWeight: '800',
-    fontSize: 11.5,
-  },
-  successText3: {
-    color: '#7C3AED',
-    fontWeight: '800',
-    fontSize: 11.5,
-  },
-  successText4: {
-    color: '#EA580C',
-    fontWeight: '800',
     fontSize: 12,
-  },
-  bottomFooter: {
-    alignItems: 'center',
-    marginTop: 10,
-    paddingBottom: 10,
-  },
-  driveSafeText: {
-    color: '#64748B',
-    fontSize: 12,
-    fontStyle: 'italic',
-    fontWeight: '600',
   },
 });
 
