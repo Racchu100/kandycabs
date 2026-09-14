@@ -1,7 +1,15 @@
+import { Platform } from 'react-native';
 import { normalizePhone } from '@kandycabs/shared';
 
-// API Base URL from EXPO_PUBLIC_API_URL or local default
-const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+// Candidate API Base URLs for Android emulator, LAN device, and web
+const CANDIDATE_HOSTS = [
+  process.env.EXPO_PUBLIC_API_URL,
+  Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000',
+  'http://192.168.43.207:3000',
+  'http://localhost:3000',
+].filter(Boolean).map(h => (h as string).replace(/\/$/, ''));
+
+let workingHost: string = CANDIDATE_HOSTS[0] || 'http://localhost:3000';
 
 let currentToken: string | null = null;
 let currentUser: any | null = null;
@@ -20,8 +28,9 @@ export function getCurrentCustomerUser() {
 }
 
 async function request(endpoint: string, options: RequestInit = {}) {
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const hostsToTry = [workingHost, ...CANDIDATE_HOSTS.filter(h => h !== workingHost)];
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> || {}),
@@ -31,29 +40,43 @@ async function request(endpoint: string, options: RequestInit = {}) {
     headers['Authorization'] = `Bearer ${currentToken}`;
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  let lastError: any = null;
 
-  try {
-    const res = await fetch(url, {
-      ...options,
-      headers,
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+  for (const host of hostsToTry) {
+    const url = `${host}${cleanEndpoint}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.error || data.message || `Request failed with status ${res.status}`);
+    try {
+      const res = await fetch(url, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || data.message || `Request failed with status ${res.status}`);
+      }
+      // Save working host for subsequent calls
+      workingHost = host;
+      return data;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      lastError = err;
+      // If it's a 4xx/5xx application error from server, don't try other hosts
+      if (err.message && (err.message.includes('status 4') || err.message.includes('status 5'))) {
+        throw err;
+      }
+      // Network error, try next candidate host
     }
-    return data;
-  } catch (err: any) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      throw new Error('Network request timed out. Please check your internet connection.');
-    }
-    throw err;
   }
+
+  if (lastError?.name === 'AbortError') {
+    throw new Error('Network request timed out. Please check your internet connection.');
+  }
+  throw lastError || new Error('Network request failed');
 }
 
 // 1. Authentication APIs

@@ -520,9 +520,16 @@ export default function App() {
       {/* ════════════════════════════════════════════════════
           TAB 1: HOME — SEARCH STEP with HERO BACKGROUND
           ════════════════════════════════════════════════════ */}
+      {/* ════════════════════════════════════════════════════
+          TAB 1: HOME — SEARCH STEP (Exact Website Mobile Design)
+          ════════════════════════════════════════════════════ */}
       {activeTab === 'HOME' && currentStep === 'SEARCH' && (
-        <>
-          {/* HERO IMAGE BACKGROUND */}
+        <ScrollView
+          style={styles.mainHomeScroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* HERO IMAGE BACKGROUND WITH WARM LIGHT OVERLAY */}
           <ImageBackground
             source={require('./assets/hero-bg.jpg')}
             style={styles.heroBgImage}
@@ -542,204 +549,218 @@ export default function App() {
                   />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.hamburgerBtn} onPress={() => setMenuOpen(true)}>
-                  <Text style={[styles.hamburgerIcon, { color: '#FFFFFF' }]}>☰</Text>
+                  <Text style={styles.hamburgerIcon}>☰</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Hero text content */}
+              {/* Hero text content matching Website */}
               <View style={styles.heroContent}>
-                <View style={styles.heroBadge}>
-                  <Text style={styles.heroBadgeText}>✨ SOUTH INDIA'S PREMIUM INTERCITY CAB SERVICE</Text>
-                </View>
                 <Text style={styles.heroTitle}>
-                  Book Outstation & Local Cabs with{' '}
-                  <Text style={{ color: '#F97316' }}>Transparent Fares</Text>
+                  Travel with confidence with <Text style={{ color: '#FF6B1A' }}>Kandy Cabs</Text>
                 </Text>
-                <Text style={styles.heroSubtitleWhite}>
-                  Pay only 25% advance. Verified chauffeurs, sanitized cabs & doorstep pickup.
+                <Text style={styles.heroSubtitle}>
+                  Safe, reliable, and hassle-free rides for local, airport, and outstation journeys
                 </Text>
+              </View>
+
+              {/* BOOKING WIDGET (Matching Website Reference Screenshot) */}
+              <View style={styles.bookingCard}>
+                {/* PICKUP LOCATION */}
+                <View style={styles.inputLabelRow}>
+                  <Text style={styles.inputLabelIcon}>📍</Text>
+                  <Text style={styles.inputLabelText}>PICKUP LOCATION</Text>
+                </View>
+                <View style={styles.inputSearchWrapper}>
+                  <Text style={styles.inputIcon}>🔍</Text>
+                  <TextInput
+                    style={styles.inputWithIcon}
+                    value={pickupInput}
+                    onChangeText={(val) => { setPickupInput(val); setShowPickupDropdown(true); }}
+                    onFocus={() => setShowPickupDropdown(true)}
+                    placeholder="Enter Pickup Place, Landmark, Railway..."
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+                {showPickupDropdown && (
+                  <View style={styles.suggestionsBox}>
+                    {POPULAR_LOCATIONS.filter(
+                      (loc) =>
+                        loc.name.toLowerCase().includes(pickupInput.toLowerCase()) ||
+                        loc.city.toLowerCase().includes(pickupInput.toLowerCase())
+                    ).map((loc, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.suggestionItem}
+                        onPress={() => { setPickupInput(loc.name); setShowPickupDropdown(false); }}
+                      >
+                        <Text style={styles.suggestionName}>📍 {loc.name}</Text>
+                        <Text style={styles.suggestionAddr}>{loc.address}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* FLOATING RIGHT-SIDE SWAP BUTTON (Matching Website) */}
+                <View style={styles.swapRightWrapper}>
+                  <TouchableOpacity style={styles.swapCircleBtn} onPress={handleSwapLocations}>
+                    <Text style={styles.swapIcon}>⇅</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* DESTINATION LOCATION */}
+                <View style={styles.inputLabelRow}>
+                  <Text style={styles.inputLabelIcon}>📍</Text>
+                  <Text style={styles.inputLabelText}>DESTINATION LOCATION</Text>
+                </View>
+                <View style={styles.inputSearchWrapper}>
+                  <Text style={styles.inputIcon}>🔍</Text>
+                  <TextInput
+                    style={styles.inputWithIcon}
+                    value={dropInput}
+                    onChangeText={(val) => { setDropInput(val); setShowDropDropdown(true); }}
+                    onFocus={() => setShowDropDropdown(true)}
+                    placeholder="Enter Drop City, Hotel, Landmark..."
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+                {showDropDropdown && (
+                  <View style={styles.suggestionsBox}>
+                    {POPULAR_LOCATIONS.filter(
+                      (loc) =>
+                        loc.name.toLowerCase().includes(dropInput.toLowerCase()) ||
+                        loc.city.toLowerCase().includes(dropInput.toLowerCase())
+                    ).map((loc, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.suggestionItem}
+                        onPress={() => { setDropInput(loc.name); setShowDropDropdown(false); }}
+                      >
+                        <Text style={styles.suggestionName}>🏁 {loc.name}</Text>
+                        <Text style={styles.suggestionAddr}>{loc.address}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* DATE & TIME GRID (Side-by-side 2 Column Cards) */}
+                <View style={styles.dateTimeGrid}>
+                  <View style={styles.dateTimeCard}>
+                    <View style={styles.dateTimeCardHeader}>
+                      <Text style={styles.dateTimeCardIcon}>📅</Text>
+                      <Text style={styles.dateTimeCardLabel}>PICK UP DATE</Text>
+                    </View>
+                    <View style={styles.dateTimeValueRow}>
+                      <TextInput
+                        style={styles.dateTimeInput}
+                        value={pickupDate}
+                        onChangeText={setPickupDate}
+                        placeholder="DD-MM-YYYY"
+                        placeholderTextColor="#94A3B8"
+                      />
+                      <Text style={styles.dateTimeEndIcon}>🗓️</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.dateTimeCard}>
+                    <View style={styles.dateTimeCardHeader}>
+                      <Text style={styles.dateTimeCardIcon}>⏰</Text>
+                      <Text style={styles.dateTimeCardLabel}>PICK UP TIME</Text>
+                    </View>
+                    <View style={styles.dateTimeValueRow}>
+                      <TextInput
+                        style={styles.dateTimeInput}
+                        value={pickupTime}
+                        onChangeText={setPickupTime}
+                        placeholder="HH:MM"
+                        placeholderTextColor="#94A3B8"
+                      />
+                      <Text style={styles.dateTimeEndIcon}>🕒</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* BIG ORANGE CTA BUTTON */}
+                <TouchableOpacity
+                  style={styles.exploreCabsBtn}
+                  onPress={() => {
+                    if (!pickupInput || !dropInput) {
+                      Alert.alert('Required', 'Please select both pickup and destination locations.');
+                      return;
+                    }
+                    setCurrentStep('VEHICLES');
+                  }}
+                >
+                  <Text style={styles.exploreCabsBtnText}>EXPLORE CABS & RATES →</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 4 TRUST BADGES GRID (2x2 matching website) */}
+              <View style={styles.trustBadgesGrid}>
+                <View style={styles.trustBadgeItem}>
+                  <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#FFF7ED' }]}>
+                    <Text style={{ fontSize: 13 }}>🛡️</Text>
+                  </View>
+                  <Text style={styles.trustBadgeTitle}>VERIFIED CHAUFFEURS</Text>
+                </View>
+
+                <View style={styles.trustBadgeItem}>
+                  <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#ECFDF5' }]}>
+                    <Text style={{ fontSize: 13 }}>🟢</Text>
+                  </View>
+                  <Text style={styles.trustBadgeTitle}>25% ADVANCE ONLY</Text>
+                </View>
+
+                <View style={styles.trustBadgeItem}>
+                  <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#EFF6FF' }]}>
+                    <Text style={{ fontSize: 13 }}>👤</Text>
+                  </View>
+                  <Text style={styles.trustBadgeTitle}>TRANSPARENT BILLING</Text>
+                </View>
+
+                <View style={styles.trustBadgeItem}>
+                  <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                    <Text style={{ fontSize: 13 }}>📞</Text>
+                  </View>
+                  <Text style={styles.trustBadgeTitle}>24X7 OPS SUPPORT</Text>
+                </View>
+              </View>
+
+              {/* FLEET SHOWCASE SECTION (Matching Website) */}
+              <View style={styles.homeFleetSection}>
+                <Text style={styles.homeFleetTag}>OUR VEHICLE FLEET</Text>
+                <Text style={styles.homeFleetTitle}>Choose the Right Cab for Your Journey</Text>
+                <View style={styles.orangeUnderline} />
+                <TouchableOpacity onPress={() => setActiveTab('FLEET')}>
+                  <Text style={styles.homeFleetAction}>VIEW FULL FLEET & RATE CHART →</Text>
+                </TouchableOpacity>
+
+                {FLEET_CATEGORIES.map((v) => (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={styles.fleetPreviewCard}
+                    onPress={() => { setSelectedVehicle(v); setCurrentStep('VEHICLES'); }}
+                  >
+                    <View style={styles.fleetHeader}>
+                      <Text style={styles.fleetTitle}>{v.name}</Text>
+                      <Text style={styles.vehicleTag}>{v.tag}</Text>
+                    </View>
+                    <Text style={styles.fleetSub}>{v.category}</Text>
+                    <Text style={styles.vehicleDesc}>{v.description}</Text>
+                    <View style={styles.fleetFeatureRow}>
+                      <Text style={styles.fleetFeature}>👥 {v.capacity}</Text>
+                      <Text style={styles.fleetFeature}>🧳 {v.luggage}</Text>
+                      <Text style={styles.fleetFeature}>❄️ AC Cab</Text>
+                    </View>
+                    <View style={styles.fleetRateRow}>
+                      <Text style={styles.fleetRateText}>Rate: ₹{v.ratePerKm}/km</Text>
+                      <Text style={styles.fleetBaseText}>Base Fare: ₹{v.baseFare}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           </ImageBackground>
-
-          {/* BOOKING CARD + TRUST BADGES + FLEET below hero */}
-          <ScrollView
-            style={styles.homeScrollBelowHero}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* BOOKING WIDGET */}
-            <View style={styles.bookingCard}>
-              <Text style={styles.bookingCardTitle}>📍 WHERE ARE YOU GOING?</Text>
-
-              {/* PICKUP LOCATION */}
-              <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
-              <View style={styles.inputSearchWrapper}>
-                <Text style={styles.inputIcon}>🔍</Text>
-                <TextInput
-                  style={styles.inputWithIcon}
-                  value={pickupInput}
-                  onChangeText={(val) => { setPickupInput(val); setShowPickupDropdown(true); }}
-                  onFocus={() => setShowPickupDropdown(true)}
-                  placeholder="Enter Pickup Place, Landmark, Station..."
-                />
-              </View>
-              {showPickupDropdown && (
-                <View style={styles.suggestionsBox}>
-                  {POPULAR_LOCATIONS.filter(
-                    (loc) =>
-                      loc.name.toLowerCase().includes(pickupInput.toLowerCase()) ||
-                      loc.city.toLowerCase().includes(pickupInput.toLowerCase())
-                  ).map((loc, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      style={styles.suggestionItem}
-                      onPress={() => { setPickupInput(loc.name); setShowPickupDropdown(false); }}
-                    >
-                      <Text style={styles.suggestionName}>📍 {loc.name}</Text>
-                      <Text style={styles.suggestionAddr}>{loc.address}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              {/* SWAP BUTTON */}
-              <View style={styles.swapContainer}>
-                <View style={styles.swapLine} />
-                <TouchableOpacity style={styles.swapCircleBtn} onPress={handleSwapLocations}>
-                  <Text style={styles.swapIcon}>⇅</Text>
-                </TouchableOpacity>
-                <View style={styles.swapLine} />
-              </View>
-
-              {/* DESTINATION */}
-              <Text style={styles.inputLabel}>DESTINATION</Text>
-              <View style={styles.inputSearchWrapper}>
-                <Text style={styles.inputIcon}>🔍</Text>
-                <TextInput
-                  style={styles.inputWithIcon}
-                  value={dropInput}
-                  onChangeText={(val) => { setDropInput(val); setShowDropDropdown(true); }}
-                  onFocus={() => setShowDropDropdown(true)}
-                  placeholder="Enter Drop City, Hotel, Landmark..."
-                />
-              </View>
-              {showDropDropdown && (
-                <View style={styles.suggestionsBox}>
-                  {POPULAR_LOCATIONS.filter(
-                    (loc) =>
-                      loc.name.toLowerCase().includes(dropInput.toLowerCase()) ||
-                      loc.city.toLowerCase().includes(dropInput.toLowerCase())
-                  ).map((loc, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      style={styles.suggestionItem}
-                      onPress={() => { setDropInput(loc.name); setShowDropDropdown(false); }}
-                    >
-                      <Text style={styles.suggestionName}>🏁 {loc.name}</Text>
-                      <Text style={styles.suggestionAddr}>{loc.address}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              {/* DATE & TIME GRID */}
-              <View style={styles.dateTimeGrid}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>PICK UP DATE</Text>
-                  <View style={styles.inputSearchWrapper}>
-                    <Text style={styles.inputIcon}>📅</Text>
-                    <TextInput style={styles.inputWithIcon} value={pickupDate} onChangeText={setPickupDate} placeholder="DD-MM-YYYY" />
-                  </View>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>PICK UP TIME</Text>
-                  <View style={styles.inputSearchWrapper}>
-                    <Text style={styles.inputIcon}>⏰</Text>
-                    <TextInput style={styles.inputWithIcon} value={pickupTime} onChangeText={setPickupTime} placeholder="HH:MM" />
-                  </View>
-                </View>
-              </View>
-
-              {/* BIG ORANGE CTA BUTTON */}
-              <TouchableOpacity
-                style={styles.exploreCabsBtn}
-                onPress={() => {
-                  if (!pickupInput || !dropInput) {
-                    Alert.alert('Required', 'Please select both pickup and destination locations.');
-                    return;
-                  }
-                  setCurrentStep('VEHICLES');
-                }}
-              >
-                <Text style={styles.exploreCabsBtnText}>EXPLORE CABS & RATES →</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* 4 TRUST BADGES GRID */}
-            <View style={styles.trustBadgesGrid}>
-              <View style={styles.trustBadgeItem}>
-                <Text style={styles.trustBadgeIcon}>🛡️</Text>
-                <View>
-                  <Text style={styles.trustBadgeTitle}>VERIFIED CHAUFFEURS</Text>
-                  <Text style={styles.trustBadgeSub}>Police Background Checked</Text>
-                </View>
-              </View>
-              <View style={styles.trustBadgeItem}>
-                <Text style={styles.trustBadgeIcon}>💰</Text>
-                <View>
-                  <Text style={styles.trustBadgeTitle}>25% ADVANCE ONLY</Text>
-                  <Text style={styles.trustBadgeSub}>Pay Rest on Completion</Text>
-                </View>
-              </View>
-              <View style={styles.trustBadgeItem}>
-                <Text style={styles.trustBadgeIcon}>🎗️</Text>
-                <View>
-                  <Text style={styles.trustBadgeTitle}>ZERO HIDDEN FEES</Text>
-                  <Text style={styles.trustBadgeSub}>Itemized Transparent Bill</Text>
-                </View>
-              </View>
-              <View style={styles.trustBadgeItem}>
-                <Text style={styles.trustBadgeIcon}>📞</Text>
-                <View>
-                  <Text style={styles.trustBadgeTitle}>24×7 OPS SUPPORT</Text>
-                  <Text style={styles.trustBadgeSub}>Dedicated Helpline</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* FLEET PREVIEW */}
-            <View style={styles.homeFleetSection}>
-              <Text style={styles.homeFleetTag}>OUR VEHICLE FLEET</Text>
-              <Text style={styles.homeFleetTitle}>Choose the Right Cab for Your Journey</Text>
-              <TouchableOpacity onPress={() => setActiveTab('FLEET')}>
-                <Text style={styles.homeFleetAction}>VIEW FULL FLEET & RATE CHART →</Text>
-              </TouchableOpacity>
-              {FLEET_CATEGORIES.slice(0, 3).map((v) => (
-                <TouchableOpacity
-                  key={v.id}
-                  style={styles.fleetPreviewCard}
-                  onPress={() => { setSelectedVehicle(v); setCurrentStep('VEHICLES'); }}
-                >
-                  <View style={styles.fleetHeader}>
-                    <Text style={styles.fleetTitle}>{v.name}</Text>
-                    <Text style={styles.fleetTag}>{v.tag}</Text>
-                  </View>
-                  <Text style={styles.fleetSub}>{v.description}</Text>
-                  <View style={styles.fleetFeatureRow}>
-                    <Text style={styles.fleetFeature}>👥 {v.capacity}</Text>
-                    <Text style={styles.fleetFeature}>🧳 {v.luggage}</Text>
-                    <Text style={styles.fleetFeature}>❄️ AC Cab</Text>
-                  </View>
-                  <View style={styles.fleetRateRow}>
-                    <Text style={styles.fleetRateText}>₹{v.ratePerKm}/km</Text>
-                    <Text style={styles.fleetBaseText}>Base Fare: ₹{v.baseFare}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </>
+        </ScrollView>
       )}
 
       {/* ════════════════════════════════════
@@ -1499,128 +1520,112 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 14,
   },
+  mainHomeScroll: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
 
-  // ─── HERO IMAGE BACKGROUND ───
+  // ─── HERO IMAGE BACKGROUND (Light Warm Overlay matching Website) ───
   heroBgImage: {
     width: '100%',
-    minHeight: 250,
   },
   heroOverlay: {
-    backgroundColor: 'rgba(10, 15, 35, 0.62)',
-    paddingBottom: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.84)',
+    paddingBottom: 20,
   },
   heroNavbar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 10,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   logoImageHero: {
     width: 145,
-    height: 40,
-    tintColor: '#FFFFFF',
+    height: 42,
   },
   heroContent: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 8,
-  },
-  heroBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(249, 115, 22, 0.25)',
-    borderWidth: 1,
-    borderColor: 'rgba(249, 115, 22, 0.5)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-    marginBottom: 12,
-  },
-  heroBadgeText: {
-    color: '#FED7AA',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+    paddingBottom: 14,
   },
   heroTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    lineHeight: 32,
-    marginBottom: 8,
-  },
-  heroSubtitleWhite: {
-    fontSize: 12,
-    color: '#CBD5E1',
-    lineHeight: 18,
-    marginBottom: 4,
-  },
-  heroSubtitle: {
-    fontSize: 12,
-    color: '#475569',
-    lineHeight: 18,
-    marginBottom: 14,
-  },
-  bookingCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  homeScrollBelowHero: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingTop: 14,
-  },
-  bookingCardTitle: {
-    fontSize: 13,
+    fontSize: 26,
     fontWeight: '900',
     color: '#0F172A',
-    marginBottom: 12,
-    letterSpacing: 0.3,
+    lineHeight: 32,
+    marginBottom: 8,
+    letterSpacing: -0.3,
   },
-  inputLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    marginBottom: 4,
+  heroSubtitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+    lineHeight: 19,
+  },
+
+  // ─── BOOKING CARD (White Rounded Card matching Website Reference) ───
+  bookingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 16,
+    marginHorizontal: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 25,
+    elevation: 4,
+  },
+  inputLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 4,
+  },
+  inputLabelIcon: {
+    fontSize: 12,
+  },
+  inputLabelText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#1E293B',
     letterSpacing: 0.5,
   },
   inputSearchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 6,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 48,
   },
   inputIcon: {
     fontSize: 14,
-    marginRight: 6,
+    color: '#FF6B1A',
+    marginRight: 8,
   },
   inputWithIcon: {
     flex: 1,
-    paddingVertical: 10,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#1E293B',
+    paddingVertical: 8,
   },
   suggestionsBox: {
     backgroundColor: '#FFF',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 8,
-    marginBottom: 10,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 8,
     maxHeight: 180,
+    elevation: 3,
   },
   suggestionItem: {
     padding: 10,
@@ -1637,78 +1642,184 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 1,
   },
-  swapContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 4,
-  },
-  swapLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E2E8F0',
+
+  // ─── FLOATING RIGHT-SIDE SWAP BUTTON ───
+  swapRightWrapper: {
+    alignItems: 'flex-end',
+    paddingRight: 14,
+    marginVertical: -14,
+    zIndex: 20,
   },
   swapCircleBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FFEDD5',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FF6B1A',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 10,
+    elevation: 4,
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
   },
   swapIcon: {
-    color: KANDY_THEME.colors.primary,
-    fontSize: 18,
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '900',
   },
+
+  // ─── DATE & TIME GRID ───
   dateTimeGrid: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 4,
-  },
-  exploreCabsBtn: {
-    backgroundColor: KANDY_THEME.colors.primary,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
     marginTop: 12,
   },
-  exploreCabsBtnText: {
-    color: '#FFF',
+  dateTimeCard: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 10,
+    minHeight: 64,
+    justifyContent: 'space-between',
+  },
+  dateTimeCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  dateTimeCardIcon: {
+    fontSize: 12,
+  },
+  dateTimeCardLabel: {
+    fontSize: 10,
     fontWeight: '900',
-    fontSize: 13,
+    color: '#1E293B',
     letterSpacing: 0.5,
   },
+  dateTimeValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateTimeInput: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#1E293B',
+    padding: 0,
+  },
+  dateTimeEndIcon: {
+    fontSize: 12,
+  },
+
+  // ─── BIG ORANGE CTA BUTTON ───
+  exploreCabsBtn: {
+    backgroundColor: '#FF6B1A',
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 14,
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  exploreCabsBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+
+  // ─── 4 TRUST BADGES GRID (2x2 matching website) ───
   trustBadgesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
+    paddingHorizontal: 12,
     marginBottom: 16,
   },
   trustBadgeItem: {
     flexBasis: '48%',
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
+    borderColor: '#F1F5F9',
+    borderRadius: 16,
     padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  trustBadgeIcon: {
-    fontSize: 18,
+  trustBadgeIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   trustBadgeTitle: {
-    fontSize: 10,
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: '#1E293B',
+    letterSpacing: 0.2,
+    flex: 1,
+  },
+
+  // ─── FLEET SHOWCASE SECTION ───
+  homeFleetSection: {
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  homeFleetTag: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#FF6B1A',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  homeFleetTitle: {
+    fontSize: 20,
     fontWeight: '900',
     color: '#0F172A',
+    marginBottom: 2,
   },
-  trustBadgeSub: {
-    fontSize: 9,
-    color: '#64748B',
+  orangeUnderline: {
+    width: 44,
+    height: 3,
+    backgroundColor: '#FF6B1A',
+    borderRadius: 2,
+    marginBottom: 8,
+  },
+  homeFleetAction: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#FF6B1A',
+    marginBottom: 12,
+  },
+  fleetPreviewCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   stepHeaderRow: {
     flexDirection: 'row',
@@ -2212,33 +2323,41 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
-    borderTopWidth: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
     paddingVertical: 8,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 8,
   },
   bottomNavItem: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 6,
-    borderRadius: 8,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    marginHorizontal: 2,
   },
   bottomNavItemActive: {
-    backgroundColor: '#EA580C',
+    backgroundColor: '#FF6B1A',
   },
   bottomNavIcon: {
-    fontSize: 16,
+    fontSize: 15,
+    marginBottom: 2,
   },
   bottomNavText: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#94A3B8',
-    marginTop: 2,
+    color: '#475569',
+    textAlign: 'center',
   },
   bottomNavTextActive: {
     color: '#FFFFFF',
