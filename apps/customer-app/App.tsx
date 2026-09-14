@@ -30,7 +30,7 @@ import {
 
 // Types & Data Schemas
 type TripType = 'ONEWAY' | 'ROUNDTRIP' | 'LOCAL' | 'AIRPORT';
-type WizardStep = 'SEARCH' | 'VEHICLES' | 'CONFIRMATION' | 'SUCCESS';
+type WizardStep = 'SEARCH' | 'VEHICLES' | 'ROUTE' | 'COUPON' | 'CONFIRMATION' | 'SUCCESS';
 
 interface LocationItem {
   name: string;
@@ -285,8 +285,51 @@ export default function App() {
     });
   }, []);
 
-  // Fare Calculation Rules (Matching Web Engine)
-  const calculatedFare = Math.max(selectedVehicle.baseFare, estimatedDistanceKm * selectedVehicle.ratePerKm);
+  // 4-Step Booking Wizard State (Matching Website Reference)
+  const [bannerDismissed, setBannerDismissed] = useState<boolean>(false);
+  const [expandedInclusionsId, setExpandedInclusionsId] = useState<string | null>(null);
+  const [selectedFuelMap, setSelectedFuelMap] = useState<Record<string, string>>({
+    hatchback: 'CNG',
+    sedan: 'Diesel',
+    ertiga: 'Diesel',
+    innova: 'Diesel',
+    tempo: 'Diesel',
+  });
+  const [couponCode, setCouponCode] = useState<string>('');
+  const [couponDiscount, setCouponDiscount] = useState<number>(0);
+  const [couponApplied, setCouponApplied] = useState<boolean>(false);
+  const [couponMessage, setCouponMessage] = useState<string>('');
+
+  const handleApplyCoupon = (codeToApply?: string) => {
+    const code = (codeToApply || couponCode).trim().toUpperCase();
+    if (!code) {
+      Alert.alert('Coupon Required', 'Please enter a valid coupon code.');
+      return;
+    }
+    if (code === 'KANDY100') {
+      setCouponDiscount(100);
+      setCouponApplied(true);
+      setCouponCode('KANDY100');
+      setCouponMessage('🎉 ₹100 Flat discount applied successfully!');
+    } else if (code === 'FIRSTCAB') {
+      const disc = Math.min(250, Math.round(rawFare * 0.1));
+      setCouponDiscount(disc);
+      setCouponApplied(true);
+      setCouponCode('FIRSTCAB');
+      setCouponMessage(`🎉 10% discount (₹${disc}) applied successfully!`);
+    } else if (code === 'AIRPORT50') {
+      setCouponDiscount(50);
+      setCouponApplied(true);
+      setCouponCode('AIRPORT50');
+      setCouponMessage('🎉 ₹50 Airport discount applied successfully!');
+    } else {
+      Alert.alert('Invalid Coupon', 'The coupon code entered is not valid or has expired.');
+    }
+  };
+
+  // Fare Calculation Rules (Matching Web Engine with Coupon Deductions)
+  const rawFare = Math.max(selectedVehicle.baseFare, estimatedDistanceKm * selectedVehicle.ratePerKm);
+  const calculatedFare = Math.max(selectedVehicle.baseFare, Math.round(rawFare - couponDiscount));
   const advancePayable = Math.round(calculatedFare * 0.25);
   const balancePayable = calculatedFare - advancePayable;
 
@@ -497,18 +540,18 @@ export default function App() {
 
                 {/* 2. Book Cab */}
                 <TouchableOpacity
-                  style={styles.drawerNavItem}
+                  style={[styles.drawerNavItem, activeTab === 'HOME' && currentStep !== 'SEARCH' && styles.drawerNavItemActive]}
                   onPress={() => {
                     setActiveTab('HOME');
-                    setCurrentStep('SEARCH');
+                    setCurrentStep('VEHICLES');
                     setMenuOpen(false);
                   }}
                 >
                   <View style={styles.drawerNavLeft}>
-                    <Text style={styles.drawerNavIcon}>🚗</Text>
-                    <Text style={styles.drawerNavText}>Book Cab</Text>
+                    <Text style={[styles.drawerNavIcon, activeTab === 'HOME' && currentStep !== 'SEARCH' && styles.drawerNavIconActive]}>🚗</Text>
+                    <Text style={[styles.drawerNavText, activeTab === 'HOME' && currentStep !== 'SEARCH' && styles.drawerNavTextActive]}>Book Cab</Text>
                   </View>
-                  <Text style={styles.drawerNavChevron}>›</Text>
+                  <Text style={[styles.drawerNavChevron, activeTab === 'HOME' && currentStep !== 'SEARCH' && styles.drawerNavChevronActive]}>›</Text>
                 </TouchableOpacity>
 
                 {/* 3. Fleet & Rates */}
@@ -1186,94 +1229,592 @@ export default function App() {
       )}
 
       {/* ════════════════════════════════════
-          TAB 1: HOME — VEHICLES / CONFIRMATION / SUCCESS STEPS
+          TAB 1: HOME — 4-STEP BOOKING WIZARD (Matching Website Design)
           ════════════════════════════════════ */}
       {activeTab === 'HOME' && currentStep !== 'SEARCH' && (
         <ScrollView style={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          {/* STEP 2: VEHICLE SELECTION */}
+          
+          {/* 1. TOP NOTICE CARD (Dismissible) */}
+          {!bannerDismissed && (
+            <View style={styles.bookingTopNotice}>
+              <View style={styles.bookingNoticeItemRow}>
+                <View style={[styles.bookingNoticeIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                  <Text style={{ fontSize: 13, color: '#0284C7', fontWeight: '900' }}>₹</Text>
+                </View>
+                <Text style={styles.bookingNoticeTitle}>Book Now — at Zero Cost</Text>
+                <TouchableOpacity onPress={() => setBannerDismissed(true)} style={{ marginLeft: 'auto', padding: 2 }}>
+                  <Text style={{ color: '#0284C7', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.bookingNoticeItemRow}>
+                <View style={[styles.bookingNoticeIconCircle, { backgroundColor: '#CCFBF1' }]}>
+                  <Text style={{ fontSize: 12 }}>🛡️</Text>
+                </View>
+                <Text style={styles.bookingNoticeSubText}>
+                  Free Cancellations — <Text style={{ color: '#0284C7', fontWeight: 'bold' }}>Up to 1 Hour</Text>
+                </Text>
+              </View>
+
+              <View style={styles.bookingNoticeItemRow}>
+                <View style={[styles.bookingNoticeIconCircle, { backgroundColor: '#E0E7FF' }]}>
+                  <Text style={{ fontSize: 12 }}>🎧</Text>
+                </View>
+                <Text style={styles.bookingNoticeSubText}>
+                  24×7 Support — <Text style={{ color: '#0284C7', fontWeight: 'bold' }}>Live Dispatch</Text>
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* 2. 4-STEP WIZARD STEPPER BAR */}
+          <View style={styles.wizardStepperContainer}>
+            {/* Step 1: Vehicle */}
+            <TouchableOpacity
+              style={styles.wizardStepItem}
+              onPress={() => setCurrentStep('VEHICLES')}
+            >
+              <View style={[styles.wizardStepCircle, currentStep === 'VEHICLES' && styles.wizardStepCircleActive]}>
+                <Text style={[styles.wizardStepNumber, currentStep === 'VEHICLES' && styles.wizardStepNumberActive]}>1</Text>
+              </View>
+              <Text style={[styles.wizardStepLabel, currentStep === 'VEHICLES' && styles.wizardStepLabelActive]}>Vehicle</Text>
+            </TouchableOpacity>
+
+            <View style={styles.wizardStepLine} />
+
+            {/* Step 2: Route */}
+            <TouchableOpacity
+              style={styles.wizardStepItem}
+              onPress={() => setCurrentStep('ROUTE')}
+            >
+              <View style={[styles.wizardStepCircle, currentStep === 'ROUTE' && styles.wizardStepCircleActive]}>
+                <Text style={[styles.wizardStepNumber, currentStep === 'ROUTE' && styles.wizardStepNumberActive]}>2</Text>
+              </View>
+              <Text style={[styles.wizardStepLabel, currentStep === 'ROUTE' && styles.wizardStepLabelActive]}>Route</Text>
+            </TouchableOpacity>
+
+            <View style={styles.wizardStepLine} />
+
+            {/* Step 3: Coupon */}
+            <TouchableOpacity
+              style={styles.wizardStepItem}
+              onPress={() => setCurrentStep('COUPON')}
+            >
+              <View style={[styles.wizardStepCircle, currentStep === 'COUPON' && styles.wizardStepCircleActive]}>
+                <Text style={[styles.wizardStepNumber, currentStep === 'COUPON' && styles.wizardStepNumberActive]}>3</Text>
+              </View>
+              <Text style={[styles.wizardStepLabel, currentStep === 'COUPON' && styles.wizardStepLabelActive]}>Coupon</Text>
+            </TouchableOpacity>
+
+            <View style={styles.wizardStepLine} />
+
+            {/* Step 4: Details */}
+            <TouchableOpacity
+              style={styles.wizardStepItem}
+              onPress={() => setCurrentStep('CONFIRMATION')}
+            >
+              <View style={[styles.wizardStepCircle, currentStep === 'CONFIRMATION' && styles.wizardStepCircleActive]}>
+                <Text style={[styles.wizardStepNumber, currentStep === 'CONFIRMATION' && styles.wizardStepNumberActive]}>4</Text>
+              </View>
+              <Text style={[styles.wizardStepLabel, currentStep === 'CONFIRMATION' && styles.wizardStepLabelActive]}>Details</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ════════════════════════════════════
+              STEP 1: VEHICLE SELECTION (Matching Images 2, 3, 4)
+              ════════════════════════════════════ */}
           {currentStep === 'VEHICLES' && (
             <View style={{ marginBottom: 20 }}>
               <View style={styles.stepHeaderRow}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentStep('SEARCH')}>
-                  <Text style={styles.backBtnText}>← BACK TO SEARCH</Text>
+                  <Text style={styles.backBtnText}>← BACK TO HOME</Text>
                 </TouchableOpacity>
-                <Text style={styles.stepHeaderTitle}>STEP 2: CHOOSE CAB</Text>
+                <Text style={styles.stepHeaderTitle}>STEP 1: CHOOSE CAB</Text>
               </View>
-              <Text style={styles.sectionHeading}>AVAILABLE CABS FOR YOUR ROUTE</Text>
-              <Text style={styles.sectionSubheading}>
-                {pickupInput} → {dropInput} (~{estimatedDistanceKm} km)
-              </Text>
+
               {FLEET_CATEGORIES.map((v) => {
-                const isSelected = selectedVehicle.id === v.id;
-                const fare = Math.max(v.baseFare, estimatedDistanceKm * v.ratePerKm);
-                const advance = Math.round(fare * 0.25);
+                const isExpanded = expandedInclusionsId === v.id;
+                const currentFuel = selectedFuelMap[v.id] || 'CNG';
+                const originalPrice = Math.round(v.baseFare * 1.08);
+                const discountedPrice = v.baseFare;
+
                 return (
-                  <View
-                    key={v.id}
-                    style={[styles.webFleetCard, isSelected && { borderColor: '#FF6B1A', borderWidth: 2 }]}
-                  >
-                    <View style={styles.webFleetImageWrapper}>
-                      <Image source={{ uri: v.image }} style={styles.webFleetImage} resizeMode="cover" />
+                  <View key={v.id} style={styles.bookingCarCard}>
+                    {/* Top: Car Image */}
+                    <View style={styles.bookingCarImageWrapper}>
+                      <Image source={{ uri: v.image }} style={styles.bookingCarImage} resizeMode="cover" />
                     </View>
 
-                    <View style={styles.webFleetTitleRow}>
-                      <Text style={styles.webFleetTitle}>{v.name}</Text>
-                      <View style={styles.webFleetRatingPill}>
-                        <Text style={styles.webFleetRatingStar}>⭐</Text>
-                        <Text style={styles.webFleetRatingText}>{v.rating.toFixed(1)}</Text>
-                      </View>
-                    </View>
-
-                    <Text style={styles.webFleetSubtitle}>{v.capacity} AC Cab ({v.models})</Text>
-
-                    <View style={styles.webFleetSpecsContainer}>
-                      <View style={styles.webFleetSpecRow}>
-                        <Text style={styles.webFleetSpecIcon}>👤</Text>
-                        <Text style={styles.webFleetSpecText}>Driver allowance Included</Text>
-                      </View>
-                      <View style={styles.webFleetSpecRow}>
-                        <Text style={styles.webFleetSpecIcon}>🧳</Text>
-                        <Text style={styles.webFleetSpecText}>Luggage: {v.luggage} | Extra KM: ₹{v.extraKmRate}/km</Text>
-                      </View>
-                      <View style={styles.webFleetSpecRow}>
-                        <Text style={styles.webFleetSpecIcon}>⛽</Text>
-                        <Text style={styles.webFleetSpecText}><Text style={{ fontWeight: '900', color: '#0F172A' }}>Fuel: </Text>{v.fuel}</Text>
+                    {/* Title & Star Rating */}
+                    <View style={styles.bookingCarTitleRow}>
+                      <Text style={styles.bookingCarTitle}>{v.name}</Text>
+                      <View style={styles.bookingCarRatingBadge}>
+                        <Text style={styles.bookingCarRatingText}>{v.rating.toFixed(1)} ★</Text>
                       </View>
                     </View>
 
-                    <View style={styles.webFleetDivider} />
+                    <Text style={styles.bookingCarSubtitle}>{v.capacity} AC Cab</Text>
 
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <View>
-                        <Text style={styles.webFleetRateLabel}>ESTIMATED TOTAL FARE</Text>
-                        <Text style={[styles.webFleetRateAmount, { color: '#0F172A' }]}>₹{fare.toLocaleString()}</Text>
+                    {/* Specs */}
+                    <View style={styles.bookingCarSpecsBox}>
+                      <View style={styles.bookingCarSpecRow}>
+                        <Text style={{ fontSize: 13 }}>👤</Text>
+                        <Text style={styles.bookingCarSpecText}>Driver allowance Included</Text>
                       </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={styles.webFleetRateLabel}>25% ADVANCE</Text>
-                        <Text style={{ fontSize: 14, fontWeight: '900', color: '#059669' }}>₹{advance.toLocaleString()} (To Pay Now)</Text>
+                      <View style={styles.bookingCarSpecRow}>
+                        <Text style={{ fontSize: 13 }}>🧳</Text>
+                        <Text style={styles.bookingCarSpecText}>
+                          50 kms included | Post limit: ₹{v.extraKmRate}/km
+                        </Text>
                       </View>
                     </View>
 
+                    {/* Select Fuel Type */}
+                    <View style={styles.fuelSelectorRow}>
+                      <Text style={styles.fuelSelectorLabel}>Select Fuel Type</Text>
+                      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                        {['CNG', 'Diesel', 'Petrol'].map((ft) => (
+                          <TouchableOpacity
+                            key={ft}
+                            style={styles.fuelRadioItem}
+                            onPress={() => setSelectedFuelMap({ ...selectedFuelMap, [v.id]: ft })}
+                          >
+                            <View style={[styles.fuelRadioCircle, currentFuel === ft && styles.fuelRadioCircleActive]}>
+                              {currentFuel === ft && <View style={styles.fuelRadioDot} />}
+                            </View>
+                            <Text style={[styles.fuelRadioText, currentFuel === ft && styles.fuelRadioTextActive]}>
+                              {ft}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+
+                    {/* Price Box */}
+                    <View style={styles.bookingPriceBox}>
+                      <View style={styles.discountBadgeRow}>
+                        <View style={styles.discountPill}>
+                          <Text style={styles.discountPillText}>8% OFF</Text>
+                        </View>
+                        <Text style={styles.strikethroughPrice}>₹{originalPrice.toLocaleString()}</Text>
+                      </View>
+
+                      <Text style={styles.mainPriceAmount}>₹{discountedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Text>
+                      <Text style={styles.taxesCaption}>+ ₹65 Charges and Taxes</Text>
+                    </View>
+
+                    {/* SELECT CAR Button */}
                     <TouchableOpacity
-                      style={styles.webFleetBookBtn}
-                      onPress={() => { setSelectedVehicle(v); setCurrentStep('CONFIRMATION'); }}
+                      style={styles.selectCarOrangeBtn}
+                      onPress={() => {
+                        setSelectedVehicle(v);
+                        setCurrentStep('ROUTE');
+                      }}
                     >
-                      <Text style={styles.webFleetBookBtnText}>SELECT {v.name.toUpperCase()} →</Text>
+                      <Text style={styles.selectCarOrangeBtnText}>SELECT CAR →</Text>
                     </TouchableOpacity>
+
+                    {/* Inclusions / Exclusions Accordion Button */}
+                    <TouchableOpacity
+                      style={styles.inclusionsAccordionBtn}
+                      onPress={() => setExpandedInclusionsId(isExpanded ? null : v.id)}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 13, color: '#0369A1' }}>🛡️</Text>
+                        <Text style={styles.inclusionsBtnText}>Inclusions and Exclusions</Text>
+                      </View>
+                      <Text style={styles.inclusionsChevron}>{isExpanded ? '⌃' : '⌵'}</Text>
+                    </TouchableOpacity>
+
+                    {/* Expanded Accordion Details */}
+                    {isExpanded && (
+                      <View style={styles.inclusionsDetailsCard}>
+                        <Text style={styles.inclusionsDetailsTitle}>Inclusions & Exclusions Details</Text>
+                        <View style={styles.inclusionsItemRow}>
+                          <Text style={styles.checkGreenIcon}>✓</Text>
+                          <Text style={styles.inclusionsItemText}>Driver Allowance Included</Text>
+                        </View>
+                        <View style={styles.inclusionsItemRow}>
+                          <Text style={styles.checkGreenIcon}>✓</Text>
+                          <Text style={styles.inclusionsItemText}>Base Fuel Charges</Text>
+                        </View>
+                        <View style={styles.inclusionsItemRow}>
+                          <Text style={styles.checkGreenIcon}>✓</Text>
+                          <Text style={styles.inclusionsItemText}>AC Cab</Text>
+                        </View>
+                        <View style={styles.inclusionsDivider} />
+                        <View style={styles.inclusionsItemRow}>
+                          <Text style={styles.crossRedIcon}>✕</Text>
+                          <Text style={styles.inclusionsItemText}>Extra km after 50 km @ ₹{v.extraKmRate.toFixed(2)}/km</Text>
+                        </View>
+                        <View style={styles.inclusionsItemRow}>
+                          <Text style={styles.crossRedIcon}>✕</Text>
+                          <Text style={styles.inclusionsItemText}>Tolls & Parking extra</Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 );
               })}
             </View>
           )}
 
-          {/* STEP 3: CONFIRMATION */}
-          {currentStep === 'CONFIRMATION' && (
+          {/* ════════════════════════════════════
+              STEP 2: ROUTE & SCHEDULE
+              ════════════════════════════════════ */}
+          {currentStep === 'ROUTE' && (
             <View style={{ marginBottom: 20 }}>
               <View style={styles.stepHeaderRow}>
                 <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentStep('VEHICLES')}>
-                  <Text style={styles.backBtnText}>← BACK TO CABS</Text>
+                  <Text style={styles.backBtnText}>← BACK TO VEHICLES</Text>
                 </TouchableOpacity>
-                <Text style={styles.stepHeaderTitle}>STEP 3: CONFIRM BOOKING</Text>
+                <Text style={styles.stepHeaderTitle}>STEP 2: ROUTE & TIMINGS</Text>
+              </View>
+
+              {/* Selected Cab Summary */}
+              <View style={styles.selectedCarBanner}>
+                <Text style={styles.selectedCarBannerText}>
+                  Selected: <Text style={{ fontWeight: '900', color: '#FF6B1A' }}>{selectedVehicle.name}</Text> ({selectedFuelMap[selectedVehicle.id] || 'Diesel'})
+                </Text>
+              </View>
+
+              <View style={styles.bookingCard}>
+                {/* Trip Type Selector */}
+                <View style={styles.localPackageRow}>
+                  {(['ONEWAY', 'ROUNDTRIP', 'LOCAL', 'AIRPORT'] as TripType[]).map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[styles.localPackagePill, tripType === t && styles.localPackagePillActive]}
+                      onPress={() => setTripType(t)}
+                    >
+                      <Text style={[styles.localPackageText, tripType === t && styles.localPackageTextActive]}>
+                        {t === 'ONEWAY' ? 'ONE WAY' : t === 'ROUNDTRIP' ? 'ROUND' : t}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Airport Toggle */}
+                {tripType === 'AIRPORT' && (
+                  <View style={styles.airportToggleRow}>
+                    <TouchableOpacity
+                      style={[styles.airportToggleBtn, airportTripMode === 'PICKUP' && styles.airportToggleBtnActive]}
+                      onPress={() => setAirportTripMode('PICKUP')}
+                    >
+                      <Text style={{ fontSize: 13 }}>🛬</Text>
+                      <Text style={[styles.airportToggleText, airportTripMode === 'PICKUP' && styles.airportToggleTextActive]}>
+                        Pickup from Airport
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.airportToggleBtn, airportTripMode === 'DROP' && styles.airportToggleBtnActive]}
+                      onPress={() => setAirportTripMode('DROP')}
+                    >
+                      <Text style={{ fontSize: 13 }}>🛫</Text>
+                      <Text style={[styles.airportToggleText, airportTripMode === 'DROP' && styles.airportToggleTextActive]}>
+                        Drop to Airport
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Pickup Location */}
+                <View style={styles.inputLabelRow}>
+                  <Text style={styles.inputLabelIcon}>📍</Text>
+                  <Text style={styles.inputLabelText}>
+                    {tripType === 'LOCAL' ? 'CITY / TOWN' : tripType === 'AIRPORT' && airportTripMode === 'PICKUP' ? 'PICKUP AIRPORT' : 'PICKUP LOCATION'}
+                  </Text>
+                </View>
+                <View style={styles.inputSearchWrapper}>
+                  <Text style={styles.inputIcon}>🔍</Text>
+                  <TextInput
+                    style={styles.inputWithIcon}
+                    value={pickupInput}
+                    onChangeText={(val) => { setPickupInput(val); setShowPickupDropdown(true); }}
+                    onFocus={() => setShowPickupDropdown(true)}
+                    placeholder="Enter pickup location..."
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+                {showPickupDropdown && (
+                  <View style={styles.suggestionsBox}>
+                    {POPULAR_LOCATIONS.filter((loc) =>
+                      loc.name.toLowerCase().includes(pickupInput.toLowerCase())
+                    ).map((loc, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.suggestionItem}
+                        onPress={() => { setPickupInput(loc.name); setShowPickupDropdown(false); }}
+                      >
+                        <Text style={styles.suggestionName}>📍 {loc.name}</Text>
+                        <Text style={styles.suggestionAddr}>{loc.address}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* Swap Button (Hidden for Local) */}
+                {tripType !== 'LOCAL' && (
+                  <View style={styles.swapRightWrapper}>
+                    <TouchableOpacity style={styles.swapCircleBtn} onPress={handleSwapLocations}>
+                      <Text style={styles.swapIcon}>⇅</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Intermediate Stops for Round Trip */}
+                {tripType === 'ROUNDTRIP' &&
+                  stops.map((stopVal, sIdx) => (
+                    <View key={sIdx} style={{ marginBottom: 10 }}>
+                      <View style={styles.inputLabelRow}>
+                        <Text style={styles.inputLabelIcon}>📍</Text>
+                        <Text style={styles.inputLabelText}>{`INTERMEDIATE STOP #${sIdx + 1}`}</Text>
+                      </View>
+                      <View style={styles.inputSearchWrapper}>
+                        <Text style={styles.inputIcon}>🔍</Text>
+                        <TextInput
+                          style={styles.inputWithIcon}
+                          value={stopVal}
+                          onChangeText={(val) => { handleUpdateStop(sIdx, val); setActiveStopIndex(sIdx); }}
+                          onFocus={() => setActiveStopIndex(sIdx)}
+                          placeholder={`Enter Stop #${sIdx + 1}...`}
+                          placeholderTextColor="#94A3B8"
+                        />
+                        <TouchableOpacity onPress={() => handleRemoveStop(sIdx)} style={styles.removeStopCircleBtn}>
+                          <Text style={styles.removeStopCircleIcon}>−</Text>
+                        </TouchableOpacity>
+                        {stops.length < 5 && (
+                          <TouchableOpacity onPress={handleAddStop} style={styles.addStopCircleBtn}>
+                            <Text style={styles.addStopCircleIcon}>+</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+
+                {/* Destination (Hidden for Local) */}
+                {tripType !== 'LOCAL' && (
+                  <>
+                    <View style={styles.inputLabelRow}>
+                      <Text style={styles.inputLabelIcon}>📍</Text>
+                      <Text style={styles.inputLabelText}>
+                        {tripType === 'AIRPORT' && airportTripMode === 'DROP' ? 'DROP AIRPORT' : 'DESTINATION LOCATION'}
+                      </Text>
+                    </View>
+                    <View style={styles.inputSearchWrapper}>
+                      <Text style={styles.inputIcon}>🔍</Text>
+                      <TextInput
+                        style={styles.inputWithIcon}
+                        value={dropInput}
+                        onChangeText={(val) => { setDropInput(val); setShowDropDropdown(true); }}
+                        onFocus={() => setShowDropDropdown(true)}
+                        placeholder="Enter drop destination..."
+                        placeholderTextColor="#94A3B8"
+                      />
+                      {tripType === 'ROUNDTRIP' && (
+                        <TouchableOpacity onPress={handleAddStop} style={styles.addStopCircleBtn}>
+                          <Text style={styles.addStopCircleIcon}>+</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {showDropDropdown && (
+                      <View style={styles.suggestionsBox}>
+                        {POPULAR_LOCATIONS.filter((loc) =>
+                          loc.name.toLowerCase().includes(dropInput.toLowerCase())
+                        ).map((loc, idx) => (
+                          <TouchableOpacity
+                            key={idx}
+                            style={styles.suggestionItem}
+                            onPress={() => { setDropInput(loc.name); setShowDropDropdown(false); }}
+                          >
+                            <Text style={styles.suggestionName}>🏁 {loc.name}</Text>
+                            <Text style={styles.suggestionAddr}>{loc.address}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </>
+                )}
+
+                {/* Local Packages */}
+                {tripType === 'LOCAL' && (
+                  <View style={styles.localPackageSection}>
+                    <Text style={styles.inputLabelText}>SELECT RENTAL PACKAGE</Text>
+                    <View style={styles.localPackageRow}>
+                      {['4hr / 40km', '8hr / 80km', '12hr / 120km'].map((pkg) => (
+                        <TouchableOpacity
+                          key={pkg}
+                          style={[styles.localPackagePill, localPackage === pkg && styles.localPackagePillActive]}
+                          onPress={() => setLocalPackage(pkg)}
+                        >
+                          <Text style={[styles.localPackageText, localPackage === pkg && styles.localPackageTextActive]}>
+                            {pkg}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Date & Time Grid */}
+                <View style={styles.dateTimeGrid}>
+                  <View style={styles.dateTimeCard}>
+                    <Text style={styles.dateTimeCardLabel}>PICK UP DATE</Text>
+                    <TextInput
+                      style={styles.dateTimeInput}
+                      value={pickupDate}
+                      onChangeText={setPickupDate}
+                      placeholder="DD-MM-YYYY"
+                    />
+                  </View>
+                  {tripType === 'ROUNDTRIP' && (
+                    <View style={styles.dateTimeCard}>
+                      <Text style={styles.dateTimeCardLabel}>RETURN DATE</Text>
+                      <TextInput
+                        style={styles.dateTimeInput}
+                        value={returnDate}
+                        onChangeText={setReturnDate}
+                        placeholder="DD-MM-YYYY"
+                      />
+                    </View>
+                  )}
+                  <View style={styles.dateTimeCard}>
+                    <Text style={styles.dateTimeCardLabel}>PICK UP TIME</Text>
+                    <TextInput
+                      style={styles.dateTimeInput}
+                      value={pickupTime}
+                      onChangeText={setPickupTime}
+                      placeholder="HH:MM"
+                    />
+                  </View>
+                </View>
+
+                {/* Continue to Coupons Button */}
+                <TouchableOpacity
+                  style={styles.exploreCabsBtn}
+                  onPress={() => {
+                    if (!pickupInput || (tripType !== 'LOCAL' && !dropInput)) {
+                      Alert.alert('Required', 'Please enter your pickup and destination locations.');
+                      return;
+                    }
+                    setCurrentStep('COUPON');
+                  }}
+                >
+                  <Text style={styles.exploreCabsBtnText}>CONTINUE TO COUPONS & OFFERS →</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* ════════════════════════════════════
+              STEP 3: COUPON & OFFERS
+              ════════════════════════════════════ */}
+          {currentStep === 'COUPON' && (
+            <View style={{ marginBottom: 20 }}>
+              <View style={styles.stepHeaderRow}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentStep('ROUTE')}>
+                  <Text style={styles.backBtnText}>← BACK TO ROUTE</Text>
+                </TouchableOpacity>
+                <Text style={styles.stepHeaderTitle}>STEP 3: APPLY COUPON</Text>
+              </View>
+
+              <View style={styles.bookingCard}>
+                <Text style={styles.cardSectionTitle}>HAVE A PROMO CODE?</Text>
+                <View style={styles.couponInputWrapper}>
+                  <TextInput
+                    style={styles.couponTextInput}
+                    value={couponCode}
+                    onChangeText={setCouponCode}
+                    placeholder="Enter Coupon Code (e.g. KANDY100)"
+                    autoCapitalize="characters"
+                    placeholderTextColor="#94A3B8"
+                  />
+                  <TouchableOpacity style={styles.couponApplyBtn} onPress={() => handleApplyCoupon()}>
+                    <Text style={styles.couponApplyBtnText}>APPLY</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {couponApplied && (
+                  <View style={styles.couponSuccessBanner}>
+                    <Text style={styles.couponSuccessText}>{couponMessage}</Text>
+                  </View>
+                )}
+
+                <Text style={[styles.cardSectionTitle, { marginTop: 16 }]}>AVAILABLE OFFERS</Text>
+                <View style={{ gap: 10 }}>
+                  <TouchableOpacity
+                    style={styles.couponCardItem}
+                    onPress={() => handleApplyCoupon('KANDY100')}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.couponCardCode}>KANDY100</Text>
+                      <Text style={styles.couponCardDesc}>Flat ₹100 OFF on all Outstation & Round Trips</Text>
+                    </View>
+                    <Text style={styles.couponCardApplyText}>APPLY OFFER</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.couponCardItem}
+                    onPress={() => handleApplyCoupon('FIRSTCAB')}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.couponCardCode}>FIRSTCAB</Text>
+                      <Text style={styles.couponCardDesc}>10% OFF up to ₹250 for first-time bookings</Text>
+                    </View>
+                    <Text style={styles.couponCardApplyText}>APPLY OFFER</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.couponCardItem}
+                    onPress={() => handleApplyCoupon('AIRPORT50')}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.couponCardCode}>AIRPORT50</Text>
+                      <Text style={styles.couponCardDesc}>Flat ₹50 OFF on Airport Transfers</Text>
+                    </View>
+                    <Text style={styles.couponCardApplyText}>APPLY OFFER</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Fare Summary with Discount */}
+                <View style={styles.fareBreakdownBox}>
+                  <Text style={styles.fareBreakdownTitle}>FARE ESTIMATE</Text>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Standard Fare:</Text>
+                    <Text style={styles.infoValue}>₹{rawFare.toLocaleString()}</Text>
+                  </View>
+                  {couponDiscount > 0 && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: '#059669', fontWeight: 'bold' }]}>Coupon Discount:</Text>
+                      <Text style={[styles.infoValue, { color: '#059669', fontWeight: 'bold' }]}>− ₹{couponDiscount}</Text>
+                    </View>
+                  )}
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Estimated Total:</Text>
+                    <Text style={styles.infoValueHighlight}>₹{calculatedFare.toLocaleString()}</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.exploreCabsBtn}
+                  onPress={() => setCurrentStep('CONFIRMATION')}
+                >
+                  <Text style={styles.exploreCabsBtnText}>CONTINUE TO PASSENGER DETAILS →</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* ════════════════════════════════════
+              STEP 4: PASSENGER DETAILS & CONFIRMATION
+              ════════════════════════════════════ */}
+          {currentStep === 'CONFIRMATION' && (
+            <View style={{ marginBottom: 20 }}>
+              <View style={styles.stepHeaderRow}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => setCurrentStep('COUPON')}>
+                  <Text style={styles.backBtnText}>← BACK TO COUPON</Text>
+                </TouchableOpacity>
+                <Text style={styles.stepHeaderTitle}>STEP 4: CONFIRM & BOOK</Text>
               </View>
 
               <View style={styles.confirmationCard}>
@@ -1287,7 +1828,9 @@ export default function App() {
                   ))}
                   <Text style={styles.routeBoxText}>🏁 Destination: {dropInput}</Text>
                   <Text style={styles.routeBoxSub}>Date & Time: {pickupDate}, {pickupTime}</Text>
-                  <Text style={styles.routeBoxSub}>Cab Selected: {selectedVehicle.name}</Text>
+                  <Text style={styles.routeBoxSub}>
+                    Cab Selected: {selectedVehicle.name} ({selectedFuelMap[selectedVehicle.id] || 'Diesel'})
+                  </Text>
                 </View>
 
                 <Text style={styles.cardSectionTitle}>PASSENGER CONTACT DETAILS</Text>
@@ -1304,8 +1847,14 @@ export default function App() {
                   <Text style={styles.fareBreakdownTitle}>TRANSPARENT FARE BREAKDOWN</Text>
                   <View style={styles.infoRow}><Text style={styles.infoLabel}>Route Distance:</Text><Text style={styles.infoValue}>~{estimatedDistanceKm} km</Text></View>
                   <View style={styles.infoRow}><Text style={styles.infoLabel}>Cab Rate per km:</Text><Text style={styles.infoValue}>₹{selectedVehicle.ratePerKm}/km</Text></View>
+                  {couponDiscount > 0 && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: '#059669', fontWeight: 'bold' }]}>Coupon Applied ({couponCode}):</Text>
+                      <Text style={[styles.infoValue, { color: '#059669', fontWeight: 'bold' }]}>− ₹{couponDiscount}</Text>
+                    </View>
+                  )}
                   <View style={styles.infoRow}><Text style={styles.infoLabel}>Total Estimated Fare:</Text><Text style={styles.infoValueHighlight}>₹{calculatedFare.toLocaleString()}</Text></View>
-                  <View style={styles.infoRow}><Text style={styles.infoLabel}>25% Advance Payable Now:</Text><Text style={[styles.infoValue, { color: KANDY_THEME.colors.primary }]}>₹{advancePayable.toLocaleString()}</Text></View>
+                  <View style={styles.infoRow}><Text style={styles.infoLabel}>25% Advance Payable Now:</Text><Text style={[styles.infoValue, { color: KANDY_THEME.colors.primary, fontWeight: '900' }]}>₹{advancePayable.toLocaleString()}</Text></View>
                   <View style={styles.infoRow}><Text style={styles.infoLabel}>Balance Payable to Driver:</Text><Text style={styles.infoValue}>₹{balancePayable.toLocaleString()}</Text></View>
                 </View>
 
@@ -1316,7 +1865,9 @@ export default function App() {
             </View>
           )}
 
-          {/* SUCCESS SCREEN */}
+          {/* ════════════════════════════════════
+              STEP 5: SUCCESS SCREEN
+              ════════════════════════════════════ */}
           {currentStep === 'SUCCESS' && (
             <View style={styles.successCard}>
               <Text style={styles.successIcon}>🎉</Text>
@@ -2124,36 +2675,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
-  homeFleetSection: {
-    marginVertical: 16,
-  },
-  homeFleetTag: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#EA580C',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  homeFleetTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  homeFleetAction: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#EA580C',
-    marginBottom: 14,
-  },
-  fleetPreviewCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -2180,9 +2701,6 @@ const styles = StyleSheet.create({
     color: KANDY_THEME.colors.textMuted,
     marginBottom: 14,
     marginTop: 2,
-  },
-  scrollContent: {
-    padding: 14,
   },
   mainHomeScroll: {
     flex: 1,
@@ -3181,6 +3699,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     marginVertical: 12,
   },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 14,
+  },
   webFleetBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -3264,5 +3787,444 @@ const styles = StyleSheet.create({
   },
   bottomNavTextActive: {
     color: '#FFFFFF',
+  },
+
+  // ─── BOOKING TOP NOTICE ───
+  bookingTopNotice: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+    gap: 8,
+  },
+  bookingNoticeItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bookingNoticeIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bookingNoticeTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0369A1',
+  },
+  bookingNoticeSubText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0284C7',
+  },
+
+  // ─── WIZARD STEPPER BAR ───
+  wizardStepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  wizardStepItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  wizardStepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+  },
+  wizardStepCircleActive: {
+    backgroundColor: '#FF6B1A',
+    borderColor: '#FF6B1A',
+  },
+  wizardStepNumber: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#64748B',
+  },
+  wizardStepNumberActive: {
+    color: '#FFFFFF',
+  },
+  wizardStepLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  wizardStepLabelActive: {
+    color: '#FF6B1A',
+    fontWeight: '900',
+  },
+  wizardStepLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 4,
+    marginBottom: 14,
+  },
+
+  // ─── STEP 1: VEHICLE CARDS ───
+  bookingCarCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  bookingCarImageWrapper: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+    marginBottom: 10,
+  },
+  bookingCarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  bookingCarTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  bookingCarTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  bookingCarRatingBadge: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  bookingCarRatingText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#92400E',
+  },
+  bookingCarSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 10,
+  },
+  bookingCarSpecsBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 10,
+    gap: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  bookingCarSpecRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bookingCarSpecText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  fuelSelectorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    marginBottom: 10,
+  },
+  fuelSelectorLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  fuelRadioItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  fuelRadioCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#94A3B8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fuelRadioCircleActive: {
+    borderColor: '#FF6B1A',
+  },
+  fuelRadioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF6B1A',
+  },
+  fuelRadioText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  fuelRadioTextActive: {
+    color: '#0F172A',
+    fontWeight: '900',
+  },
+  bookingPriceBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  discountBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  discountPill: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  discountPillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  strikethroughPrice: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+    fontWeight: '700',
+  },
+  mainPriceAmount: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0284C7',
+    marginVertical: 2,
+  },
+  taxesCaption: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  selectCarOrangeBtn: {
+    backgroundColor: '#FF6B1A',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  selectCarOrangeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+  },
+  inclusionsAccordionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  inclusionsBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0369A1',
+  },
+  inclusionsChevron: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0369A1',
+  },
+  inclusionsDetailsCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 6,
+  },
+  inclusionsDetailsTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  inclusionsItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  checkGreenIcon: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  crossRedIcon: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#DC2626',
+  },
+  inclusionsItemText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  inclusionsDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 4,
+  },
+
+  // ─── STEP 2 & BEYOND ───
+  selectedCarBanner: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  selectedCarBannerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9A3412',
+  },
+  inputLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#475569',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    marginTop: 6,
+  },
+
+  // ─── STEP 3: COUPONS ───
+  couponInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  couponTextInput: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  couponApplyBtn: {
+    backgroundColor: '#FF6B1A',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  couponApplyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  couponSuccessBanner: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
+  },
+  couponSuccessText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#065F46',
+    textAlign: 'center',
+  },
+  couponCardItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 12,
+  },
+  couponCardCode: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#EA580C',
+  },
+  couponCardDesc: {
+    fontSize: 10.5,
+    color: '#64748B',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  couponCardApplyText: {
+    fontSize: 10.5,
+    fontWeight: '900',
+    color: '#0284C7',
+    paddingLeft: 8,
   },
 });
