@@ -168,9 +168,13 @@ export async function calculateFareApi(params: {
 }
 
 // 3. Customer Bookings APIs
-export async function fetchCustomerBookings() {
+export async function fetchCustomerBookings(phone?: string) {
   try {
-    return await request('/api/customer/bookings', { method: 'GET' });
+    const query = phone ? `?phone=${encodeURIComponent(normalizePhone(phone))}` : '';
+    return await request(`/api/customer/bookings${query}`, {
+      method: 'GET',
+      headers: phone ? { 'x-customer-phone': normalizePhone(phone) } : {},
+    });
   } catch (err: any) {
     console.warn('[fetchCustomerBookings API fallback]', err.message);
     return null;

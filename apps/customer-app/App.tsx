@@ -240,37 +240,25 @@ export default function App() {
     }
   };
 
-  // Active Trips & Bookings Database
-  const [userBookings, setUserBookings] = useState([
-    {
-      id: 'KC73744',
-      status: 'DRIVER EN ROUTE',
-      pickup: 'Bangalore, KA',
-      drop: 'Coorg (Madikeri), KA',
-      date: '15 Sep 2026, 07:00 AM',
-      vehicleName: 'Innova Crysta (KA-01-MJ-4892)',
-      totalFare: 4250,
-      advancePaid: 1063,
-      balanceDue: 3187,
-      driverName: 'Ramesh Kumar',
-      driverPhone: '8888888888',
-      driverRating: '4.9 ★',
-    },
-    {
-      id: 'KC69820',
-      status: 'COMPLETED',
-      pickup: 'Colombo Fort',
-      drop: 'Kandy City',
-      date: '10 Aug 2026, 08:30 AM',
-      vehicleName: 'Sedan (Dzire)',
-      totalFare: 3500,
-      advancePaid: 875,
-      balanceDue: 0,
-      driverName: 'Saman Perera',
-      driverPhone: '7771234567',
-      driverRating: '5.0 ★',
-    },
-  ]);
+  interface CustomerBookingItem {
+    id: string;
+    status: string;
+    tripType?: string;
+    pickup: string;
+    drop: string;
+    date: string;
+    time?: string;
+    vehicleName: string;
+    totalFare: number;
+    advancePaid: number;
+    balanceDue: number;
+    driverName?: string;
+    driverPhone?: string;
+    driverRating?: string;
+  }
+
+  // Active Trips & Bookings Database (Empty until real customer bookings exist)
+  const [userBookings, setUserBookings] = useState<CustomerBookingItem[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -400,7 +388,7 @@ export default function App() {
       Alert.alert('Welcome!', res.message || `Logged in successfully as ${finalName}`);
       
       // Load user's bookings from backend API with safe normalization
-      fetchCustomerBookings().then((bRes) => {
+      fetchCustomerBookings(cleanPhone).then((bRes) => {
         if (bRes?.bookings && Array.isArray(bRes.bookings) && bRes.bookings.length > 0) {
           const mapped = bRes.bookings.map((item: any) => ({
             id: item.humanReadableRef || item.id || `KC${Math.floor(10000 + Math.random() * 90000)}`,
@@ -419,7 +407,11 @@ export default function App() {
             driverRating: item.driverRating || '4.9 ★',
           }));
           setUserBookings(mapped);
+        } else {
+          setUserBookings([]);
         }
+      }).catch(() => {
+        setUserBookings([]);
       });
     } catch (err: any) {
       const finalName = isRegisteredUser ? (existingName || 'Rakshith M') : (customerName.trim() || 'Valued Customer');
@@ -428,6 +420,7 @@ export default function App() {
       setAuthModalOpen(false);
       setMenuOpen(false);
       setActiveTab('ACCOUNT');
+      setUserBookings([]);
       Alert.alert('Welcome!', `Logged in successfully as ${finalName}`);
     } finally {
       setIsSubmitting(false);
@@ -441,6 +434,7 @@ export default function App() {
     setIsRegisteredUser(false);
     setIsNewUser(false);
     setExistingName('');
+    setUserBookings([]);
     Alert.alert('Logged Out', 'You have been logged out.');
   };
 
@@ -2002,89 +1996,108 @@ export default function App() {
       {activeTab === 'TRIPS' && (
         <ScrollView style={styles.scrollContent}>
           <Text style={styles.pageHeading}>MY TRIPS & CHAUFFEUR TRACKING</Text>
-          {userBookings.map((b) => (
-            <View key={b.id} style={styles.tripCard}>
-              <View style={styles.tripHeader}>
-                <Text style={styles.tripRef}>Ref: {b.id}</Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    {
-                      backgroundColor:
-                        b.status === 'COMPLETED' ? '#D1FAE5' : b.status === 'DRIVER EN ROUTE' ? '#FEF3C7' : '#DBEAFE',
-                    },
-                  ]}
-                >
-                  <Text
+          {userBookings.length === 0 ? (
+            <View style={styles.emptyBookingsCard}>
+              <Text style={{ fontSize: 44, textAlign: 'center', marginBottom: 12 }}>📭</Text>
+              <Text style={styles.emptyBookingsTitle}>No Active Bookings</Text>
+              <Text style={styles.emptyBookingsSub}>
+                You don't have any cab bookings scheduled yet. Book your first ride now to track chauffeur status and trip invoices here.
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyBookingsBtn}
+                onPress={() => {
+                  setActiveTab('HOME');
+                  setCurrentStep('SEARCH');
+                }}
+              >
+                <Text style={styles.emptyBookingsBtnText}>+ BOOK A CAB NOW →</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            userBookings.map((b) => (
+              <View key={b.id} style={styles.tripCard}>
+                <View style={styles.tripHeader}>
+                  <Text style={styles.tripRef}>Ref: {b.id}</Text>
+                  <View
                     style={[
-                      styles.statusText,
+                      styles.statusBadge,
                       {
-                        color:
-                          b.status === 'COMPLETED' ? '#065F46' : b.status === 'DRIVER EN ROUTE' ? '#92400E' : '#1E40AF',
+                        backgroundColor:
+                          b.status === 'COMPLETED' ? '#D1FAE5' : b.status === 'DRIVER EN ROUTE' ? '#FEF3C7' : '#DBEAFE',
                       },
                     ]}
                   >
-                    {b.status}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.statusText,
+                        {
+                          color:
+                            b.status === 'COMPLETED' ? '#065F46' : b.status === 'DRIVER EN ROUTE' ? '#92400E' : '#1E40AF',
+                        },
+                      ]}
+                    >
+                      {b.status}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.routeContainer}>
-                <Text style={styles.routeText}>📍 Pickup: {b.pickup}</Text>
-                <Text style={styles.routeArrow}>↓</Text>
-                <Text style={styles.routeText}>🏁 Destination: {b.drop}</Text>
-              </View>
+                <View style={styles.routeContainer}>
+                  <Text style={styles.routeText}>📍 Pickup: {b.pickup}</Text>
+                  <Text style={styles.routeArrow}>↓</Text>
+                  <Text style={styles.routeText}>🏁 Destination: {b.drop}</Text>
+                </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Scheduled Date:</Text>
-                <Text style={styles.infoValue}>{b.date}</Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Vehicle Assigned:</Text>
-                <Text style={styles.infoValue}>{b.vehicleName}</Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Estimated Fare:</Text>
-                <Text style={styles.infoValue}>₹{Number(b?.totalFare || 0).toLocaleString()}</Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>25% Advance Paid:</Text>
-                <Text style={[styles.infoValue, { color: KANDY_THEME.colors.success }]}>
-                  ₹{Number(b?.advancePaid || 0).toLocaleString()} (PAID)
-                </Text>
-              </View>
-
-              {Number(b?.balanceDue || 0) > 0 && (
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Balance Due to Driver:</Text>
-                  <Text style={[styles.infoValue, { color: KANDY_THEME.colors.primary }]}>
-                    ₹{Number(b?.balanceDue || 0).toLocaleString()}
-                  </Text>
+                  <Text style={styles.infoLabel}>Scheduled Date:</Text>
+                  <Text style={styles.infoValue}>{b.date}</Text>
                 </View>
-              )}
 
-              {/* Chauffeur Card */}
-              {b.status !== 'COMPLETED' ? (
-                <View style={styles.driverBox}>
-                  <Text style={styles.driverTitle}>ASSIGNED CHAUFFEUR:</Text>
-                  <Text style={styles.driverName}>
-                    {b.driverName} ({b.driverRating})
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Vehicle Assigned:</Text>
+                  <Text style={styles.infoValue}>{b.vehicleName}</Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Estimated Fare:</Text>
+                  <Text style={styles.infoValue}>₹{Number(b?.totalFare || 0).toLocaleString()}</Text>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>25% Advance Paid:</Text>
+                  <Text style={[styles.infoValue, { color: KANDY_THEME.colors.success }]}>
+                    ₹{Number(b?.advancePaid || 0).toLocaleString()} (PAID)
                   </Text>
-                  <TouchableOpacity style={styles.callButton} onPress={() => handleCallSupport(b.driverPhone)}>
-                    <Text style={styles.callButtonText}>📞 CALL CHAUFFEUR (+91 {b.driverPhone})</Text>
-                  </TouchableOpacity>
                 </View>
-              ) : (
-                <View style={[styles.driverBox, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' }]}>
-                  <Text style={[styles.driverTitle, { color: '#4B5563' }]}>COMPLETED CHAUFFEUR:</Text>
-                  <Text style={[styles.driverName, { color: '#1F2937' }]}>{b.driverName}</Text>
-                </View>
-              )}
-            </View>
-          ))}
+
+                {Number(b?.balanceDue || 0) > 0 && (
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Balance Due to Driver:</Text>
+                    <Text style={[styles.infoValue, { color: KANDY_THEME.colors.primary }]}>
+                      ₹{Number(b?.balanceDue || 0).toLocaleString()}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Chauffeur Card */}
+                {b.status !== 'COMPLETED' ? (
+                  <View style={styles.driverBox}>
+                    <Text style={styles.driverTitle}>ASSIGNED CHAUFFEUR:</Text>
+                    <Text style={styles.driverName}>
+                      {b.driverName} ({b.driverRating})
+                    </Text>
+                    <TouchableOpacity style={styles.callButton} onPress={() => handleCallSupport(b.driverPhone)}>
+                      <Text style={styles.callButtonText}>📞 CALL CHAUFFEUR (+91 {b.driverPhone})</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={[styles.driverBox, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' }]}>
+                    <Text style={[styles.driverTitle, { color: '#4B5563' }]}>COMPLETED CHAUFFEUR:</Text>
+                    <Text style={[styles.driverName, { color: '#1F2937' }]}>{b.driverName}</Text>
+                  </View>
+                )}
+              </View>
+            ))
+          )}
         </ScrollView>
       )}
 
@@ -2314,109 +2327,128 @@ export default function App() {
               </View>
 
               {/* List of Bookings */}
-              {userBookings.map((b) => (
-                <View key={b.id} style={styles.profileBookingCard}>
-                  <View style={styles.profileBookingTopRow}>
-                    <Text style={styles.profileBookingRef}>
-                      Ref: <Text style={{ color: '#FF6B1A' }}>{b.id}</Text>
-                    </Text>
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      <View style={styles.profileBadgeDark}>
-                        <Text style={styles.profileBadgeDarkText}>🕒 {(b as any).tripType || 'ONEWAY'}</Text>
-                      </View>
-                      <View style={styles.profileBadgeAmber}>
-                        <Text style={styles.profileBadgeAmberText}>🕒 {b.status}</Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.profileRouteBox}>
-                    <View style={styles.profileRouteItem}>
-                      <Text style={{ fontSize: 14 }}>📍</Text>
-                      <Text style={styles.profileRouteText}>{b.pickup}</Text>
-                    </View>
-                    <View style={styles.profileRouteItem}>
-                      <Text style={{ fontSize: 14 }}>↗</Text>
-                      <Text style={styles.profileRouteText}>{b.drop}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.profileDateRow}>
-                    <Text style={styles.profileDateText}>📅 {b.date}</Text>
-                    <View style={styles.profileTimePill}>
-                      <Text style={styles.profileTimeText}>🕒 {(b as any).time || '06:03 pm'}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.profileVehicleRow}>
-                    <Text style={{ fontSize: 13 }}>👤</Text>
-                    <Text style={styles.profileVehicleText}>{b.vehicleName} • ~245 km</Text>
-                  </View>
-
-                  <View style={styles.profileOpsNoticeBox}>
-                    <Text style={{ fontSize: 12 }}>🛡️</Text>
-                    <Text style={styles.profileOpsNoticeText}>
-                      Driver details will be released by ops prior to pickup time.
-                    </Text>
-                  </View>
-
-                  {/* Fare Breakdown Box (Matching Website Image) */}
-                  <View style={styles.profileFareBox}>
-                    <Text style={styles.profileFareLabel}>ESTIMATED TOTAL</Text>
-                    <Text style={styles.profileFareTotal}>₹{Number(b?.totalFare || 0).toLocaleString()}</Text>
-                    <View style={styles.profileFareRow}>
-                      <Text style={styles.profileFareSubLabel}>25% Advance Paid:</Text>
-                      <Text style={styles.profileFareAdvanceVal}>₹{Number(b?.advancePaid || 0).toLocaleString()}</Text>
-                    </View>
-                    <View style={styles.profileFareRow}>
-                      <Text style={styles.profileFareSubLabel}>Balance Pending:</Text>
-                      <Text style={styles.profileFareBalanceVal}>₹{Number(b?.balanceDue || 0).toLocaleString()}</Text>
-                    </View>
-                  </View>
-
-                  {/* Action Buttons: Cancel Ride & View Invoice */}
+              {userBookings.length === 0 ? (
+                <View style={styles.emptyBookingsCard}>
+                  <Text style={{ fontSize: 44, textAlign: 'center', marginBottom: 12 }}>📭</Text>
+                  <Text style={styles.emptyBookingsTitle}>No Bookings Found</Text>
+                  <Text style={styles.emptyBookingsSub}>
+                    You haven't made any cab bookings yet. All your confirmed bookings and GST tax invoices will appear here.
+                  </Text>
                   <TouchableOpacity
-                    style={styles.profileCancelBtn}
+                    style={styles.emptyBookingsBtn}
                     onPress={() => {
-                      Alert.alert(
-                        'Cancel Booking',
-                        `Are you sure you want to cancel booking ${b.id}? Free cancellations are allowed up to 1 hour before pickup.`,
-                        [
-                          { text: 'Keep Booking', style: 'cancel' },
-                          {
-                            text: 'Yes, Cancel',
-                            style: 'destructive',
-                            onPress: () => {
-                              setUserBookings((prev) =>
-                                prev.map((item) =>
-                                  item.id === b.id ? { ...item, status: 'CANCELLED' } : item
-                                )
-                              );
-                              Alert.alert('Booking Cancelled', `Booking ${b.id} has been cancelled.`);
-                            },
-                          },
-                        ]
-                      );
+                      setActiveTab('HOME');
+                      setCurrentStep('SEARCH');
                     }}
                   >
-                    <Text style={styles.profileCancelIcon}>ⓧ</Text>
-                    <Text style={styles.profileCancelText}>CANCEL RIDE</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.profileInvoiceBtn}
-                    onPress={() => {
-                      Alert.alert(
-                        'Trip Tax Invoice',
-                        `==============================\nKANDY CABS OFFICIAL INVOICE\n==============================\nBooking Ref: ${b.id}\nCustomer: ${customerName || 'Valued Customer'}\nPhone: +91 ${phone}\n\nRoute: ${b.pickup} → ${b.drop}\nVehicle: ${b.vehicleName}\n\nTotal Fare: ₹${b.totalFare}\n25% Advance Paid: ₹${b.advancePaid} (PAID)\nBalance Due: ₹${b.balanceDue}\nStatus: ${b.status}\n==============================`
-                      );
-                    }}
-                  >
-                    <Text style={styles.profileInvoiceIcon}>📄</Text>
-                    <Text style={styles.profileInvoiceText}>VIEW INVOICE</Text>
+                    <Text style={styles.emptyBookingsBtnText}>+ BOOK A CAB NOW →</Text>
                   </TouchableOpacity>
                 </View>
-              ))}
+              ) : (
+                userBookings.map((b) => (
+                  <View key={b.id} style={styles.profileBookingCard}>
+                    <View style={styles.profileBookingTopRow}>
+                      <Text style={styles.profileBookingRef}>
+                        Ref: <Text style={{ color: '#FF6B1A' }}>{b.id}</Text>
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <View style={styles.profileBadgeDark}>
+                          <Text style={styles.profileBadgeDarkText}>🕒 {(b as any).tripType || 'ONEWAY'}</Text>
+                        </View>
+                        <View style={styles.profileBadgeAmber}>
+                          <Text style={styles.profileBadgeAmberText}>🕒 {b.status}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.profileRouteBox}>
+                      <View style={styles.profileRouteItem}>
+                        <Text style={{ fontSize: 14 }}>📍</Text>
+                        <Text style={styles.profileRouteText}>{b.pickup}</Text>
+                      </View>
+                      <View style={styles.profileRouteItem}>
+                        <Text style={{ fontSize: 14 }}>↗</Text>
+                        <Text style={styles.profileRouteText}>{b.drop}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.profileDateRow}>
+                      <Text style={styles.profileDateText}>📅 {b.date}</Text>
+                      <View style={styles.profileTimePill}>
+                        <Text style={styles.profileTimeText}>🕒 {(b as any).time || '06:03 pm'}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.profileVehicleRow}>
+                      <Text style={{ fontSize: 13 }}>👤</Text>
+                      <Text style={styles.profileVehicleText}>{b.vehicleName} • ~245 km</Text>
+                    </View>
+
+                    <View style={styles.profileOpsNoticeBox}>
+                      <Text style={{ fontSize: 12 }}>🛡️</Text>
+                      <Text style={styles.profileOpsNoticeText}>
+                        Driver details will be released by ops prior to pickup time.
+                      </Text>
+                    </View>
+
+                    {/* Fare Breakdown Box (Matching Website Image) */}
+                    <View style={styles.profileFareBox}>
+                      <Text style={styles.profileFareLabel}>ESTIMATED TOTAL</Text>
+                      <Text style={styles.profileFareTotal}>₹{Number(b?.totalFare || 0).toLocaleString()}</Text>
+                      <View style={styles.profileFareRow}>
+                        <Text style={styles.profileFareSubLabel}>25% Advance Paid:</Text>
+                        <Text style={styles.profileFareAdvanceVal}>₹{Number(b?.advancePaid || 0).toLocaleString()}</Text>
+                      </View>
+                      <View style={styles.profileFareRow}>
+                        <Text style={styles.profileFareSubLabel}>Balance Pending:</Text>
+                        <Text style={styles.profileFareBalanceVal}>₹{Number(b?.balanceDue || 0).toLocaleString()}</Text>
+                      </View>
+                    </View>
+
+                    {/* Action Buttons: Cancel Ride & View Invoice */}
+                    <TouchableOpacity
+                      style={styles.profileCancelBtn}
+                      onPress={() => {
+                        Alert.alert(
+                          'Cancel Booking',
+                          `Are you sure you want to cancel booking ${b.id}? Free cancellations are allowed up to 1 hour before pickup.`,
+                          [
+                            { text: 'Keep Booking', style: 'cancel' },
+                            {
+                              text: 'Yes, Cancel',
+                              style: 'destructive',
+                              onPress: () => {
+                                setUserBookings((prev) =>
+                                  prev.map((item) =>
+                                    item.id === b.id ? { ...item, status: 'CANCELLED' } : item
+                                  )
+                                );
+                                Alert.alert('Booking Cancelled', `Booking ${b.id} has been cancelled.`);
+                              },
+                            },
+                          ]
+                        );
+                      }}
+                    >
+                      <Text style={styles.profileCancelIcon}>ⓧ</Text>
+                      <Text style={styles.profileCancelText}>CANCEL RIDE</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.profileInvoiceBtn}
+                      onPress={() => {
+                        Alert.alert(
+                          'Trip Tax Invoice',
+                          `==============================\nKANDY CABS OFFICIAL INVOICE\n==============================\nBooking Ref: ${b.id}\nCustomer: ${customerName || 'Valued Customer'}\nPhone: +91 ${phone}\n\nRoute: ${b.pickup} → ${b.drop}\nVehicle: ${b.vehicleName}\n\nTotal Fare: ₹${b.totalFare}\n25% Advance Paid: ₹${b.advancePaid} (PAID)\nBalance Due: ₹${b.balanceDue}\nStatus: ${b.status}\n==============================`
+                        );
+                      }}
+                    >
+                      <Text style={styles.profileInvoiceIcon}>📄</Text>
+                      <Text style={styles.profileInvoiceText}>VIEW INVOICE</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
             </View>
           )}
         </ScrollView>
@@ -4994,6 +5026,55 @@ const styles = StyleSheet.create({
   profileInvoiceText: {
     color: '#FFFFFF',
     fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  emptyBookingsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+    marginTop: 12,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  emptyBookingsTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyBookingsSub: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 12,
+  },
+  emptyBookingsBtn: {
+    backgroundColor: '#FF6B1A',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  emptyBookingsBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
