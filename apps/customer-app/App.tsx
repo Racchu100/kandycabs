@@ -196,6 +196,140 @@ export default function App() {
   const [returnDate, setReturnDate] = useState<string>('17-09-2026');
   const [pickupTime, setPickupTime] = useState<string>('07:00');
 
+  // ─── DATE & TIME PICKER STATE & HELPERS ───
+  const [datePickerTarget, setDatePickerTarget] = useState<'PICKUP' | 'RETURN' | null>(null);
+  const [datePickerMonth, setDatePickerMonth] = useState<Date>(() => new Date(2026, 8, 15));
+  const [timePickerOpen, setTimePickerOpen] = useState<boolean>(false);
+
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  const parseDateDDMMYYYY = (str: string): Date => {
+    if (!str) return new Date();
+    const parts = str.split('-');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        return new Date(year, month, day);
+      }
+    }
+    return new Date();
+  };
+
+  const formatDateDDMMYYYY = (d: Date): string => {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const openDatePicker = (target: 'PICKUP' | 'RETURN') => {
+    const currStr = target === 'PICKUP' ? pickupDate : returnDate;
+    const parsed = parseDateDDMMYYYY(currStr);
+    setDatePickerMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+    setDatePickerTarget(target);
+  };
+
+  const handlePrevMonth = () => {
+    setDatePickerMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setDatePickerMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const handleSelectCalendarDate = (dateObj: Date) => {
+    const formatted = formatDateDDMMYYYY(dateObj);
+    if (datePickerTarget === 'PICKUP') {
+      setPickupDate(formatted);
+    } else if (datePickerTarget === 'RETURN') {
+      setReturnDate(formatted);
+    }
+    setDatePickerTarget(null);
+  };
+
+  const getCalendarCells = () => {
+    const year = datePickerMonth.getFullYear();
+    const month = datePickerMonth.getMonth();
+
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    const selectedStr = datePickerTarget === 'PICKUP' ? pickupDate : returnDate;
+    const selectedDateObj = parseDateDDMMYYYY(selectedStr);
+
+    const isSameDay = (d1: Date, d2: Date) =>
+      d1.getDate() === d2.getDate() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getFullYear() === d2.getFullYear();
+
+    const today = new Date(2026, 8, 14);
+
+    const cells: {
+      key: string;
+      dayNumber: number;
+      isCurrentMonth: boolean;
+      dateObj: Date;
+      isSelected: boolean;
+      isToday: boolean;
+    }[] = [];
+
+    // Prev month trailing days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const dNum = prevMonthDays - i;
+      const dObj = new Date(year, month - 1, dNum);
+      cells.push({
+        key: `prev-${dNum}`,
+        dayNumber: dNum,
+        isCurrentMonth: false,
+        dateObj: dObj,
+        isSelected: isSameDay(dObj, selectedDateObj),
+        isToday: isSameDay(dObj, today),
+      });
+    }
+
+    // Current month days
+    for (let i = 1; i <= totalDaysInMonth; i++) {
+      const dObj = new Date(year, month, i);
+      cells.push({
+        key: `curr-${i}`,
+        dayNumber: i,
+        isCurrentMonth: true,
+        dateObj: dObj,
+        isSelected: isSameDay(dObj, selectedDateObj),
+        isToday: isSameDay(dObj, today),
+      });
+    }
+
+    // Next month leading days to complete grid
+    const totalCells = cells.length <= 35 ? 35 : 42;
+    const remaining = totalCells - cells.length;
+    for (let i = 1; i <= remaining; i++) {
+      const dObj = new Date(year, month + 1, i);
+      cells.push({
+        key: `next-${i}`,
+        dayNumber: i,
+        isCurrentMonth: false,
+        dateObj: dObj,
+        isSelected: isSameDay(dObj, selectedDateObj),
+        isToday: isSameDay(dObj, today),
+      });
+    }
+
+    return cells;
+  };
+
+  const currentHour = (pickupTime.split(':')[0] || '07').padStart(2, '0');
+  const currentMinute = (pickupTime.split(':')[1] || '00').padStart(2, '0');
+
+  const HOURS_LIST = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+  const MINUTES_LIST = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
   // Location Suggestion Dropdowns
   const [showPickupDropdown, setShowPickupDropdown] = useState<boolean>(false);
   const [showDropDropdown, setShowDropDropdown] = useState<boolean>(false);
@@ -1129,60 +1263,54 @@ export default function App() {
                 {/* DATE & TIME GRID */}
                 <View style={styles.dateTimeGrid}>
                   {/* PICK UP DATE */}
-                  <View style={styles.dateTimeCard}>
+                  <TouchableOpacity
+                    style={styles.dateTimeCard}
+                    activeOpacity={0.7}
+                    onPress={() => openDatePicker('PICKUP')}
+                  >
                     <View style={styles.dateTimeCardHeader}>
                       <Text style={styles.dateTimeCardIcon}>📅</Text>
                       <Text style={styles.dateTimeCardLabel}>PICK UP DATE</Text>
                     </View>
                     <View style={styles.dateTimeValueRow}>
-                      <TextInput
-                        style={styles.dateTimeInput}
-                        value={pickupDate}
-                        onChangeText={setPickupDate}
-                        placeholder="DD-MM-YYYY"
-                        placeholderTextColor="#94A3B8"
-                      />
+                      <Text style={styles.dateTimeValueText}>{pickupDate || 'Select Date'}</Text>
                       <Text style={styles.dateTimeEndIcon}>🗓️</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
 
                   {/* RETURN DATE (Shown only for ROUND TRIP) */}
                   {tripType === 'ROUNDTRIP' && (
-                    <View style={styles.dateTimeCard}>
+                    <TouchableOpacity
+                      style={styles.dateTimeCard}
+                      activeOpacity={0.7}
+                      onPress={() => openDatePicker('RETURN')}
+                    >
                       <View style={styles.dateTimeCardHeader}>
                         <Text style={styles.dateTimeCardIcon}>🔄</Text>
                         <Text style={styles.dateTimeCardLabel}>RETURN DATE</Text>
                       </View>
                       <View style={styles.dateTimeValueRow}>
-                        <TextInput
-                          style={styles.dateTimeInput}
-                          value={returnDate}
-                          onChangeText={setReturnDate}
-                          placeholder="DD-MM-YYYY"
-                          placeholderTextColor="#94A3B8"
-                        />
+                        <Text style={styles.dateTimeValueText}>{returnDate || 'Select Date'}</Text>
                         <Text style={styles.dateTimeEndIcon}>🗓️</Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   )}
 
                   {/* PICK UP TIME */}
-                  <View style={styles.dateTimeCard}>
+                  <TouchableOpacity
+                    style={styles.dateTimeCard}
+                    activeOpacity={0.7}
+                    onPress={() => setTimePickerOpen(true)}
+                  >
                     <View style={styles.dateTimeCardHeader}>
                       <Text style={styles.dateTimeCardIcon}>⏰</Text>
                       <Text style={styles.dateTimeCardLabel}>PICK UP TIME</Text>
                     </View>
                     <View style={styles.dateTimeValueRow}>
-                      <TextInput
-                        style={styles.dateTimeInput}
-                        value={pickupTime}
-                        onChangeText={setPickupTime}
-                        placeholder="HH:MM"
-                        placeholderTextColor="#94A3B8"
-                      />
+                      <Text style={styles.dateTimeValueText}>{pickupTime || '07:00'}</Text>
                       <Text style={styles.dateTimeEndIcon}>🕒</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 </View>
 
                 {/* BIG ORANGE CTA BUTTON */}
@@ -1754,35 +1882,52 @@ export default function App() {
 
                 {/* Date & Time Grid */}
                 <View style={styles.dateTimeGrid}>
-                  <View style={styles.dateTimeCard}>
-                    <Text style={styles.dateTimeCardLabel}>PICK UP DATE</Text>
-                    <TextInput
-                      style={styles.dateTimeInput}
-                      value={pickupDate}
-                      onChangeText={setPickupDate}
-                      placeholder="DD-MM-YYYY"
-                    />
-                  </View>
-                  {tripType === 'ROUNDTRIP' && (
-                    <View style={styles.dateTimeCard}>
-                      <Text style={styles.dateTimeCardLabel}>RETURN DATE</Text>
-                      <TextInput
-                        style={styles.dateTimeInput}
-                        value={returnDate}
-                        onChangeText={setReturnDate}
-                        placeholder="DD-MM-YYYY"
-                      />
+                  <TouchableOpacity
+                    style={styles.dateTimeCard}
+                    activeOpacity={0.7}
+                    onPress={() => openDatePicker('PICKUP')}
+                  >
+                    <View style={styles.dateTimeCardHeader}>
+                      <Text style={styles.dateTimeCardIcon}>📅</Text>
+                      <Text style={styles.dateTimeCardLabel}>PICK UP DATE</Text>
                     </View>
+                    <View style={styles.dateTimeValueRow}>
+                      <Text style={styles.dateTimeValueText}>{pickupDate || 'Select Date'}</Text>
+                      <Text style={styles.dateTimeEndIcon}>🗓️</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {tripType === 'ROUNDTRIP' && (
+                    <TouchableOpacity
+                      style={styles.dateTimeCard}
+                      activeOpacity={0.7}
+                      onPress={() => openDatePicker('RETURN')}
+                    >
+                      <View style={styles.dateTimeCardHeader}>
+                        <Text style={styles.dateTimeCardIcon}>🔄</Text>
+                        <Text style={styles.dateTimeCardLabel}>RETURN DATE</Text>
+                      </View>
+                      <View style={styles.dateTimeValueRow}>
+                        <Text style={styles.dateTimeValueText}>{returnDate || 'Select Date'}</Text>
+                        <Text style={styles.dateTimeEndIcon}>🗓️</Text>
+                      </View>
+                    </TouchableOpacity>
                   )}
-                  <View style={styles.dateTimeCard}>
-                    <Text style={styles.dateTimeCardLabel}>PICK UP TIME</Text>
-                    <TextInput
-                      style={styles.dateTimeInput}
-                      value={pickupTime}
-                      onChangeText={setPickupTime}
-                      placeholder="HH:MM"
-                    />
-                  </View>
+
+                  <TouchableOpacity
+                    style={styles.dateTimeCard}
+                    activeOpacity={0.7}
+                    onPress={() => setTimePickerOpen(true)}
+                  >
+                    <View style={styles.dateTimeCardHeader}>
+                      <Text style={styles.dateTimeCardIcon}>⏰</Text>
+                      <Text style={styles.dateTimeCardLabel}>PICK UP TIME</Text>
+                    </View>
+                    <View style={styles.dateTimeValueRow}>
+                      <Text style={styles.dateTimeValueText}>{pickupTime || '07:00'}</Text>
+                      <Text style={styles.dateTimeEndIcon}>🕒</Text>
+                    </View>
+                  </TouchableOpacity>
                 </View>
 
                 {/* Continue to Coupons Button */}
@@ -2589,6 +2734,193 @@ export default function App() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* ─── CALENDAR DATE PICKER MODAL (Matching Screenshot) ─── */}
+      <Modal
+        visible={datePickerTarget !== null}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDatePickerTarget(null)}
+      >
+        <TouchableOpacity
+          style={styles.pickerModalOverlay}
+          activeOpacity={1}
+          onPress={() => setDatePickerTarget(null)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.calendarModalCard}>
+            {/* Header: Month Year and Up/Down navigation arrows */}
+            <View style={styles.calendarHeaderRow}>
+              <View style={styles.calendarTitleRow}>
+                <Text style={styles.calendarMonthTitle}>
+                  {MONTH_NAMES[datePickerMonth.getMonth()]}, {datePickerMonth.getFullYear()}
+                </Text>
+                <Text style={styles.calendarMonthChevron}>▾</Text>
+              </View>
+              <View style={styles.calendarNavArrowsRow}>
+                <TouchableOpacity
+                  style={styles.calendarArrowBtn}
+                  onPress={handlePrevMonth}
+                >
+                  <Text style={styles.calendarArrowIcon}>↑</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.calendarArrowBtn}
+                  onPress={handleNextMonth}
+                >
+                  <Text style={styles.calendarArrowIcon}>↓</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Day of Week Header Row */}
+            <View style={styles.calendarWeekRow}>
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+                <Text key={d} style={styles.calendarWeekDayText}>
+                  {d}
+                </Text>
+              ))}
+            </View>
+
+            {/* Calendar Days Grid */}
+            <View style={styles.calendarDaysGrid}>
+              {getCalendarCells().map((cell) => {
+                return (
+                  <TouchableOpacity
+                    key={cell.key}
+                    style={[
+                      styles.calendarDayCell,
+                      cell.isToday && !cell.isSelected && styles.calendarDayCellToday,
+                      cell.isSelected && styles.calendarDayCellSelected,
+                    ]}
+                    onPress={() => handleSelectCalendarDate(cell.dateObj)}
+                  >
+                    <Text
+                      style={[
+                        styles.calendarDayNumberText,
+                        !cell.isCurrentMonth && styles.calendarDayNumberDimmed,
+                        cell.isToday && !cell.isSelected && styles.calendarDayNumberToday,
+                        cell.isSelected && styles.calendarDayNumberSelected,
+                      ]}
+                    >
+                      {cell.dayNumber}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Bottom Actions: Clear & Today */}
+            <View style={styles.calendarBottomActionsRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (datePickerTarget === 'PICKUP') setPickupDate('15-09-2026');
+                  else if (datePickerTarget === 'RETURN') setReturnDate('17-09-2026');
+                  setDatePickerTarget(null);
+                }}
+              >
+                <Text style={styles.calendarBottomBtnText}>Clear</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  const now = new Date();
+                  const formatted = formatDateDDMMYYYY(now);
+                  if (datePickerTarget === 'PICKUP') setPickupDate(formatted);
+                  else if (datePickerTarget === 'RETURN') setReturnDate(formatted);
+                  setDatePickerTarget(null);
+                }}
+              >
+                <Text style={styles.calendarBottomBtnText}>Today</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ─── TIME PICKER MODAL (Matching Screenshot) ─── */}
+      <Modal
+        visible={timePickerOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setTimePickerOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.pickerModalOverlay}
+          activeOpacity={1}
+          onPress={() => setTimePickerOpen(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.timePickerCard}>
+            {/* Top Selection Badges */}
+            <View style={styles.timeTopSelectionRow}>
+              <View style={styles.timeTopBadge}>
+                <Text style={styles.timeTopBadgeText}>{currentHour}</Text>
+              </View>
+              <View style={styles.timeTopBadge}>
+                <Text style={styles.timeTopBadgeText}>{currentMinute}</Text>
+              </View>
+            </View>
+
+            {/* Two Scrollable Columns */}
+            <View style={styles.timeColumnsContainer}>
+              {/* Hours Column */}
+              <ScrollView
+                style={styles.timeColumnScroll}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled={true}
+              >
+                {HOURS_LIST.map((h) => {
+                  const isSelected = h === currentHour;
+                  return (
+                    <TouchableOpacity
+                      key={h}
+                      style={[styles.timeItemBtn, isSelected && styles.timeItemBtnActive]}
+                      onPress={() => setPickupTime(`${h}:${currentMinute}`)}
+                    >
+                      <Text
+                        style={[styles.timeItemText, isSelected && styles.timeItemTextActive]}
+                      >
+                        {h}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Minutes Column */}
+              <ScrollView
+                style={styles.timeColumnScroll}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled={true}
+              >
+                {MINUTES_LIST.map((m) => {
+                  const isSelected = m === currentMinute;
+                  return (
+                    <TouchableOpacity
+                      key={m}
+                      style={[styles.timeItemBtn, isSelected && styles.timeItemBtnActive]}
+                      onPress={() => setPickupTime(`${currentHour}:${m}`)}
+                    >
+                      <Text
+                        style={[styles.timeItemText, isSelected && styles.timeItemTextActive]}
+                      >
+                        {m}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Confirm / Done Button */}
+            <TouchableOpacity
+              style={styles.timeDoneBtn}
+              onPress={() => setTimePickerOpen(false)}
+            >
+              <Text style={styles.timeDoneBtnText}>SET TIME</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -5073,6 +5405,210 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   emptyBookingsBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
+  // ─── DATE & TIME PICKER MODAL STYLES (Matching Screenshots) ───
+  dateTimeValueText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  pickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  calendarModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 18,
+    width: 310,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  calendarHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    paddingHorizontal: 4,
+  },
+  calendarTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  calendarMonthTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  calendarMonthChevron: {
+    fontSize: 13,
+    color: '#334155',
+  },
+  calendarNavArrowsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  calendarArrowBtn: {
+    padding: 4,
+  },
+  calendarArrowIcon: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  calendarWeekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  calendarWeekDayText: {
+    width: 36,
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  calendarDaysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  calendarDayCell: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 3,
+    borderRadius: 4,
+  },
+  calendarDayCellToday: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 4,
+  },
+  calendarDayCellSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+    borderWidth: 1,
+    borderRadius: 4,
+  },
+  calendarDayNumberText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#0F172A',
+  },
+  calendarDayNumberDimmed: {
+    color: '#94A3B8',
+  },
+  calendarDayNumberToday: {
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  calendarDayNumberSelected: {
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  calendarBottomActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingHorizontal: 4,
+  },
+  calendarBottomBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+
+  // Time Picker Card
+  timePickerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    width: 220,
+    maxHeight: 380,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  timeTopSelectionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  timeTopBadge: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#0056B3',
+  },
+  timeTopBadgeText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  timeColumnsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    height: 220,
+  },
+  timeColumnScroll: {
+    flex: 1,
+  },
+  timeItemBtn: {
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 4,
+  },
+  timeItemBtnActive: {
+    backgroundColor: '#EFF6FF',
+  },
+  timeItemText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  timeItemTextActive: {
+    color: '#007AFF',
+    fontWeight: '900',
+  },
+  timeDoneBtn: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  timeDoneBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '900',
