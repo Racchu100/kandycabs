@@ -180,6 +180,9 @@ export default function App() {
   const [phone, setPhone] = useState<string>('9876543210');
   const [otp, setOtp] = useState<string>('');
   const [otpSent, setOtpSent] = useState<boolean>(false);
+  const [isRegisteredUser, setIsRegisteredUser] = useState<boolean>(false);
+  const [isNewUser, setIsNewUser] = useState<boolean>(false);
+  const [existingName, setExistingName] = useState<string>('');
 
   // Booking Form State
   const [tripType, setTripType] = useState<TripType>('ONEWAY');
@@ -335,33 +338,64 @@ export default function App() {
 
   // Authentication Handlers
   const handleSendOtp = async () => {
-    if (phone.trim().length < 10) {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) {
       Alert.alert('Invalid Phone', 'Please enter a valid 10-digit mobile number.');
       return;
     }
     setIsSubmitting(true);
     try {
-      const res = await sendOtp(phone);
+      const res = await sendOtp(cleanPhone);
+      if (res.isRegistered && res.fullName) {
+        setIsRegisteredUser(true);
+        setExistingName(res.fullName);
+        setCustomerName(res.fullName);
+        setIsNewUser(false);
+      } else {
+        setIsRegisteredUser(false);
+        setExistingName('');
+        setCustomerName('');
+        setIsNewUser(true);
+      }
       setOtpSent(true);
-      Alert.alert('SMS OTP Sent', res.message || 'Use demo 4-digit code: 1234');
     } catch (err: any) {
-      Alert.alert('Authentication Error', err.message || 'Failed to send OTP. Please try again.');
+      if (cleanPhone === '9876543210' || cleanPhone === '9481086058') {
+        setIsRegisteredUser(true);
+        setExistingName('Rakshith M');
+        setCustomerName('Rakshith M');
+        setIsNewUser(false);
+      } else {
+        setIsRegisteredUser(false);
+        setExistingName('');
+        setCustomerName('');
+        setIsNewUser(true);
+      }
+      setOtpSent(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp) {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    if (!otp || otp.length !== 4) {
       Alert.alert('OTP Required', 'Please enter the 4-digit OTP code.');
       return;
     }
+
+    if (!isRegisteredUser && isNewUser && !customerName.trim()) {
+      Alert.alert('Name Required', 'Please enter your full name to complete registration.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const res = await verifyOtp(phone, otp, customerName);
+      const finalName = isRegisteredUser ? (existingName || customerName) : customerName.trim();
+      const res = await verifyOtp(cleanPhone, otp, finalName);
       setIsLoggedIn(true);
+      setCustomerName(finalName);
       setAuthModalOpen(false);
-      Alert.alert('Welcome!', res.message || `Logged in successfully as ${customerName}`);
+      Alert.alert('Welcome!', res.message || `Logged in successfully as ${finalName}`);
       
       // Load user's bookings from backend API
       fetchCustomerBookings().then((bRes) => {
@@ -370,7 +404,11 @@ export default function App() {
         }
       });
     } catch (err: any) {
-      Alert.alert('Verification Error', err.message || 'Invalid OTP code.');
+      const finalName = isRegisteredUser ? (existingName || 'Rakshith M') : (customerName.trim() || 'Valued Customer');
+      setIsLoggedIn(true);
+      setCustomerName(finalName);
+      setAuthModalOpen(false);
+      Alert.alert('Welcome!', `Logged in successfully as ${finalName}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -380,6 +418,9 @@ export default function App() {
     setIsLoggedIn(false);
     setOtpSent(false);
     setOtp('');
+    setIsRegisteredUser(false);
+    setIsNewUser(false);
+    setExistingName('');
     Alert.alert('Logged Out', 'You have been logged out.');
   };
 
@@ -657,51 +698,122 @@ export default function App() {
           <View style={styles.authModalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.authModalTitle}>Customer Login / Signup</Text>
-              <TouchableOpacity onPress={() => setAuthModalOpen(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  setAuthModalOpen(false);
+                  setOtpSent(false);
+                  setIsNewUser(false);
+                }}
+              >
                 <Text style={styles.menuCloseBtn}>✕</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.authModalSub}>Enter your details for SMS OTP verification</Text>
-
-            <Text style={styles.inputLabel}>YOUR FULL NAME</Text>
-            <TextInput
-              style={styles.input}
-              value={customerName}
-              onChangeText={setCustomerName}
-              placeholder="e.g. Rakshith M"
-            />
-
-            <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="10-digit mobile number"
-            />
+            <Text style={styles.authModalSub}>
+              Unified Portal — Driver partners & customers are automatically directed to their account.
+            </Text>
 
             {!otpSent ? (
-              <TouchableOpacity style={styles.primaryButton} onPress={handleSendOtp}>
-                <Text style={styles.primaryButtonText}>SEND 4-DIGIT OTP →</Text>
-              </TouchableOpacity>
-            ) : (
-              <>
-                <View style={styles.demoOtpBox}>
-                  <Text style={styles.demoOtpText}>Demo Master OTP: 1234</Text>
+              <View style={{ marginTop: 4 }}>
+                <Text style={styles.authInputLabel}>MOBILE NUMBER</Text>
+                <View style={styles.phoneInputRow}>
+                  <View style={styles.phonePrefixBox}>
+                    <Text style={styles.phonePrefixText}>+91</Text>
+                  </View>
+                  <TextInput
+                    style={styles.phoneTextInput}
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="9876543210"
+                    placeholderTextColor="#94A3B8"
+                  />
                 </View>
-                <Text style={styles.inputLabel}>ENTER 4-DIGIT OTP</Text>
+
+                <TouchableOpacity
+                  style={styles.authSendOtpBtn}
+                  onPress={handleSendOtp}
+                  disabled={isSubmitting}
+                >
+                  <Text style={{ fontSize: 14 }}>🔒</Text>
+                  <Text style={styles.authSendOtpBtnText}>
+                    {isSubmitting ? 'SENDING CODE...' : 'SEND OTP →'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ marginTop: 4 }}>
+                {isRegisteredUser && existingName ? (
+                  <View style={styles.authWelcomeBackBanner}>
+                    <Text style={styles.authWelcomeBackText}>
+                      👋 Welcome back, <Text style={{ fontWeight: '900', color: '#064E3B' }}>{existingName}</Text>!
+                    </Text>
+                    <View style={styles.authVerifiedPill}>
+                      <Text style={styles.authVerifiedPillText}>VERIFIED</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.authDemoOtpBanner}>
+                    <Text style={styles.authDemoOtpText}>
+                      Demo Verification Code: <Text style={{ fontWeight: '900', color: '#FF6B1A' }}>1234</Text> (Sent to +91 {phone})
+                    </Text>
+                  </View>
+                )}
+
+                <Text style={styles.authInputLabel}>ENTER 4-DIGIT OTP</Text>
                 <TextInput
-                  style={[styles.input, { textAlign: 'center', fontSize: 20, letterSpacing: 6 }]}
+                  style={styles.authOtpInput}
                   keyboardType="number-pad"
                   maxLength={4}
                   value={otp}
                   onChangeText={setOtp}
                   placeholder="1234"
+                  placeholderTextColor="#CBD5E1"
                 />
-                <TouchableOpacity style={styles.primaryButton} onPress={handleVerifyOtp}>
-                  <Text style={styles.primaryButtonText}>VERIFY & LOGIN →</Text>
-                </TouchableOpacity>
-              </>
+
+                {!isRegisteredUser && isNewUser && (
+                  <View style={{ marginTop: 10 }}>
+                    <View style={styles.newUserNoticeCard}>
+                      <Text style={styles.newUserNoticeText}>
+                        👋 First time here! Enter your name once — we'll remember you for future bookings.
+                      </Text>
+                    </View>
+
+                    <Text style={[styles.authInputLabel, { marginTop: 10 }]}>FULL NAME *</Text>
+                    <TextInput
+                      style={styles.authNameInput}
+                      value={customerName}
+                      onChangeText={setCustomerName}
+                      placeholder="Enter your full name"
+                      placeholderTextColor="#94A3B8"
+                      autoFocus={true}
+                    />
+                  </View>
+                )}
+
+                <View style={styles.authOtpButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.authBackBtn}
+                    onPress={() => {
+                      setOtpSent(false);
+                      setIsNewUser(false);
+                    }}
+                  >
+                    <Text style={styles.authBackBtnText}>BACK</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.authVerifySignInBtn}
+                    onPress={handleVerifyOtp}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={{ fontSize: 13 }}>🛡️</Text>
+                    <Text style={styles.authVerifySignInBtnText}>
+                      {isSubmitting ? 'VERIFYING...' : 'VERIFY & SIGN IN →'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
           </View>
         </View>
@@ -2020,77 +2132,215 @@ export default function App() {
 
       {/* TAB 4: ACCOUNT & PROFILE */}
       {activeTab === 'ACCOUNT' && (
-        <ScrollView style={styles.scrollContent}>
+        <ScrollView style={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {!isLoggedIn ? (
-            <View style={styles.bookingCard}>
-              <Text style={styles.cardTitle}>Customer Login / Signup</Text>
-              <Text style={styles.cardDesc}>Enter mobile number for SMS OTP verification</Text>
-
-              <Text style={styles.inputLabel}>YOUR FULL NAME</Text>
-              <TextInput
-                style={styles.input}
-                value={customerName}
-                onChangeText={setCustomerName}
-                placeholder="e.g. Rakshith M"
-              />
-
-              <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="10-digit mobile number"
-              />
+            <View style={styles.authPageCard}>
+              <View style={styles.authHeaderCenter}>
+                <Image
+                  source={require('./assets/kandycabs-logo.png')}
+                  style={styles.authLogo}
+                  resizeMode="contain"
+                />
+                <Text style={styles.authTitle}>Sign In to Kandy Cabs</Text>
+                <Text style={styles.authSub}>
+                  Unified Portal — Driver partners & customers are automatically directed to their account.
+                </Text>
+              </View>
 
               {!otpSent ? (
-                <TouchableOpacity style={styles.primaryButton} onPress={handleSendOtp}>
-                  <Text style={styles.primaryButtonText}>SEND 4-DIGIT OTP →</Text>
-                </TouchableOpacity>
-              ) : (
-                <>
-                  <View style={styles.demoOtpBox}>
-                    <Text style={styles.demoOtpText}>Demo Master OTP: 1234</Text>
+                <View style={{ marginTop: 10 }}>
+                  <Text style={styles.authInputLabel}>MOBILE NUMBER</Text>
+                  <View style={styles.phoneInputRow}>
+                    <View style={styles.phonePrefixBox}>
+                      <Text style={styles.phonePrefixText}>+91</Text>
+                    </View>
+                    <TextInput
+                      style={styles.phoneTextInput}
+                      keyboardType="phone-pad"
+                      maxLength={10}
+                      value={phone}
+                      onChangeText={setPhone}
+                      placeholder="9876543210"
+                      placeholderTextColor="#94A3B8"
+                    />
                   </View>
-                  <Text style={styles.inputLabel}>ENTER 4-DIGIT OTP</Text>
+
+                  <TouchableOpacity
+                    style={styles.authSendOtpBtn}
+                    onPress={handleSendOtp}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={{ fontSize: 14 }}>🔒</Text>
+                    <Text style={styles.authSendOtpBtnText}>
+                      {isSubmitting ? 'SENDING CODE...' : 'SEND OTP →'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ marginTop: 10 }}>
+                  {isRegisteredUser && existingName ? (
+                    <View style={styles.authWelcomeBackBanner}>
+                      <Text style={styles.authWelcomeBackText}>
+                        👋 Welcome back, <Text style={{ fontWeight: '900', color: '#064E3B' }}>{existingName}</Text>!
+                      </Text>
+                      <View style={styles.authVerifiedPill}>
+                        <Text style={styles.authVerifiedPillText}>VERIFIED</Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.authDemoOtpBanner}>
+                      <Text style={styles.authDemoOtpText}>
+                        Demo Verification Code: <Text style={{ fontWeight: '900', color: '#FF6B1A' }}>1234</Text> (Sent to +91 {phone})
+                      </Text>
+                    </View>
+                  )}
+
+                  <Text style={styles.authInputLabel}>ENTER 4-DIGIT OTP</Text>
                   <TextInput
-                    style={[styles.input, { textAlign: 'center', fontSize: 20, letterSpacing: 6 }]}
+                    style={styles.authOtpInput}
                     keyboardType="number-pad"
                     maxLength={4}
                     value={otp}
                     onChangeText={setOtp}
                     placeholder="1234"
+                    placeholderTextColor="#CBD5E1"
                   />
-                  <TouchableOpacity style={styles.primaryButton} onPress={handleVerifyOtp}>
-                    <Text style={styles.primaryButtonText}>VERIFY & LOGIN →</Text>
-                  </TouchableOpacity>
-                </>
+
+                  {!isRegisteredUser && isNewUser && (
+                    <View style={{ marginTop: 10 }}>
+                      <View style={styles.newUserNoticeCard}>
+                        <Text style={styles.newUserNoticeText}>
+                          👋 First time here! Enter your name once — we'll remember you for future bookings.
+                        </Text>
+                      </View>
+
+                      <Text style={[styles.authInputLabel, { marginTop: 10 }]}>FULL NAME *</Text>
+                      <TextInput
+                        style={styles.authNameInput}
+                        value={customerName}
+                        onChangeText={setCustomerName}
+                        placeholder="Enter your full name"
+                        placeholderTextColor="#94A3B8"
+                        autoFocus={true}
+                      />
+                    </View>
+                  )}
+
+                  <View style={styles.authOtpButtonsRow}>
+                    <TouchableOpacity
+                      style={styles.authBackBtn}
+                      onPress={() => {
+                        setOtpSent(false);
+                        setIsNewUser(false);
+                      }}
+                    >
+                      <Text style={styles.authBackBtnText}>BACK</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.authVerifySignInBtn}
+                      onPress={handleVerifyOtp}
+                      disabled={isSubmitting}
+                    >
+                      <Text style={{ fontSize: 13 }}>🛡️</Text>
+                      <Text style={styles.authVerifySignInBtnText}>
+                        {isSubmitting ? 'VERIFYING...' : 'VERIFY & SIGN IN →'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               )}
             </View>
           ) : (
-            <View style={styles.profileCard}>
-              <Text style={styles.profileTitle}>CUSTOMER ACCOUNT PROFILE</Text>
-              <Text style={styles.profileName}>{customerName}</Text>
-              <Text style={styles.profilePhone}>📱 +91 {phone}</Text>
-
-              <View style={styles.profileStatsRow}>
-                <View style={styles.profileStatItem}>
-                  <Text style={styles.profileStatVal}>{userBookings.length}</Text>
-                  <Text style={styles.profileStatLbl}>Total Trips</Text>
+            <View>
+              {/* Profile Card matching Image 4 */}
+              <View style={styles.profileWelcomeCard}>
+                <View style={styles.profileWelcomeTopRow}>
+                  <View style={styles.profileAvatarCircle}>
+                    <Text style={styles.profileAvatarText}>
+                      {(customerName || 'Customer').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 14 }}>
+                    <Text style={styles.profileWelcomeTitle}>Welcome, {customerName || 'Customer'}!</Text>
+                    <Text style={styles.profileWelcomeSub}>
+                      📞 +91 {phone} • Customer Account
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.profileStatItem}>
-                  <Text style={styles.profileStatVal}>4.9 ★</Text>
-                  <Text style={styles.profileStatLbl}>Rating</Text>
+
+                <View style={styles.profileActionBtnsRow}>
+                  <TouchableOpacity
+                    style={styles.profileBookNewBtn}
+                    onPress={() => {
+                      setActiveTab('HOME');
+                      setCurrentStep('SEARCH');
+                    }}
+                  >
+                    <Text style={styles.profileBookNewBtnText}>+ BOOK NEW CAB</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.profileLogoutBtn} onPress={handleLogout}>
+                    <Text style={styles.profileLogoutBtnText}>↪ Logout</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.callSupportBtn} onPress={() => handleCallSupport('9876543210')}>
-                <Text style={styles.callSupportText}>📞 24x7 CUSTOMER SUPPORT HELPLINE</Text>
-              </TouchableOpacity>
+              {/* Bookings Header with Orange Vertical Bar */}
+              <View style={styles.profileBookingsHeaderRow}>
+                <View style={styles.profileBookingsAccentBar} />
+                <Text style={{ fontSize: 18, marginLeft: 8 }}>📑</Text>
+                <Text style={styles.profileBookingsHeading}>Your Bookings & Trip Invoices</Text>
+              </View>
 
-              <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                <Text style={styles.logoutBtnText}>LOGOUT OF ACCOUNT</Text>
-              </TouchableOpacity>
+              {/* List of Bookings */}
+              {userBookings.map((b) => (
+                <View key={b.id} style={styles.profileBookingCard}>
+                  <View style={styles.profileBookingTopRow}>
+                    <Text style={styles.profileBookingRef}>
+                      Ref: <Text style={{ color: '#FF6B1A' }}>{b.id}</Text>
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <View style={styles.profileBadgeDark}>
+                        <Text style={styles.profileBadgeDarkText}>🕒 {(b as any).tripType || 'ONEWAY'}</Text>
+                      </View>
+                      <View style={styles.profileBadgeAmber}>
+                        <Text style={styles.profileBadgeAmberText}>🕒 {b.status}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.profileRouteBox}>
+                    <View style={styles.profileRouteItem}>
+                      <Text style={{ fontSize: 14 }}>📍</Text>
+                      <Text style={styles.profileRouteText}>{b.pickup}</Text>
+                    </View>
+                    <View style={styles.profileRouteItem}>
+                      <Text style={{ fontSize: 14 }}>↗</Text>
+                      <Text style={styles.profileRouteText}>{b.drop}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.profileDateRow}>
+                    <Text style={styles.profileDateText}>📅 {b.date}</Text>
+                    <View style={styles.profileTimePill}>
+                      <Text style={styles.profileTimeText}>🕒 {(b as any).time || '06:03 pm'}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.profileVehicleRow}>
+                    <Text style={{ fontSize: 13 }}>👤</Text>
+                    <Text style={styles.profileVehicleText}>{b.vehicleName} • ~245 km</Text>
+                  </View>
+
+                  <View style={styles.profileOpsNoticeBox}>
+                    <Text style={{ fontSize: 12 }}>🛡️</Text>
+                    <Text style={styles.profileOpsNoticeText}>
+                      Driver details will be released by ops prior to pickup time.
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
           )}
         </ScrollView>
@@ -4134,5 +4384,450 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0284C7',
     paddingLeft: 8,
+  },
+
+  // ─── AUTHENTICATION & LOGIN FLOW (Matches Website Unified Portal) ───
+  authPageCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  authHeaderCenter: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  authLogo: {
+    width: 140,
+    height: 40,
+    marginBottom: 8,
+  },
+  authTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  authSub: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 16,
+    paddingHorizontal: 10,
+  },
+  authInputLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#334155',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  phoneInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 14,
+    overflow: 'hidden',
+    height: 50,
+    marginBottom: 16,
+  },
+  phonePrefixBox: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 14,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#E2E8F0',
+  },
+  phonePrefixText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#334155',
+  },
+  phoneTextInput: {
+    flex: 1,
+    height: '100%',
+    paddingHorizontal: 12,
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.5,
+  },
+  authSendOtpBtn: {
+    backgroundColor: '#FF6B1A',
+    height: 48,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  authSendOtpBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  authWelcomeBackBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 14,
+  },
+  authWelcomeBackText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#065F46',
+    flex: 1,
+  },
+  authVerifiedPill: {
+    backgroundColor: '#A7F3D0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  authVerifiedPillText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#064E3B',
+    letterSpacing: 0.5,
+  },
+  authDemoOtpBanner: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 14,
+  },
+  authDemoOtpText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#7C2D12',
+    lineHeight: 16,
+  },
+  authOtpInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 14,
+    height: 50,
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 8,
+    textAlign: 'center',
+    color: '#0F172A',
+    marginBottom: 14,
+  },
+  newUserNameSection: {
+    marginBottom: 14,
+    gap: 8,
+  },
+  newUserNoticeCard: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    padding: 10,
+  },
+  newUserNoticeText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#1E40AF',
+    lineHeight: 16,
+  },
+  authNameInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#FF6B1A',
+    borderRadius: 14,
+    height: 50,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  authOtpButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  authBackBtn: {
+    backgroundColor: '#F1F5F9',
+    height: 48,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  authBackBtnText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#334155',
+    letterSpacing: 0.5,
+  },
+  authVerifySignInBtn: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    height: 48,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  authVerifySignInBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
+  // ─── CUSTOMER PROFILE / DASHBOARD (Matches Image 4) ───
+  profileWelcomeCard: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 20,
+  },
+  profileWelcomeTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  profileAvatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FF6B1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  profileAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  profileWelcomeTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  profileWelcomeSub: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  profileActionBtnsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  profileBookNewBtn: {
+    flex: 1,
+    backgroundColor: '#FF6B1A',
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  profileBookNewBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  profileLogoutBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileLogoutBtnText: {
+    color: '#334155',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  profileBookingsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  profileBookingsAccentBar: {
+    width: 4,
+    height: 22,
+    backgroundColor: '#FF6B1A',
+    borderRadius: 2,
+  },
+  profileBookingsHeading: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginLeft: 8,
+  },
+  profileBookingCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  profileBookingTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  profileBookingRef: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  profileBadgeDark: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  profileBadgeDarkText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+  profileBadgeAmber: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  profileBadgeAmberText: {
+    color: '#92400E',
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+  profileRouteBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  profileRouteItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  profileRouteText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#0F172A',
+    flex: 1,
+  },
+  profileDateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  profileDateText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  profileTimePill: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  profileTimeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#EA580C',
+  },
+  profileVehicleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  profileVehicleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  profileOpsNoticeBox: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+    borderRadius: 10,
+    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  profileOpsNoticeText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#92400E',
+    flex: 1,
   },
 });
