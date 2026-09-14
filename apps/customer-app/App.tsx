@@ -187,6 +187,8 @@ export default function App() {
   const [localPackage, setLocalPackage] = useState<string>('8hr / 80km');
   const [pickupInput, setPickupInput] = useState<string>('Bangalore, KA');
   const [dropInput, setDropInput] = useState<string>('Coorg (Madikeri), KA');
+  const [stops, setStops] = useState<string[]>([]);
+  const [activeStopIndex, setActiveStopIndex] = useState<number | null>(null);
   const [pickupDate, setPickupDate] = useState<string>('15-09-2026');
   const [returnDate, setReturnDate] = useState<string>('17-09-2026');
   const [pickupTime, setPickupTime] = useState<string>('07:00');
@@ -202,6 +204,29 @@ export default function App() {
   // Customer Contact Info for Booking
   const [customerEmail, setCustomerEmail] = useState<string>('customer@kandycabs.com');
   const [specialNotes, setSpecialNotes] = useState<string>('');
+
+  const handleAddStop = () => {
+    if (stops.length >= 5) {
+      Alert.alert('Stop Limit', 'You can add up to 5 intermediate destinations.');
+      return;
+    }
+    setStops((prev) => [...prev, '']);
+  };
+
+  const handleRemoveStop = (index: number) => {
+    setStops((prev) => prev.filter((_, i) => i !== index));
+    if (activeStopIndex === index) {
+      setActiveStopIndex(null);
+    }
+  };
+
+  const handleUpdateStop = (index: number, val: string) => {
+    setStops((prev) => {
+      const copy = [...prev];
+      copy[index] = val;
+      return copy;
+    });
+  };
 
   const handleSwapLocations = () => {
     const temp = pickupInput;
@@ -708,6 +733,68 @@ export default function App() {
                   </View>
                 )}
 
+                {/* DYNAMIC INTERMEDIATE STOPS (EXCLUSIVELY FOR ROUND TRIP) */}
+                {tripType === 'ROUNDTRIP' &&
+                  stops.map((stopVal, sIdx) => (
+                    <View key={sIdx} style={{ marginBottom: 10 }}>
+                      <View style={styles.inputLabelRow}>
+                        <Text style={styles.inputLabelIcon}>📍</Text>
+                        <Text style={styles.inputLabelText}>{`INTERMEDIATE STOP #${sIdx + 1}`}</Text>
+                      </View>
+                      <View style={styles.inputSearchWrapper}>
+                        <Text style={styles.inputIcon}>🔍</Text>
+                        <TextInput
+                          style={styles.inputWithIcon}
+                          value={stopVal}
+                          onChangeText={(val) => {
+                            handleUpdateStop(sIdx, val);
+                            setActiveStopIndex(sIdx);
+                          }}
+                          onFocus={() => setActiveStopIndex(sIdx)}
+                          placeholder={`Enter Waypoint / Stop #${sIdx + 1}...`}
+                          placeholderTextColor="#94A3B8"
+                        />
+                        <TouchableOpacity
+                          onPress={() => handleRemoveStop(sIdx)}
+                          style={styles.removeStopCircleBtn}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Text style={styles.removeStopCircleIcon}>−</Text>
+                        </TouchableOpacity>
+                        {stops.length < 5 && (
+                          <TouchableOpacity
+                            onPress={handleAddStop}
+                            style={styles.addStopCircleBtn}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Text style={styles.addStopCircleIcon}>+</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      {activeStopIndex === sIdx && (
+                        <View style={styles.suggestionsBox}>
+                          {POPULAR_LOCATIONS.filter(
+                            (loc) =>
+                              loc.name.toLowerCase().includes(stopVal.toLowerCase()) ||
+                              loc.city.toLowerCase().includes(stopVal.toLowerCase())
+                          ).map((loc, idx) => (
+                            <TouchableOpacity
+                              key={idx}
+                              style={styles.suggestionItem}
+                              onPress={() => {
+                                handleUpdateStop(sIdx, loc.name);
+                                setActiveStopIndex(null);
+                              }}
+                            >
+                              <Text style={styles.suggestionName}>📍 {loc.name}</Text>
+                              <Text style={styles.suggestionAddr}>{loc.address}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  ))}
+
                 {/* DESTINATION LOCATION (Hidden for LOCAL) */}
                 {tripType !== 'LOCAL' && (
                   <>
@@ -733,6 +820,16 @@ export default function App() {
                         }
                         placeholderTextColor="#94A3B8"
                       />
+                      {tripType === 'ROUNDTRIP' && (
+                        <TouchableOpacity
+                          onPress={handleAddStop}
+                          style={styles.addStopCircleBtn}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.addStopCircleIcon}>+</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                     {showDropDropdown && (
                       <View style={styles.suggestionsBox}>
@@ -1076,6 +1173,11 @@ export default function App() {
                 <Text style={styles.cardSectionTitle}>SELECTED ROUTE & CAB</Text>
                 <View style={styles.routeBox}>
                   <Text style={styles.routeBoxText}>📍 Pickup: {pickupInput}</Text>
+                  {stops.filter(Boolean).map((st, idx) => (
+                    <Text key={idx} style={[styles.routeBoxText, { color: '#64748B', fontSize: 12 }]}>
+                      🛑 Stop #{idx + 1}: {st}
+                    </Text>
+                  ))}
                   <Text style={styles.routeBoxText}>🏁 Destination: {dropInput}</Text>
                   <Text style={styles.routeBoxSub}>Date & Time: {pickupDate}, {pickupTime}</Text>
                   <Text style={styles.routeBoxSub}>Cab Selected: {selectedVehicle.name}</Text>
@@ -1909,6 +2011,42 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#64748B',
     marginTop: 1,
+  },
+
+  // ─── MULTI-DESTINATION STOP BUTTONS ───
+  addStopCircleBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  addStopCircleIcon: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#64748B',
+    marginTop: -2,
+  },
+  removeStopCircleBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  removeStopCircleIcon: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#EF4444',
+    marginTop: -2,
   },
 
   // ─── AIRPORT DIRECTION TOGGLE ───
