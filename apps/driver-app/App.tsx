@@ -355,176 +355,224 @@ export default function App() {
   // ─── 3. LOGGED-IN DRIVER DASHBOARD ───
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={KANDY_THEME.colors.ink} />
+      <StatusBar barStyle="light-content" backgroundColor="#0B132B" />
 
       {/* Driver Header with Logout Button */}
       <View style={styles.header}>
         <View style={styles.logoBadge}>
           <Text style={styles.logoText}>KC</Text>
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={styles.headerTitle}>KANDY CABS DRIVER</Text>
           <Text style={styles.headerSubtitle}>
-            {driverUser?.fullName || 'Ramesh Kumar'} • {driverUser?.vehicleName || 'Swift Dzire (Sedan)'}
+            {driverUser?.fullName || 'Ranju'} - {driverUser?.vehicleName || 'Swift Dzire (Sedan)'}
           </Text>
         </View>
         <View style={styles.headerRightControls}>
           <View style={styles.approvedBadge}>
-            <Text style={styles.approvedText}>{driverUser?.status || 'APPROVED'}</Text>
+            <Text style={styles.approvedCheck}>✔</Text>
+            <Text style={styles.approvedText}>APPROVED</Text>
           </View>
           <TouchableOpacity style={styles.logoutHeaderBtn} onPress={handleLogout}>
+            <Text style={styles.logoutHeaderBtnIcon}>[→</Text>
             <Text style={styles.logoutHeaderBtnText}>LOG OUT</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContent}>
-        {/* Availability Switch */}
-        <View style={styles.onlineStatusCard}>
-          <View>
-            <Text style={styles.onlineStatusTitle}>DUTY STATUS</Text>
-            <Text style={[styles.onlineStatusSub, { color: isDriverOnline ? '#059669' : '#DC2626' }]}>
-              {isDriverOnline ? '🟢 ONLINE (Ready for Bookings)' : '🔴 OFFLINE'}
-            </Text>
+      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
+        {/* GPS Location Permission Live Card */}
+        <View style={styles.gpsPermCard}>
+          <View style={styles.gpsPermIconBox}>
+            <Text style={styles.gpsPermIcon}>📍</Text>
+          </View>
+          <View style={{ flex: 1, marginHorizontal: 10 }}>
+            <Text style={styles.gpsPermTitle}>GPS Location Permission Live (§6a):</Text>
+            <Text style={styles.gpsPermSub}>Your location is being tracked for better service.</Text>
           </View>
           <Switch
-            value={isDriverOnline}
-            onValueChange={setIsDriverOnline}
-            trackColor={{ false: '#CBD5E1', true: '#A7F3D0' }}
-            thumbColor={isDriverOnline ? '#059669' : '#64748B'}
+            value={locationPermissionGranted}
+            onValueChange={setLocationPermissionGranted}
+            trackColor={{ false: '#CBD5E1', true: '#10B981' }}
+            thumbColor="#FFFFFF"
           />
-        </View>
-
-        {/* Permission Hardware Controls */}
-        <View style={styles.permissionBox}>
-          <Text style={styles.permissionTitle}>GPS & CAMERA GATED HARDWARE CHECK (§6)</Text>
-
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Camera Permission Live:</Text>
-            <Switch value={cameraPermissionGranted} onValueChange={setCameraPermissionGranted} />
-          </View>
-
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>GPS Location Permission Live (§6a):</Text>
-            <Switch value={locationPermissionGranted} onValueChange={setLocationPermissionGranted} />
-          </View>
-
-          {!locationPermissionGranted && (
-            <View style={styles.alertWarning}>
-              <Text style={styles.alertWarningText}>
-                ⚠️ GPS Location Disabled! Live tracking lost alert triggered for admin view.
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Live GPS Telemetry Indicator */}
         <View style={styles.telemetryCard}>
-          <View style={styles.telemetryRow}>
+          <View style={styles.telemetryLeft}>
+            <Text style={styles.speedometerIcon}>⏲️</Text>
             <View>
               <Text style={styles.telemetryLabel}>GPS TRACKING LOOP (§6a)</Text>
-              <Text style={styles.telemetrySpeed}>{speedKmh} km/h</Text>
+              <Text style={styles.telemetrySpeed}>{speedKmh} <Text style={styles.speedUnit}>km/h</Text></Text>
             </View>
-            <View style={styles.pingBadge}>
-              <Text style={styles.pingText}>
-                {locationPermissionGranted ? '📡 PINGING (5s)' : '❌ TRACKING LOST'}
-              </Text>
-            </View>
+          </View>
+          <View style={styles.pingBadge}>
+            <Text style={styles.pingIcon}>📡</Text>
+            <Text style={styles.pingText}>
+              {locationPermissionGranted ? 'PINGING (5s)' : 'LOST'}
+            </Text>
+            <Text style={styles.pingChevron}>›</Text>
           </View>
         </View>
 
         {/* Active Trip Execution Card */}
         <View style={styles.tripCard}>
           <View style={styles.tripHeader}>
-            <Text style={styles.tripRef}>Trip Ref: KC73744</Text>
-            <Text style={styles.tripType}>ONEWAY OUTSTATION</Text>
+            <View style={styles.tripRefRow}>
+              <Text style={styles.carIcon}>🚖</Text>
+              <Text style={styles.tripRefLabel}>Trip Ref: </Text>
+              <Text style={styles.tripRefVal}>KC73744</Text>
+            </View>
+            <View style={styles.tripTypeBadge}>
+              <Text style={styles.tripTypeText}>ONEWAY OUTSTATION</Text>
+            </View>
           </View>
 
-          <Text style={styles.routeText}>📍 Pickup: Bangalore, KA</Text>
-          <Text style={styles.routeText}>🏁 Drop: Coorg (Madikeri), KA</Text>
+          {/* Route Info */}
+          <View style={styles.routeContainer}>
+            <View style={styles.routeTextCol}>
+              <View style={styles.routeRow}>
+                <Text style={styles.pickupPin}>📍</Text>
+                <Text style={styles.routeLabel}>Pickup: </Text>
+                <Text style={styles.routeCity}>Bangalore, KA</Text>
+              </View>
+              <View style={styles.routeDottedLine} />
+              <View style={styles.routeRow}>
+                <Text style={styles.dropPin}>🏁</Text>
+                <Text style={styles.routeLabel}>Drop: </Text>
+                <Text style={styles.routeCity}>Coorg (Madikeri), KA</Text>
+              </View>
+            </View>
+            <View style={styles.mountainGraphic}>
+              <Text style={styles.mountainIcon}>⛰️ 🌲</Text>
+            </View>
+          </View>
 
           {/* STEP 1: Pickup OTP Verification */}
-          <View style={styles.stepBox}>
-            <Text style={styles.stepTitle}>STEP 1: PICKUP ARRIVAL & OTP</Text>
+          <View style={styles.stepBox1}>
+            <View style={styles.stepTitleRow}>
+              <View style={styles.stepCircle1}>
+                <Text style={styles.stepNum}>1</Text>
+              </View>
+              <Text style={styles.stepTitle1}>STEP 1: PICKUP ARRIVAL & OTP</Text>
+            </View>
             {!otpVerified ? (
               <>
                 <Text style={styles.stepDesc}>Ask customer for 4-digit pickup OTP:</Text>
-                <TextInput
-                  style={styles.otpInput}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  value={pickupOtpInput}
-                  onChangeText={setPickupOtpInput}
-                  placeholder="Enter OTP (e.g. 1234)"
-                />
-                <TouchableOpacity style={styles.actionButton} onPress={handleVerifyPickupOtp}>
+                <View style={styles.otpInputBox}>
+                  <Text style={styles.shieldIcon}>🛡️</Text>
+                  <TextInput
+                    style={styles.otpInput}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    value={pickupOtpInput}
+                    onChangeText={setPickupOtpInput}
+                    placeholder="Enter OTP (e.g. 1234)"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+                <TouchableOpacity style={styles.actionButton1} onPress={handleVerifyPickupOtp}>
                   <Text style={styles.actionButtonText}>VERIFY PICKUP OTP →</Text>
                 </TouchableOpacity>
               </>
             ) : (
-              <Text style={styles.successText}>✓ Pickup OTP Verified (DRIVER_ARRIVED logged)</Text>
+              <View style={styles.stepCompletedBox}>
+                <Text style={styles.successText1}>✓ Pickup OTP Verified (DRIVER_ARRIVED logged)</Text>
+              </View>
             )}
           </View>
 
           {/* STEP 2: GPS+Camera Gated Start Odometer */}
-          <View style={styles.stepBox}>
-            <Text style={styles.stepTitle}>STEP 2: START ODOMETER & CLEANLINESS PHOTO</Text>
+          <View style={styles.stepBox2}>
+            <View style={styles.stepTitleRow}>
+              <View style={styles.stepCircle2}>
+                <Text style={styles.stepNum}>2</Text>
+              </View>
+              <Text style={styles.stepTitle2}>STEP 2: START ODOMETER & CLEANLINESS PHOTO</Text>
+            </View>
             {!startOdometerCaptured ? (
               <TouchableOpacity
-                style={[styles.actionButton, !canCapturePhoto && styles.disabledButton]}
+                style={[styles.actionButton2, !canCapturePhoto && styles.disabledButton]}
                 onPress={handleCaptureStartOdometer}
               >
-                <Text style={styles.actionButtonText}>📷 CAPTURE STAMPED START ODOMETER</Text>
+                <Text style={styles.camIconGreen}>📷</Text>
+                <Text style={styles.actionButtonText2}>CAPTURE STAMPED START ODOMETER</Text>
+                <Text style={styles.chevronGreen}>›</Text>
               </TouchableOpacity>
             ) : (
-              <Text style={styles.successText}>✓ Start Odometer Stamped with GPS & Timestamp</Text>
+              <View style={styles.stepCompletedBox}>
+                <Text style={styles.successText2}>✓ Start Odometer Stamped with GPS & Timestamp</Text>
+              </View>
             )}
           </View>
 
           {/* STEP 3: Toll Fare Gating */}
-          <View style={styles.stepBox}>
-            <Text style={styles.stepTitle}>STEP 3: TOLL FARE ENTRY (BLOCKS TRIP END)</Text>
+          <View style={styles.stepBox3}>
+            <View style={styles.stepTitleRow}>
+              <View style={styles.stepCircle3}>
+                <Text style={styles.stepNum}>3</Text>
+              </View>
+              <Text style={styles.stepTitle3}>STEP 3: TOLL FARE ENTRY (BLOCKS TRIP END)</Text>
+            </View>
             {!tollConfirmed ? (
               <>
                 <Text style={styles.stepDesc}>Enter total toll amount paid (₹0 if none):</Text>
-                <TextInput
-                  style={styles.otpInput}
-                  keyboardType="number-pad"
-                  value={tollAmountInput}
-                  onChangeText={setTollAmountInput}
-                  placeholder="0"
-                />
+                <View style={styles.tollInputBox}>
+                  <Text style={styles.rupeePrefix}>₹</Text>
+                  <TextInput
+                    style={styles.tollInput}
+                    keyboardType="number-pad"
+                    value={tollAmountInput}
+                    onChangeText={setTollAmountInput}
+                    placeholder="0"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={styles.actionButton3}
                   onPress={() => {
                     setTollConfirmed(true);
                     Alert.alert('Toll Confirmed', `Toll fare ₹${tollAmountInput} recorded for billing close-out.`);
                   }}
                 >
-                  <Text style={styles.actionButtonText}>CONFIRM TOLL FARE (₹{tollAmountInput}) →</Text>
+                  <Text style={styles.actionButtonText}>CONFIRM TOLL FARE (₹{tollAmountInput || '0'}) →</Text>
                 </TouchableOpacity>
               </>
             ) : (
-              <Text style={styles.successText}>✓ Toll Fare Confirmed: ₹{tollAmountInput}</Text>
+              <View style={styles.stepCompletedBox}>
+                <Text style={styles.successText3}>✓ Toll Fare Confirmed: ₹{tollAmountInput}</Text>
+              </View>
             )}
           </View>
 
           {/* STEP 4: End Odometer & Trip Completion */}
-          <View style={styles.stepBox}>
-            <Text style={styles.stepTitle}>STEP 4: END ODOMETER & COMPLETE TRIP</Text>
+          <View style={styles.stepBox4}>
+            <View style={styles.stepTitleRow}>
+              <View style={styles.stepCircle4}>
+                <Text style={styles.stepNum}>4</Text>
+              </View>
+              <Text style={styles.stepTitle4}>STEP 4: END ODOMETER & COMPLETE TRIP</Text>
+            </View>
             {tripState !== 'COMPLETED' ? (
               <TouchableOpacity
-                style={[styles.completeButton, (!canCapturePhoto || !tollConfirmed) && styles.disabledButton]}
+                style={[styles.actionButton4, (!canCapturePhoto || !tollConfirmed) && styles.disabledButton]}
                 onPress={handleCaptureEndOdometer}
               >
-                <Text style={styles.actionButtonText}>🏁 CAPTURE END ODOMETER & COMPLETE TRIP</Text>
+                <Text style={styles.camIconWhite}>📷</Text>
+                <Text style={styles.actionButtonText4}>CAPTURE END ODOMETER & COMPLETE TRIP</Text>
               </TouchableOpacity>
             ) : (
-              <Text style={[styles.successText, { color: KANDY_THEME.colors.primary }]}>
-                🎉 TRIP COMPLETED & BILLED
-              </Text>
+              <View style={styles.stepCompletedBox}>
+                <Text style={styles.successText4}>🎉 TRIP COMPLETED & BILLED</Text>
+              </View>
             )}
           </View>
+        </View>
+
+        {/* Footer Accent */}
+        <View style={styles.bottomFooter}>
+          <Text style={styles.driveSafeText}>—— Drive Safe ——</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -709,244 +757,555 @@ const styles = StyleSheet.create({
   // ─── LOGGED-IN DASHBOARD STYLES ───
   container: {
     flex: 1,
-    backgroundColor: KANDY_THEME.colors.bg,
+    backgroundColor: '#F8FAFC',
   },
   header: {
-    backgroundColor: KANDY_THEME.colors.ink,
+    backgroundColor: '#0B132B',
     paddingHorizontal: 16,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
   },
   logoBadge: {
-    width: 34,
-    height: 34,
-    backgroundColor: KANDY_THEME.colors.primary,
-    borderRadius: 6,
+    width: 38,
+    height: 38,
+    backgroundColor: '#FF6B1A',
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoText: {
-    color: '#FFF',
+    color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 16,
+    fontSize: 18,
   },
   headerTitle: {
-    color: '#FFF',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '900',
+    letterSpacing: 0.3,
   },
   headerSubtitle: {
-    color: '#9CA3AF',
+    color: '#94A3B8',
     fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
   },
   headerRightControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   approvedBadge: {
-    backgroundColor: '#059669',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  approvedText: {
-    color: '#FFF',
-    fontWeight: '800',
-    fontSize: 9,
-  },
-  logoutHeaderBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-    borderWidth: 1,
-    borderColor: '#EF4444',
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 14,
+    gap: 3,
   },
-  logoutHeaderBtnText: {
-    color: '#F87171',
-    fontWeight: '800',
+  approvedCheck: {
+    color: '#FFFFFF',
     fontSize: 9,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  onlineStatusCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  onlineStatusTitle: {
-    fontSize: 10,
     fontWeight: '900',
-    color: '#64748B',
+  },
+  approvedText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 9,
     letterSpacing: 0.5,
   },
-  onlineStatusSub: {
-    fontSize: 13,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  permissionBox: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    padding: 14,
+  logoutHeaderBtn: {
     borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
-    marginBottom: 14,
-  },
-  permissionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: KANDY_THEME.colors.primary,
-    marginBottom: 10,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 4,
-  },
-  switchLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: KANDY_THEME.colors.ink,
-  },
-  alertWarning: {
-    backgroundColor: '#FEF2F2',
-    padding: 8,
+    borderColor: '#EF4444',
+    backgroundColor: 'transparent',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 6,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  alertWarningText: {
-    color: '#DC2626',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  telemetryCard: {
-    backgroundColor: KANDY_THEME.colors.ink,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 14,
-  },
-  telemetryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 4,
   },
-  telemetryLabel: {
-    color: '#9CA3AF',
+  logoutHeaderBtnIcon: {
+    color: '#EF4444',
     fontSize: 10,
-    fontWeight: '800',
-  },
-  telemetrySpeed: {
-    color: KANDY_THEME.colors.primary,
-    fontSize: 22,
     fontWeight: '900',
   },
+  logoutHeaderBtnText: {
+    color: '#EF4444',
+    fontWeight: '800',
+    fontSize: 9,
+    letterSpacing: 0.5,
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollInner: {
+    padding: 14,
+    gap: 12,
+    paddingBottom: 24,
+  },
+  gpsPermCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  gpsPermIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#0D9488',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gpsPermIcon: {
+    fontSize: 14,
+  },
+  gpsPermTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  gpsPermSub: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  telemetryCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  telemetryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  speedometerIcon: {
+    fontSize: 24,
+  },
+  telemetryLabel: {
+    color: '#94A3B8',
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  telemetrySpeed: {
+    color: '#F59E0B',
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  speedUnit: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F59E0B',
+  },
   pingBadge: {
-    backgroundColor: '#064E3B',
+    backgroundColor: '#059669',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  pingIcon: {
+    fontSize: 11,
   },
   pingText: {
-    color: '#34D399',
+    color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 10,
+    letterSpacing: 0.5,
+  },
+  pingChevron: {
+    color: '#A7F3D0',
+    fontWeight: '900',
+    fontSize: 14,
   },
   tripCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
   tripHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  tripRef: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: KANDY_THEME.colors.primary,
+  tripRefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  tripType: {
-    fontSize: 10,
+  carIcon: {
+    fontSize: 18,
+    marginRight: 6,
+  },
+  tripRefLabel: {
+    fontSize: 14,
     fontWeight: '800',
-    color: KANDY_THEME.colors.ink,
+    color: '#FF6B1A',
   },
-  routeText: {
-    fontSize: 13,
+  tripRefVal: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#FF6B1A',
+  },
+  tripTypeBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  tripTypeText: {
+    color: '#92400E',
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  routeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    marginBottom: 14,
+  },
+  routeTextCol: {
+    flex: 1,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pickupPin: {
+    fontSize: 12,
+    marginRight: 6,
+  },
+  dropPin: {
+    fontSize: 12,
+    marginRight: 6,
+  },
+  routeLabel: {
+    fontSize: 12,
     fontWeight: '700',
-    color: KANDY_THEME.colors.ink,
+    color: '#64748B',
+  },
+  routeCity: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  routeDottedLine: {
+    width: 2,
+    height: 10,
+    marginLeft: 5,
+    borderLeftWidth: 1.5,
+    borderLeftColor: '#CBD5E1',
+    borderStyle: 'dotted',
     marginVertical: 2,
   },
-  stepBox: {
-    backgroundColor: KANDY_THEME.colors.bg,
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
+  mountainGraphic: {
+    opacity: 0.6,
+    paddingRight: 4,
   },
-  stepTitle: {
+  mountainIcon: {
+    fontSize: 24,
+  },
+  stepBox1: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  stepBox2: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  stepBox3: {
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  stepBox4: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    borderRadius: 16,
+    padding: 14,
+  },
+  stepTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stepCircle1: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#2563EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  stepCircle2: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  stepCircle3: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#7C3AED',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  stepCircle4: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#EA580C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  stepNum: {
+    color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '800',
-    color: KANDY_THEME.colors.ink,
-    marginBottom: 6,
+    fontWeight: '900',
+  },
+  stepTitle1: {
+    color: '#1E3A8A',
+    fontSize: 11.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  stepTitle2: {
+    color: '#065F46',
+    fontSize: 11.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  stepTitle3: {
+    color: '#4C1D95',
+    fontSize: 11.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  stepTitle4: {
+    color: '#9A3412',
+    fontSize: 11.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
   },
   stepDesc: {
     fontSize: 11,
-    color: KANDY_THEME.colors.textMuted,
-    marginBottom: 6,
-  },
-  otpInput: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: KANDY_THEME.colors.border,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-    fontWeight: '700',
+    color: '#475569',
     marginBottom: 8,
   },
-  actionButton: {
-    backgroundColor: KANDY_THEME.colors.primary,
-    paddingVertical: 10,
-    borderRadius: 6,
+  otpInputBox: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+    borderRadius: 12,
+    height: 46,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 10,
   },
-  completeButton: {
-    backgroundColor: '#059669',
-    paddingVertical: 12,
-    borderRadius: 6,
+  shieldIcon: {
+    fontSize: 15,
+    marginRight: 8,
+  },
+  otpInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  actionButton1: {
+    backgroundColor: '#FF6B1A',
+    height: 46,
+    borderRadius: 12,
+    justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  disabledButton: {
-    backgroundColor: '#9CA3AF',
+  actionButton2: {
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    height: 44,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    gap: 8,
+  },
+  camIconGreen: {
+    fontSize: 15,
+  },
+  actionButtonText2: {
+    color: '#065F46',
+    fontSize: 11.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+    flex: 1,
+    textAlign: 'center',
+  },
+  chevronGreen: {
+    color: '#059669',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  tollInputBox: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C4B5FD',
+    borderRadius: 12,
+    height: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    marginBottom: 10,
+  },
+  rupeePrefix: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#6B7280',
+    marginRight: 8,
+  },
+  tollInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  actionButton3: {
+    backgroundColor: '#6366F1',
+    height: 46,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  actionButton4: {
+    backgroundColor: '#64748B',
+    height: 46,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  camIconWhite: {
+    fontSize: 15,
+  },
+  actionButtonText4: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
   },
   actionButtonText: {
-    color: '#FFF',
-    fontWeight: '800',
-    fontSize: 11,
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
-  successText: {
+  disabledButton: {
+    opacity: 0.6,
+  },
+  stepCompletedBox: {
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 4,
+  },
+  successText1: {
+    color: '#2563EB',
+    fontWeight: '800',
+    fontSize: 11.5,
+  },
+  successText2: {
     color: '#059669',
     fontWeight: '800',
+    fontSize: 11.5,
+  },
+  successText3: {
+    color: '#7C3AED',
+    fontWeight: '800',
+    fontSize: 11.5,
+  },
+  successText4: {
+    color: '#EA580C',
+    fontWeight: '800',
     fontSize: 12,
+  },
+  bottomFooter: {
+    alignItems: 'center',
+    marginTop: 10,
+    paddingBottom: 10,
+  },
+  driveSafeText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontStyle: 'italic',
+    fontWeight: '600',
   },
 });
 
