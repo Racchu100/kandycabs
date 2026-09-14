@@ -273,89 +273,6 @@ export default function DriverDashboardPage() {
     }
   };
 
-  useEffect(() => {
-    if (authLoading) {
-      setLoading(true);
-      return;
-    }
-
-    if (!user) {
-      setDriver(null);
-      setLoading(false);
-      return;
-    }
-
-    const driverKey = `${user.id}_${user.phone}`;
-    if (fetchedDriverRef.current === driverKey) {
-      setLoading(false);
-      return;
-    }
-
-    fetchedDriverRef.current = driverKey;
-
-    if (user.driver) {
-      setDriver(user.driver);
-      fetchDriverDispatches(user.driver.id);
-    } else if (
-      user.phone?.includes('9481086058') ||
-      user.roles?.includes('ADMIN')
-    ) {
-      setDriver({
-        id: 'admin_driver',
-        fullName: user.fullName || 'Admin Operations',
-        status: 'APPROVED',
-        isActive: true,
-        isVerifiedByAdmin: true,
-      });
-      fetchDriverDispatches('admin_driver');
-    }
-    setLoading(false);
-  }, [user, authLoading]);
-
-  // Continuous background GPS broadcast when driver is logged in
-  useEffect(() => {
-    if (!driver && !user) return;
-    const phone = user?.phone || driver?.phone;
-    if (!phone) return;
-
-    const sendDriverGps = () => {
-      if (typeof window === 'undefined' || !navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const speedKmh = pos.coords.speed && pos.coords.speed > 0 ? Math.round(pos.coords.speed * 3.6) : 0;
-          fetch('/api/driver/gps/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              phone,
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude,
-              accuracy: Math.round(pos.coords.accuracy || 10),
-              speedKmh,
-            }),
-          }).catch(() => {});
-        },
-        () => {
-          // Fallback to Mangaluru default if browser geolocation permission denied
-          fetch('/api/driver/gps/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              phone,
-              lat: 12.8449,
-              lng: 74.8498,
-              accuracy: 15,
-            }),
-          }).catch(() => {});
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    };
-
-    sendDriverGps();
-    const interval = setInterval(sendDriverGps, 10000);
-    return () => clearInterval(interval);
-  }, [user, driver]);
 
   const fetchDriverDispatches = async (driverId?: string) => {
     try {
@@ -513,7 +430,96 @@ export default function DriverDashboardPage() {
       fetchDriverDispatches();
     }
   };
+  useEffect(() => {
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
 
+    if (!user) {
+      setDriver(null);
+      setLoading(false);
+      return;
+    }
+
+    const phone = user.phone;
+    if (phone) {
+      fetch('/api/admin/drivers')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.drivers && Array.isArray(data.drivers)) {
+            const match = data.drivers.find(
+              (d: any) =>
+                d.user?.phone === phone ||
+                d.phone === phone ||
+                d.id === `d_${phone}` ||
+                (d.user?.phone && phone && d.user.phone.includes(phone.slice(-10)))
+            );
+            if (match) {
+              setDriver(match);
+              fetchDriverDispatches(match.id);
+              return;
+            }
+          }
+          if (user.driver) {
+            setDriver(user.driver);
+            fetchDriverDispatches(user.driver.id);
+          }
+        })
+        .catch(() => {
+          if (user.driver) setDriver(user.driver);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      if (user.driver) setDriver(user.driver);
+      setLoading(false);
+    }
+  }, [user, authLoading]);
+
+  // Continuous background GPS broadcast when driver is logged in
+  useEffect(() => {
+    if (!driver && !user) return;
+    const phone = user?.phone || driver?.phone;
+    if (!phone) return;
+
+    const sendDriverGps = () => {
+      if (typeof window === 'undefined' || !navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const speedKmh = pos.coords.speed && pos.coords.speed > 0 ? Math.round(pos.coords.speed * 3.6) : 0;
+          fetch('/api/driver/gps/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: Math.round(pos.coords.accuracy || 10),
+              speedKmh,
+            }),
+          }).catch(() => {});
+        },
+        () => {
+          // Fallback to Mangaluru default if browser geolocation permission denied
+          fetch('/api/driver/gps/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone,
+              lat: 12.8449,
+              lng: 74.8498,
+              accuracy: 15,
+            }),
+          }).catch(() => {});
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+
+    sendDriverGps();
+    const interval = setInterval(sendDriverGps, 15000);
+    return () => clearInterval(interval);
+  }, [driver, user]);
 
   const isAdmin =
     user?.phone?.includes('9481086058') ||
@@ -523,7 +529,8 @@ export default function DriverDashboardPage() {
   const isDeactivated =
     driver?.isActive === false ||
     driver?.status === 'INACTIVE' ||
-    driver?.status === 'DEACTIVATED';
+    driver?.status === 'DEACTIVATED' ||
+    driver?.status === 'SUSPENDED';
 
   const isApproved =
     !isDeactivated &&
@@ -574,19 +581,19 @@ export default function DriverDashboardPage() {
               </Link>
             </div>
           ) : isDeactivated && !isAdmin ? (
-            /* Driver Deactivated by Admin */
+            /* Driver Deactivated / Suspended by Admin */
             <div className="bg-white p-4 sm:p-8 rounded-2xl sm:rounded-card border-2 border-red-500 shadow-card text-center space-y-4 sm:space-y-6 max-w-xl mx-auto">
               <ShieldAlert className="w-12 h-12 sm:w-16 sm:h-16 text-red-600 mx-auto animate-pulse" />
               <div>
-                <h2 className="text-xl sm:text-2xl font-black text-kandy-ink">Driver Portal Suspended / Inactive</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-red-600 uppercase tracking-wide">Account Suspended</h2>
                 <p className="text-xs text-kandy-muted mt-1.5">
-                  Hello <strong>{driver?.fullName || user?.fullName || 'Driver Partner'}</strong>. Admin Operations (<strong>9481086058</strong>) has set your driver portal status to <strong>INACTIVE</strong>. You cannot view assigned works or broadcast dispatches at this time.
+                  Hello <strong>{driver?.fullName || user?.fullName || 'Driver Partner'}</strong>. Your driver partner account has been <strong>SUSPENDED</strong> by Admin Operations. You cannot view assigned works or broadcast dispatches at this time.
                 </p>
               </div>
 
-              <div className="bg-red-50 p-3 sm:p-4 rounded-xl border border-red-200 text-xs font-bold text-red-900 space-y-1">
-                <div className="text-red-800 font-extrabold uppercase">PORTAL STATUS: INACTIVE (DISABLED BY ADMIN)</div>
-                <div>Please contact Master Admin to reactivate your portal: <strong>+91 9481086058</strong></div>
+              <div className="bg-red-50 p-3.5 sm:p-4 rounded-xl border border-red-200 text-xs font-bold text-red-900 space-y-1">
+                <div className="text-red-800 font-black uppercase text-sm">ACCOUNT STATUS: SUSPENDED BY ADMIN</div>
+                <div>Please contact Master Admin to reactivate your account: <strong>+91 9481086058</strong></div>
               </div>
 
               <div className="pt-2 border-t border-gray-100 flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center">
