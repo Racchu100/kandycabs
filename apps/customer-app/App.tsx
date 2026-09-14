@@ -183,9 +183,12 @@ export default function App() {
 
   // Booking Form State
   const [tripType, setTripType] = useState<TripType>('ONEWAY');
+  const [airportTripMode, setAirportTripMode] = useState<'PICKUP' | 'DROP'>('PICKUP');
+  const [localPackage, setLocalPackage] = useState<string>('8hr / 80km');
   const [pickupInput, setPickupInput] = useState<string>('Bangalore, KA');
   const [dropInput, setDropInput] = useState<string>('Coorg (Madikeri), KA');
   const [pickupDate, setPickupDate] = useState<string>('15-09-2026');
+  const [returnDate, setReturnDate] = useState<string>('17-09-2026');
   const [pickupTime, setPickupTime] = useState<string>('07:00');
 
   // Location Suggestion Dropdowns
@@ -199,6 +202,15 @@ export default function App() {
   // Customer Contact Info for Booking
   const [customerEmail, setCustomerEmail] = useState<string>('customer@kandycabs.com');
   const [specialNotes, setSpecialNotes] = useState<string>('');
+
+  const handleSwapLocations = () => {
+    const temp = pickupInput;
+    setPickupInput(dropInput);
+    setDropInput(temp);
+    if (tripType === 'AIRPORT') {
+      setAirportTripMode((prev) => (prev === 'PICKUP' ? 'DROP' : 'PICKUP'));
+    }
+  };
 
   // Active Trips & Bookings Database
   const [userBookings, setUserBookings] = useState([
@@ -604,12 +616,59 @@ export default function App() {
                 </Text>
               </View>
 
-              {/* BOOKING WIDGET (Matching Website Reference Screenshot) */}
+              {/* BOOKING WIDGET (Dynamic per TripType matching Website Reference) */}
               <View style={styles.bookingCard}>
-                {/* PICKUP LOCATION */}
+                {/* Dedicated Airport Transfer Direction Toggle (When AIRPORT selected) */}
+                {tripType === 'AIRPORT' && (
+                  <View style={styles.airportToggleRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.airportToggleBtn,
+                        airportTripMode === 'PICKUP' && styles.airportToggleBtnActive,
+                      ]}
+                      onPress={() => setAirportTripMode('PICKUP')}
+                    >
+                      <Text style={styles.airportToggleIcon}>🛬</Text>
+                      <Text
+                        style={[
+                          styles.airportToggleText,
+                          airportTripMode === 'PICKUP' && styles.airportToggleTextActive,
+                        ]}
+                      >
+                        Pickup from Airport
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.airportToggleBtn,
+                        airportTripMode === 'DROP' && styles.airportToggleBtnActive,
+                      ]}
+                      onPress={() => setAirportTripMode('DROP')}
+                    >
+                      <Text style={styles.airportToggleIcon}>🛫</Text>
+                      <Text
+                        style={[
+                          styles.airportToggleText,
+                          airportTripMode === 'DROP' && styles.airportToggleTextActive,
+                        ]}
+                      >
+                        Drop to Airport
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* PICKUP / CITY LOCATION */}
                 <View style={styles.inputLabelRow}>
                   <Text style={styles.inputLabelIcon}>📍</Text>
-                  <Text style={styles.inputLabelText}>PICKUP LOCATION</Text>
+                  <Text style={styles.inputLabelText}>
+                    {tripType === 'LOCAL'
+                      ? 'CITY / TOWN'
+                      : tripType === 'AIRPORT' && airportTripMode === 'PICKUP'
+                      ? 'PICKUP AIRPORT'
+                      : 'PICKUP LOCATION'}
+                  </Text>
                 </View>
                 <View style={styles.inputSearchWrapper}>
                   <Text style={styles.inputIcon}>🔍</Text>
@@ -618,7 +677,13 @@ export default function App() {
                     value={pickupInput}
                     onChangeText={(val) => { setPickupInput(val); setShowPickupDropdown(true); }}
                     onFocus={() => setShowPickupDropdown(true)}
-                    placeholder="Enter Pickup Place, Landmark, Railway..."
+                    placeholder={
+                      tripType === 'LOCAL'
+                        ? 'Enter City name (e.g. Bangalore, Mysore)...'
+                        : tripType === 'AIRPORT' && airportTripMode === 'PICKUP'
+                        ? 'Select Airport (e.g. BLR, IXE, CMB)...'
+                        : 'Enter Pickup Place, Landmark, Railway...'
+                    }
                     placeholderTextColor="#94A3B8"
                   />
                 </View>
@@ -641,50 +706,93 @@ export default function App() {
                   </View>
                 )}
 
-                {/* FLOATING RIGHT-SIDE SWAP BUTTON (Matching Website) */}
-                <View style={styles.swapRightWrapper}>
-                  <TouchableOpacity style={styles.swapCircleBtn} onPress={handleSwapLocations}>
-                    <Text style={styles.swapIcon}>⇅</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* DESTINATION LOCATION */}
-                <View style={styles.inputLabelRow}>
-                  <Text style={styles.inputLabelIcon}>📍</Text>
-                  <Text style={styles.inputLabelText}>DESTINATION LOCATION</Text>
-                </View>
-                <View style={styles.inputSearchWrapper}>
-                  <Text style={styles.inputIcon}>🔍</Text>
-                  <TextInput
-                    style={styles.inputWithIcon}
-                    value={dropInput}
-                    onChangeText={(val) => { setDropInput(val); setShowDropDropdown(true); }}
-                    onFocus={() => setShowDropDropdown(true)}
-                    placeholder="Enter Drop City, Hotel, Landmark..."
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
-                {showDropDropdown && (
-                  <View style={styles.suggestionsBox}>
-                    {POPULAR_LOCATIONS.filter(
-                      (loc) =>
-                        loc.name.toLowerCase().includes(dropInput.toLowerCase()) ||
-                        loc.city.toLowerCase().includes(dropInput.toLowerCase())
-                    ).map((loc, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        style={styles.suggestionItem}
-                        onPress={() => { setDropInput(loc.name); setShowDropDropdown(false); }}
-                      >
-                        <Text style={styles.suggestionName}>🏁 {loc.name}</Text>
-                        <Text style={styles.suggestionAddr}>{loc.address}</Text>
-                      </TouchableOpacity>
-                    ))}
+                {/* FLOATING RIGHT-SIDE SWAP BUTTON (Hidden for LOCAL) */}
+                {tripType !== 'LOCAL' && (
+                  <View style={styles.swapRightWrapper}>
+                    <TouchableOpacity style={styles.swapCircleBtn} onPress={handleSwapLocations}>
+                      <Text style={styles.swapIcon}>⇅</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
 
-                {/* DATE & TIME GRID (Side-by-side 2 Column Cards) */}
+                {/* DESTINATION LOCATION (Hidden for LOCAL) */}
+                {tripType !== 'LOCAL' && (
+                  <>
+                    <View style={styles.inputLabelRow}>
+                      <Text style={styles.inputLabelIcon}>📍</Text>
+                      <Text style={styles.inputLabelText}>
+                        {tripType === 'AIRPORT' && airportTripMode === 'DROP'
+                          ? 'DROP AIRPORT'
+                          : 'DESTINATION LOCATION'}
+                      </Text>
+                    </View>
+                    <View style={styles.inputSearchWrapper}>
+                      <Text style={styles.inputIcon}>🔍</Text>
+                      <TextInput
+                        style={styles.inputWithIcon}
+                        value={dropInput}
+                        onChangeText={(val) => { setDropInput(val); setShowDropDropdown(true); }}
+                        onFocus={() => setShowDropDropdown(true)}
+                        placeholder={
+                          tripType === 'AIRPORT' && airportTripMode === 'DROP'
+                            ? 'Select Airport (e.g. BLR, IXE, CMB)...'
+                            : 'Enter Drop City, Hotel, Landmark...'
+                        }
+                        placeholderTextColor="#94A3B8"
+                      />
+                    </View>
+                    {showDropDropdown && (
+                      <View style={styles.suggestionsBox}>
+                        {POPULAR_LOCATIONS.filter(
+                          (loc) =>
+                            loc.name.toLowerCase().includes(dropInput.toLowerCase()) ||
+                            loc.city.toLowerCase().includes(dropInput.toLowerCase())
+                        ).map((loc, idx) => (
+                          <TouchableOpacity
+                            key={idx}
+                            style={styles.suggestionItem}
+                            onPress={() => { setDropInput(loc.name); setShowDropDropdown(false); }}
+                          >
+                            <Text style={styles.suggestionName}>🏁 {loc.name}</Text>
+                            <Text style={styles.suggestionAddr}>{loc.address}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </>
+                )}
+
+                {/* LOCAL RENTAL PACKAGES (Shown only for LOCAL) */}
+                {tripType === 'LOCAL' && (
+                  <View style={styles.localPackageSection}>
+                    <Text style={styles.inputLabelText}>SELECT RENTAL PACKAGE</Text>
+                    <View style={styles.localPackageRow}>
+                      {['4hr / 40km', '8hr / 80km', '12hr / 120km'].map((pkg) => (
+                        <TouchableOpacity
+                          key={pkg}
+                          style={[
+                            styles.localPackagePill,
+                            localPackage === pkg && styles.localPackagePillActive,
+                          ]}
+                          onPress={() => setLocalPackage(pkg)}
+                        >
+                          <Text
+                            style={[
+                              styles.localPackageText,
+                              localPackage === pkg && styles.localPackageTextActive,
+                            ]}
+                          >
+                            {pkg}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* DATE & TIME GRID */}
                 <View style={styles.dateTimeGrid}>
+                  {/* PICK UP DATE */}
                   <View style={styles.dateTimeCard}>
                     <View style={styles.dateTimeCardHeader}>
                       <Text style={styles.dateTimeCardIcon}>📅</Text>
@@ -702,6 +810,27 @@ export default function App() {
                     </View>
                   </View>
 
+                  {/* RETURN DATE (Shown only for ROUND TRIP) */}
+                  {tripType === 'ROUNDTRIP' && (
+                    <View style={styles.dateTimeCard}>
+                      <View style={styles.dateTimeCardHeader}>
+                        <Text style={styles.dateTimeCardIcon}>🔄</Text>
+                        <Text style={styles.dateTimeCardLabel}>RETURN DATE</Text>
+                      </View>
+                      <View style={styles.dateTimeValueRow}>
+                        <TextInput
+                          style={styles.dateTimeInput}
+                          value={returnDate}
+                          onChangeText={setReturnDate}
+                          placeholder="DD-MM-YYYY"
+                          placeholderTextColor="#94A3B8"
+                        />
+                        <Text style={styles.dateTimeEndIcon}>🗓️</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* PICK UP TIME */}
                   <View style={styles.dateTimeCard}>
                     <View style={styles.dateTimeCardHeader}>
                       <Text style={styles.dateTimeCardIcon}>⏰</Text>
@@ -724,8 +853,13 @@ export default function App() {
                 <TouchableOpacity
                   style={styles.exploreCabsBtn}
                   onPress={() => {
-                    if (!pickupInput || !dropInput) {
-                      Alert.alert('Required', 'Please select both pickup and destination locations.');
+                    if (!pickupInput || (tripType !== 'LOCAL' && !dropInput)) {
+                      Alert.alert(
+                        'Required',
+                        tripType === 'LOCAL'
+                          ? 'Please select your city.'
+                          : 'Please select both pickup and destination locations.'
+                      );
                       return;
                     }
                     setCurrentStep('VEHICLES');
@@ -1782,6 +1916,77 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#64748B',
     marginTop: 1,
+  },
+
+  // ─── AIRPORT DIRECTION TOGGLE ───
+  airportToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF7ED',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  airportToggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  airportToggleBtnActive: {
+    backgroundColor: '#FF6B1A',
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  airportToggleIcon: {
+    fontSize: 13,
+  },
+  airportToggleText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  airportToggleTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
+
+  // ─── LOCAL RENTAL PACKAGES ───
+  localPackageSection: {
+    marginBottom: 10,
+  },
+  localPackageRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 6,
+  },
+  localPackagePill: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  localPackagePillActive: {
+    backgroundColor: '#FF6B1A',
+    borderColor: '#FF6B1A',
+  },
+  localPackageText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  localPackageTextActive: {
+    color: '#FFFFFF',
   },
 
   // ─── FLOATING RIGHT-SIDE SWAP BUTTON ───
