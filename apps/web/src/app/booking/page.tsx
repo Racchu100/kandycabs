@@ -538,47 +538,84 @@ function BookingContent() {
       <main className="flex-1 pt-1 sm:pt-2 pb-[calc(var(--bottom-bar-height,0px)+3rem)] sm:pb-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
 
-          {/* Trust Banner (Lighter, spaced-out horizontal strip with subtle dividers and optional dismiss button) */}
+          {/* Trust / Promotional Info Banner */}
           {!bannerDismissed && (
-            <div className="bg-sky-50/90 border border-sky-200/80 text-sky-950 rounded-xl py-2 px-3 sm:px-5 mb-3.5 sm:mb-4 shadow-xs flex items-center justify-between gap-2 text-xs font-bold transition-all">
-              <div className="flex items-center justify-around flex-1 gap-2 sm:gap-4 overflow-x-auto py-0.5 no-scrollbar">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="w-5 h-5 rounded-full bg-sky-500/15 text-sky-700 font-extrabold flex items-center justify-center text-[11px]">₹</span>
-                  <div>
-                    <span className="font-black text-sky-950 text-[11px] sm:text-xs">Book Now</span>
-                    <span className="text-[10px] text-sky-700 font-semibold ml-1 hidden xs:inline">at Zero Cost</span>
+            <div className="relative bg-sky-50/90 border border-sky-200/80 text-sky-950 rounded-xl p-3.5 sm:py-2.5 sm:px-5 mb-3.5 sm:mb-4 shadow-xs transition-all">
+              {/* Dismiss Button (44x44px tap target in top-right corner on mobile) */}
+              <button
+                type="button"
+                onClick={() => setBannerDismissed(true)}
+                className="absolute top-1 right-1 sm:static w-11 h-11 sm:w-6 sm:h-6 flex items-center justify-center text-sky-400 hover:text-sky-700 active:text-sky-900 rounded-full hover:bg-sky-100/60 transition shrink-0 cursor-pointer z-10"
+                aria-label="Dismiss promotional banner"
+              >
+                <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+              </button>
+
+              {/* MOBILE LAYOUT: Stacked rows with 20px icons, vertical spacing & tap clearance (sm:hidden) */}
+              <div className="sm:hidden pr-10 space-y-2.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-6 h-6 rounded-full bg-sky-500/15 text-sky-700 font-extrabold flex items-center justify-center text-xs shrink-0">
+                    ₹
+                  </span>
+                  <div className="text-xs font-bold text-sky-950">
+                    <span className="font-extrabold">Book Now</span>
+                    <span className="text-[11px] text-sky-700 font-semibold ml-1.5">— at Zero Cost</span>
                   </div>
                 </div>
 
-                <div className="h-4 w-px bg-sky-200 shrink-0" />
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-700 font-extrabold flex items-center justify-center text-[10px]">🛡️</span>
-                  <div>
-                    <span className="font-black text-sky-950 text-[11px] sm:text-xs">Free Cancellations</span>
-                    <span className="text-[10px] text-sky-700 font-semibold ml-1 hidden xs:inline">Up to 1 Hr</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-700 font-extrabold flex items-center justify-center text-xs shrink-0">
+                    🛡️
+                  </span>
+                  <div className="text-xs font-bold text-sky-950">
+                    <span className="font-extrabold">Free Cancellations</span>
+                    <span className="text-[11px] text-sky-700 font-semibold ml-1.5">— Up to 1 Hour</span>
                   </div>
                 </div>
 
-                <div className="h-4 w-px bg-sky-200 shrink-0" />
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-700 font-extrabold flex items-center justify-center text-[10px]">🎧</span>
-                  <div>
-                    <span className="font-black text-sky-950 text-[11px] sm:text-xs">24x7 Support</span>
-                    <span className="text-[10px] text-sky-700 font-semibold ml-1 hidden xs:inline">Live Dispatch</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="w-6 h-6 rounded-full bg-blue-500/15 text-blue-700 font-extrabold flex items-center justify-center text-xs shrink-0">
+                    🎧
+                  </span>
+                  <div className="text-xs font-bold text-sky-950">
+                    <span className="font-extrabold">24x7 Support</span>
+                    <span className="text-[11px] text-sky-700 font-semibold ml-1.5">— Live Dispatch</span>
                   </div>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setBannerDismissed(true)}
-                className="text-sky-400 hover:text-sky-700 p-1 rounded-md transition shrink-0 ml-1 cursor-pointer"
-                aria-label="Dismiss reassurance banner"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              {/* DESKTOP / TABLET LAYOUT: Single horizontal strip (hidden sm:flex) - 100% UNCHANGED */}
+              <div className="hidden sm:flex sm:items-center sm:justify-between gap-4 text-xs font-bold">
+                <div className="flex items-center justify-around flex-1 gap-4 py-0.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="w-5 h-5 rounded-full bg-sky-500/15 text-sky-700 font-extrabold flex items-center justify-center text-[11px]">₹</span>
+                    <div>
+                      <span className="font-black text-sky-950 text-xs">Book Now</span>
+                      <span className="text-[10px] text-sky-700 font-semibold ml-1">at Zero Cost</span>
+                    </div>
+                  </div>
+
+                  <div className="h-4 w-px bg-sky-200 shrink-0" />
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-700 font-extrabold flex items-center justify-center text-[10px]">🛡️</span>
+                    <div>
+                      <span className="font-black text-sky-950 text-xs">Free Cancellations</span>
+                      <span className="text-[10px] text-sky-700 font-semibold ml-1">Up to 1 Hr</span>
+                    </div>
+                  </div>
+
+                  <div className="h-4 w-px bg-sky-200 shrink-0" />
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-700 font-extrabold flex items-center justify-center text-[10px]">🎧</span>
+                    <div>
+                      <span className="font-black text-sky-950 text-xs">24x7 Support</span>
+                      <span className="text-[10px] text-sky-700 font-semibold ml-1">Live Dispatch</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
