@@ -805,6 +805,7 @@ export default function AdminBookingsPage() {
               <div className="space-y-2 max-h-48 overflow-y-auto border border-kandy-border rounded p-2 text-xs">
                 {activeDrivers.map((d) => {
                   const isChecked = selectedDriverIds.includes(d.id);
+                  const isOnline = d.isActive !== false && d.status !== 'INACTIVE' && d.status !== 'DEACTIVATED';
                   return (
                     <div
                       key={d.id}
@@ -823,13 +824,22 @@ export default function AdminBookingsPage() {
                     >
                       <div className="flex items-center gap-2">
                         <input type="checkbox" checked={isChecked} readOnly />
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0 shadow-sm animate-pulse" title="Online" />
+                        {isOnline && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0 shadow-sm animate-pulse" title="Online" />
+                        )}
                         <span>{d.fullName} (+91 {d.user?.phone || '8888888888'})</span>
                       </div>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-black uppercase tracking-wider flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
-                        ONLINE
-                      </span>
+                      {isOnline ? (
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-black uppercase tracking-wider flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0 animate-pulse" />
+                          ONLINE
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block shrink-0" />
+                          OFFLINE
+                        </span>
+                      )}
                     </div>
                   );
                 })}

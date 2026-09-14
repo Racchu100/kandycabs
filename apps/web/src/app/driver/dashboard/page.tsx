@@ -658,7 +658,21 @@ export default function DriverDashboardPage() {
                 vehicleName={driver?.assignedVehicle?.name || docVehicleName || 'Swift Dzire Sedan'}
                 photoUrl={storedDocPaths.driverPhotoUrl || driver?.driverPhotoUrl}
                 isOnline={isOnline}
-                onToggleOnline={() => setIsOnline(!isOnline)}
+                onToggleOnline={async () => {
+                  const nextState = !isOnline;
+                  setIsOnline(nextState);
+                  try {
+                    const phoneNum = user?.phone || '8659745632';
+                    const driverId = driver?.id || `d_${phoneNum}`;
+                    await fetch(`/api/admin/drivers/${driverId}/deactivate`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ isActive: nextState }),
+                    });
+                  } catch (err) {
+                    console.warn('Duty toggle sync error:', err);
+                  }
+                }}
                 hasPendingDocs={hasPendingDocs}
                 pendingCount={pendingCount}
                 onOpenDocModal={() => {
