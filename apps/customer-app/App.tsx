@@ -1487,10 +1487,10 @@ export default function App() {
                 onPress={() => {
                   setSelectedVehicle(v);
                   setActiveTab('HOME');
-                  setCurrentStep('CONFIRMATION');
+                  setCurrentStep('SEARCH');
                 }}
               >
-                <Text style={styles.webFleetBookBtnText}>BOOK THIS VEHICLE →</Text>
+                <Text style={styles.webFleetBookBtnText}>BOOK THIS {v.name.toUpperCase()} →</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -1590,46 +1590,51 @@ export default function App() {
             <Text style={styles.cardSectionTitle}>WHY CHOOSE US</Text>
             <View style={styles.trustBadgesGrid}>
               <View style={styles.trustBadgeItem}>
-                <Text style={styles.trustBadgeIcon}>🛡️</Text>
-                <View>
-                  <Text style={styles.trustBadgeTitle}>Police Verified Drivers</Text>
-                  <Text style={styles.trustBadgeSub}>Background Checked</Text>
+                <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#FFF7ED' }]}>
+                  <Text style={{ fontSize: 13 }}>🛡️</Text>
                 </View>
+                <Text style={styles.trustBadgeTitle}>VERIFIED CHAUFFEURS</Text>
               </View>
+
               <View style={styles.trustBadgeItem}>
-                <Text style={styles.trustBadgeIcon}>🟢</Text>
-                <View>
-                  <Text style={styles.trustBadgeTitle}>25% Advance Only</Text>
-                  <Text style={styles.trustBadgeSub}>Pay Rest on Trip Completion</Text>
+                <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#ECFDF5' }]}>
+                  <Text style={{ fontSize: 13 }}>🟢</Text>
                 </View>
+                <Text style={styles.trustBadgeTitle}>25% ADVANCE ONLY</Text>
               </View>
+
               <View style={styles.trustBadgeItem}>
-                <Text style={styles.trustBadgeIcon}>🎗️</Text>
-                <View>
-                  <Text style={styles.trustBadgeTitle}>Zero Hidden Fees</Text>
-                  <Text style={styles.trustBadgeSub}>Itemized Billing</Text>
+                <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#EFF6FF' }]}>
+                  <Text style={{ fontSize: 13 }}>👤</Text>
                 </View>
+                <Text style={styles.trustBadgeTitle}>TRANSPARENT BILLING</Text>
               </View>
+
               <View style={styles.trustBadgeItem}>
-                <Text style={styles.trustBadgeIcon}>📞</Text>
-                <View>
-                  <Text style={styles.trustBadgeTitle}>24x7 Ops Support</Text>
-                  <Text style={styles.trustBadgeSub}>Dedicated Helpline</Text>
+                <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                  <Text style={{ fontSize: 13 }}>📞</Text>
                 </View>
+                <Text style={styles.trustBadgeTitle}>24X7 OPS SUPPORT</Text>
               </View>
             </View>
 
             <View style={styles.menuDivider} />
 
             <Text style={styles.cardSectionTitle}>OPERATING CITIES & REGIONS</Text>
-            <Text style={styles.heroSubtitle}>
+            <Text style={[styles.heroSubtitle, { marginBottom: 16 }]}>
               • Karnataka: Bangalore, Mysore, Coorg, Chikmagalur, Mangalore{"\n"}
               • Tamil Nadu: Chennai, Ooty, Madurai, Coimbatore{"\n"}
               • Sri Lanka: Colombo, Kandy, Galle, Negombo, Nuwara Eliya
             </Text>
 
-            <TouchableOpacity style={styles.primaryButton} onPress={() => { setActiveTab('HOME'); setCurrentStep('SEARCH'); }}>
-              <Text style={styles.primaryButtonText}>BOOK A CAB NOW →</Text>
+            <TouchableOpacity
+              style={styles.exploreCabsBtn}
+              onPress={() => {
+                setActiveTab('HOME');
+                setCurrentStep('SEARCH');
+              }}
+            >
+              <Text style={styles.exploreCabsBtnText}>BOOK A CAB NOW →</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -1642,12 +1647,15 @@ export default function App() {
             <Text style={styles.cardSectionTitle}>24x7 CUSTOMER SUPPORT</Text>
             <Text style={styles.pageHeading}>Get in Touch with Our Operations Team</Text>
 
-            <TouchableOpacity style={styles.supportCallBtn} onPress={() => handleCallSupport('9876543210')}>
-              <Text style={styles.supportCallBtnText}>📞 Call Customer Helpline: +91 98765 43210</Text>
+            <TouchableOpacity style={styles.callSupportBtn} onPress={() => handleCallSupport('9876543210')}>
+              <Text style={styles.callSupportText}>📞 Call Customer Helpline: +91 98765 43210</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.supportCallBtn, { backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FFEDD5' }]} onPress={() => Linking.openURL('mailto:support@kandycabs.com')}>
-              <Text style={[styles.supportCallBtnText, { color: '#EA580C' }]}>✉️ Email Support: support@kandycabs.com</Text>
+            <TouchableOpacity
+              style={[styles.callSupportBtn, { backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FFEDD5' }]}
+              onPress={() => Linking.openURL('mailto:support@kandycabs.com')}
+            >
+              <Text style={[styles.callSupportText, { color: '#EA580C' }]}>✉️ Email: support@kandycabs.com</Text>
             </TouchableOpacity>
 
             <View style={styles.routeBox}>
@@ -1694,7 +1702,7 @@ export default function App() {
             />
 
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={styles.exploreCabsBtn}
               onPress={() => {
                 if (!contactName || !contactPhoneInput) {
                   Alert.alert('Required', 'Please fill in your name and phone number.');
@@ -1706,60 +1714,62 @@ export default function App() {
                 setContactMessage('');
               }}
             >
-              <Text style={styles.primaryButtonText}>SUBMIT MESSAGE →</Text>
+              <Text style={styles.exploreCabsBtnText}>SUBMIT MESSAGE →</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       )}
 
-
-
-      {/* FLOATING BOTTOM NAVIGATION TAB BAR (Matching Image 2 Bottom Selector) */}
+      {/* FLOATING BOTTOM NAVIGATION TAB BAR */}
       <View style={styles.bottomNav}>
         <TouchableOpacity
-          style={[styles.bottomNavItem, tripType === 'ONEWAY' && styles.bottomNavItemActive]}
+          style={[styles.bottomNavItem, activeTab === 'HOME' && tripType === 'ONEWAY' && styles.bottomNavItemActive]}
           onPress={() => {
             setTripType('ONEWAY');
             setActiveTab('HOME');
+            setCurrentStep('SEARCH');
           }}
         >
           <Text style={styles.bottomNavIcon}>🚗</Text>
-          <Text style={[styles.bottomNavText, tripType === 'ONEWAY' && styles.bottomNavTextActive]}>ONE WAY</Text>
+          <Text style={[styles.bottomNavText, activeTab === 'HOME' && tripType === 'ONEWAY' && styles.bottomNavTextActive]}>ONE WAY</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.bottomNavItem, tripType === 'ROUNDTRIP' && styles.bottomNavItemActive]}
+          style={[styles.bottomNavItem, activeTab === 'HOME' && tripType === 'ROUNDTRIP' && styles.bottomNavItemActive]}
           onPress={() => {
             setTripType('ROUNDTRIP');
             setActiveTab('HOME');
+            setCurrentStep('SEARCH');
           }}
         >
           <Text style={styles.bottomNavIcon}>🔄</Text>
-          <Text style={[styles.bottomNavText, tripType === 'ROUNDTRIP' && styles.bottomNavTextActive]}>
+          <Text style={[styles.bottomNavText, activeTab === 'HOME' && tripType === 'ROUNDTRIP' && styles.bottomNavTextActive]}>
             ROUND TRIP
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.bottomNavItem, tripType === 'LOCAL' && styles.bottomNavItemActive]}
+          style={[styles.bottomNavItem, activeTab === 'HOME' && tripType === 'LOCAL' && styles.bottomNavItemActive]}
           onPress={() => {
             setTripType('LOCAL');
             setActiveTab('HOME');
+            setCurrentStep('SEARCH');
           }}
         >
           <Text style={styles.bottomNavIcon}>📍</Text>
-          <Text style={[styles.bottomNavText, tripType === 'LOCAL' && styles.bottomNavTextActive]}>LOCAL</Text>
+          <Text style={[styles.bottomNavText, activeTab === 'HOME' && tripType === 'LOCAL' && styles.bottomNavTextActive]}>LOCAL</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.bottomNavItem, tripType === 'AIRPORT' && styles.bottomNavItemActive]}
+          style={[styles.bottomNavItem, activeTab === 'HOME' && tripType === 'AIRPORT' && styles.bottomNavItemActive]}
           onPress={() => {
             setTripType('AIRPORT');
             setActiveTab('HOME');
+            setCurrentStep('SEARCH');
           }}
         >
           <Text style={styles.bottomNavIcon}>✈️</Text>
-          <Text style={[styles.bottomNavText, tripType === 'AIRPORT' && styles.bottomNavTextActive]}>AIRPORT</Text>
+          <Text style={[styles.bottomNavText, activeTab === 'HOME' && tripType === 'AIRPORT' && styles.bottomNavTextActive]}>AIRPORT</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -1769,6 +1779,11 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  scrollContent: {
+    flex: 1,
+    padding: 14,
     backgroundColor: '#F8FAFC',
   },
   navbar: {
