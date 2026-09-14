@@ -552,19 +552,18 @@ const styles = StyleSheet.create({
   },
   authScrollContent: {
     flexGrow: 1,
-    justifyContent: 'space-between',
-    padding: 16,
+    justifyContent: 'center',
+    padding: 20,
   },
   authCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
-    marginTop: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
   authLogoWrapper: {
     alignItems: 'center',
@@ -696,10 +695,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   authFooterBanner: {
-    backgroundColor: '#0F172A',
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 20,
+    paddingHorizontal: 16,
+    paddingTop: 24,
     alignItems: 'center',
   },
   authFooterText: {
