@@ -58,57 +58,98 @@ interface VehicleCategory {
   id: string;
   name: string;
   category: string;
+  models: string;
   capacity: string;
   luggage: string;
   ratePerKm: number;
+  extraKmRate: number;
   baseFare: number;
+  rating: number;
+  fuel: string;
   tag: string;
+  image: string;
   description: string;
 }
 
 const FLEET_CATEGORIES: VehicleCategory[] = [
   {
+    id: 'hatchback',
+    name: 'Hatchback',
+    category: 'Economy Hatchback',
+    models: 'WagonR, Indica or equivalent',
+    capacity: '4 Seater',
+    luggage: '2 Small Bags',
+    ratePerKm: 11.5,
+    extraKmRate: 12.0,
+    baseFare: 2300,
+    rating: 4.8,
+    fuel: 'CNG / Diesel',
+    tag: 'BUDGET FRIENDLY',
+    image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&auto=format&fit=crop&q=60',
+    description: '4 seater AC Cab (WagonR, Indica or equivalent)',
+  },
+  {
     id: 'sedan',
     name: 'Sedan (Dzire / Etios)',
     category: 'Economy Sedan',
+    models: 'Swift Dzire, Etios or equivalent',
     capacity: '4 Seater',
-    luggage: '2 Bags',
-    ratePerKm: 14,
+    luggage: '2 Large + 1 Small Bag',
+    ratePerKm: 13.5,
+    extraKmRate: 14.0,
     baseFare: 2800,
+    rating: 4.9,
+    fuel: 'CNG / Diesel',
     tag: 'MOST POPULAR',
+    image: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&auto=format&fit=crop&q=60',
     description: 'Clean AC sedan suitable for up to 4 passengers with 2 medium luggage bags.',
   },
   {
     id: 'ertiga',
-    name: 'SUV Ertiga',
+    name: 'SUV (Ertiga / Marazzo)',
     category: 'Family MUV',
+    models: 'Ertiga, Marazzo or equivalent',
     capacity: '6 Seater',
-    luggage: '3 Bags',
-    ratePerKm: 18,
+    luggage: '3 Large Bags',
+    ratePerKm: 17.5,
+    extraKmRate: 18.0,
     baseFare: 3600,
+    rating: 4.8,
+    fuel: 'Diesel',
     tag: 'FAMILY CHOICE',
+    image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&auto=format&fit=crop&q=60',
     description: 'Spacious 6-seater MUV with extra legroom & trunk space for family trips.',
   },
   {
     id: 'innova',
-    name: 'Innova Crysta',
+    name: 'SUV Premium (Innova Crysta)',
     category: 'Executive Luxury',
+    models: 'Toyota Innova Crysta',
     capacity: '7 Seater',
-    luggage: '4 Bags',
-    ratePerKm: 24,
+    luggage: '4 Large Bags',
+    ratePerKm: 21.0,
+    extraKmRate: 22.0,
     baseFare: 4800,
+    rating: 4.9,
+    fuel: 'Diesel',
     tag: 'LUXURY AC',
+    image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=800&auto=format&fit=crop&q=60',
     description: 'Premium executive captain-seat luxury AC cab for maximum comfort & highway stability.',
   },
   {
     id: 'tempo',
     name: 'Tempo Traveller',
     category: 'Group Minibus',
+    models: 'Force 12 Seater Luxury',
     capacity: '12 Seater',
-    luggage: '8 Bags',
-    ratePerKm: 32,
+    luggage: '8 Large Bags',
+    ratePerKm: 26.0,
+    extraKmRate: 28.0,
     baseFare: 6400,
+    rating: 4.9,
+    fuel: 'Diesel',
     tag: 'LARGE GROUP',
+    image: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=800&auto=format&fit=crop&q=60',
     description: '12-seater pushback AC minibus for large group tours, weddings & corporate outings.',
   },
 ];
@@ -735,27 +776,77 @@ export default function App() {
                 </TouchableOpacity>
 
                 {FLEET_CATEGORIES.map((v) => (
-                  <TouchableOpacity
-                    key={v.id}
-                    style={styles.fleetPreviewCard}
-                    onPress={() => { setSelectedVehicle(v); setCurrentStep('VEHICLES'); }}
-                  >
-                    <View style={styles.fleetHeader}>
-                      <Text style={styles.fleetTitle}>{v.name}</Text>
-                      <Text style={styles.vehicleTag}>{v.tag}</Text>
+                  <View key={v.id} style={styles.webFleetCard}>
+                    {/* Top: Car Image */}
+                    <View style={styles.webFleetImageWrapper}>
+                      <Image
+                        source={{ uri: v.image }}
+                        style={styles.webFleetImage}
+                        resizeMode="cover"
+                      />
                     </View>
-                    <Text style={styles.fleetSub}>{v.category}</Text>
-                    <Text style={styles.vehicleDesc}>{v.description}</Text>
-                    <View style={styles.fleetFeatureRow}>
-                      <Text style={styles.fleetFeature}>👥 {v.capacity}</Text>
-                      <Text style={styles.fleetFeature}>🧳 {v.luggage}</Text>
-                      <Text style={styles.fleetFeature}>❄️ AC Cab</Text>
+
+                    {/* Header: Title & Star Rating Badge */}
+                    <View style={styles.webFleetTitleRow}>
+                      <Text style={styles.webFleetTitle}>{v.name}</Text>
+                      <View style={styles.webFleetRatingPill}>
+                        <Text style={styles.webFleetRatingStar}>⭐</Text>
+                        <Text style={styles.webFleetRatingText}>{v.rating.toFixed(1)}</Text>
+                      </View>
                     </View>
-                    <View style={styles.fleetRateRow}>
-                      <Text style={styles.fleetRateText}>Rate: ₹{v.ratePerKm}/km</Text>
-                      <Text style={styles.fleetBaseText}>Base Fare: ₹{v.baseFare}</Text>
+
+                    {/* Subtitle / Models */}
+                    <Text style={styles.webFleetSubtitle}>
+                      {v.capacity} AC Cab ({v.models})
+                    </Text>
+
+                    {/* Specs List with Fixed-width Left Icons */}
+                    <View style={styles.webFleetSpecsContainer}>
+                      <View style={styles.webFleetSpecRow}>
+                        <Text style={styles.webFleetSpecIcon}>👤</Text>
+                        <Text style={styles.webFleetSpecText}>Driver allowance Included</Text>
+                      </View>
+
+                      <View style={styles.webFleetSpecRow}>
+                        <Text style={styles.webFleetSpecIcon}>🧳</Text>
+                        <Text style={styles.webFleetSpecText}>
+                          Luggage: {v.luggage} | Extra KM: ₹{v.extraKmRate}/km
+                        </Text>
+                      </View>
+
+                      <View style={styles.webFleetSpecRow}>
+                        <Text style={styles.webFleetSpecIcon}>⛽</Text>
+                        <Text style={styles.webFleetSpecText}>
+                          <Text style={{ fontWeight: '900', color: '#0F172A' }}>Fuel: </Text>
+                          {v.fuel}
+                        </Text>
+                      </View>
                     </View>
-                  </TouchableOpacity>
+
+                    {/* Horizontal Divider */}
+                    <View style={styles.webFleetDivider} />
+
+                    {/* Outstation Rate & CTA Button */}
+                    <View style={styles.webFleetBottomRow}>
+                      <View>
+                        <Text style={styles.webFleetRateLabel}>OUTSTATION RATE</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                          <Text style={styles.webFleetRateAmount}>₹{v.ratePerKm}</Text>
+                          <Text style={styles.webFleetRateUnit}>/km</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.webFleetBookBtn}
+                      onPress={() => {
+                        setSelectedVehicle(v);
+                        setCurrentStep('VEHICLES');
+                      }}
+                    >
+                      <Text style={styles.webFleetBookBtnText}>BOOK THIS CAB →</Text>
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </View>
             </View>
@@ -788,31 +879,55 @@ export default function App() {
                 return (
                   <View
                     key={v.id}
-                    style={[styles.vehicleOptionCard, isSelected && styles.vehicleOptionCardSelected]}
+                    style={[styles.webFleetCard, isSelected && { borderColor: '#FF6B1A', borderWidth: 2 }]}
                   >
-                    <View style={styles.vehicleCardTopRow}>
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={styles.vehicleOptionName}>{v.name}</Text>
-                          <Text style={styles.vehicleTag}>{v.tag}</Text>
-                        </View>
-                        <Text style={styles.vehicleOptionCategory}>{v.category}</Text>
-                        <Text style={styles.vehicleOptionSpecs}>
-                          👥 {v.capacity} • 🧳 {v.luggage} • ❄️ AC Cab
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={styles.vehicleOptionFare}>₹{fare.toLocaleString()}</Text>
-                        <Text style={styles.vehicleOptionFareSub}>Est. Total</Text>
-                        <Text style={styles.vehicleOptionAdvance}>₹{advance.toLocaleString()} Advance</Text>
+                    <View style={styles.webFleetImageWrapper}>
+                      <Image source={{ uri: v.image }} style={styles.webFleetImage} resizeMode="cover" />
+                    </View>
+
+                    <View style={styles.webFleetTitleRow}>
+                      <Text style={styles.webFleetTitle}>{v.name}</Text>
+                      <View style={styles.webFleetRatingPill}>
+                        <Text style={styles.webFleetRatingStar}>⭐</Text>
+                        <Text style={styles.webFleetRatingText}>{v.rating.toFixed(1)}</Text>
                       </View>
                     </View>
-                    <Text style={styles.vehicleDesc}>{v.description}</Text>
+
+                    <Text style={styles.webFleetSubtitle}>{v.capacity} AC Cab ({v.models})</Text>
+
+                    <View style={styles.webFleetSpecsContainer}>
+                      <View style={styles.webFleetSpecRow}>
+                        <Text style={styles.webFleetSpecIcon}>👤</Text>
+                        <Text style={styles.webFleetSpecText}>Driver allowance Included</Text>
+                      </View>
+                      <View style={styles.webFleetSpecRow}>
+                        <Text style={styles.webFleetSpecIcon}>🧳</Text>
+                        <Text style={styles.webFleetSpecText}>Luggage: {v.luggage} | Extra KM: ₹{v.extraKmRate}/km</Text>
+                      </View>
+                      <View style={styles.webFleetSpecRow}>
+                        <Text style={styles.webFleetSpecIcon}>⛽</Text>
+                        <Text style={styles.webFleetSpecText}><Text style={{ fontWeight: '900', color: '#0F172A' }}>Fuel: </Text>{v.fuel}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.webFleetDivider} />
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <View>
+                        <Text style={styles.webFleetRateLabel}>ESTIMATED TOTAL FARE</Text>
+                        <Text style={[styles.webFleetRateAmount, { color: '#0F172A' }]}>₹{fare.toLocaleString()}</Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={styles.webFleetRateLabel}>25% ADVANCE</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '900', color: '#059669' }}>₹{advance.toLocaleString()} (To Pay Now)</Text>
+                      </View>
+                    </View>
+
                     <TouchableOpacity
-                      style={styles.selectVehicleBtn}
+                      style={styles.webFleetBookBtn}
                       onPress={() => { setSelectedVehicle(v); setCurrentStep('CONFIRMATION'); }}
                     >
-                      <Text style={styles.selectVehicleBtnText}>SELECT {v.name.toUpperCase()} →</Text>
+                      <Text style={styles.webFleetBookBtnText}>SELECT {v.name.toUpperCase()} →</Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -989,31 +1104,57 @@ export default function App() {
         <ScrollView style={styles.scrollContent}>
           <Text style={styles.pageHeading}>OUR VEHICLE FLEET & RATE CARD</Text>
           {FLEET_CATEGORIES.map((v) => (
-            <View key={v.id} style={styles.fleetCard}>
-              <View style={styles.fleetHeader}>
-                <Text style={styles.fleetTitle}>{v.name}</Text>
-                <Text style={styles.vehicleTag}>{v.tag}</Text>
+            <View key={v.id} style={styles.webFleetCard}>
+              <View style={styles.webFleetImageWrapper}>
+                <Image source={{ uri: v.image }} style={styles.webFleetImage} resizeMode="cover" />
               </View>
-              <Text style={styles.fleetSub}>{v.category}</Text>
-              <Text style={styles.vehicleDesc}>{v.description}</Text>
-              <View style={styles.fleetFeatureRow}>
-                <Text style={styles.fleetFeature}>👥 {v.capacity}</Text>
-                <Text style={styles.fleetFeature}>🧳 {v.luggage}</Text>
-                <Text style={styles.fleetFeature}>❄️ AC Cabs</Text>
+
+              <View style={styles.webFleetTitleRow}>
+                <Text style={styles.webFleetTitle}>{v.name}</Text>
+                <View style={styles.webFleetRatingPill}>
+                  <Text style={styles.webFleetRatingStar}>⭐</Text>
+                  <Text style={styles.webFleetRatingText}>{v.rating.toFixed(1)}</Text>
+                </View>
               </View>
-              <View style={styles.fleetRateRow}>
-                <Text style={styles.fleetRateText}>Rate: ₹{v.ratePerKm}/km</Text>
-                <Text style={styles.fleetBaseText}>Min Base Fare: ₹{v.baseFare}</Text>
+
+              <Text style={styles.webFleetSubtitle}>{v.capacity} AC Cab ({v.models})</Text>
+
+              <View style={styles.webFleetSpecsContainer}>
+                <View style={styles.webFleetSpecRow}>
+                  <Text style={styles.webFleetSpecIcon}>👤</Text>
+                  <Text style={styles.webFleetSpecText}>Driver allowance Included</Text>
+                </View>
+                <View style={styles.webFleetSpecRow}>
+                  <Text style={styles.webFleetSpecIcon}>🧳</Text>
+                  <Text style={styles.webFleetSpecText}>Luggage: {v.luggage} | Extra KM: ₹{v.extraKmRate}/km</Text>
+                </View>
+                <View style={styles.webFleetSpecRow}>
+                  <Text style={styles.webFleetSpecIcon}>⛽</Text>
+                  <Text style={styles.webFleetSpecText}><Text style={{ fontWeight: '900', color: '#0F172A' }}>Fuel: </Text>{v.fuel}</Text>
+                </View>
               </View>
+
+              <View style={styles.webFleetDivider} />
+
+              <View style={styles.webFleetBottomRow}>
+                <View>
+                  <Text style={styles.webFleetRateLabel}>OUTSTATION RATE</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                    <Text style={styles.webFleetRateAmount}>₹{v.ratePerKm}</Text>
+                    <Text style={styles.webFleetRateUnit}>/km</Text>
+                  </View>
+                </View>
+              </View>
+
               <TouchableOpacity
-                style={styles.bookFleetBtn}
+                style={styles.webFleetBookBtn}
                 onPress={() => {
                   setSelectedVehicle(v);
                   setActiveTab('HOME');
                   setCurrentStep('CONFIRMATION');
                 }}
               >
-                <Text style={styles.bookFleetBtnText}>BOOK THIS VEHICLE →</Text>
+                <Text style={styles.webFleetBookBtnText}>BOOK THIS VEHICLE →</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -2321,6 +2462,138 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
+
+  // ─── HIGH-FIDELITY WEB FLEET CARD (Matching Website Reference) ───
+  webFleetCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  webFleetImageWrapper: {
+    width: '100%',
+    height: 170,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
+    marginBottom: 14,
+  },
+  webFleetImage: {
+    width: '100%',
+    height: '100%',
+  },
+  webFleetTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  webFleetTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+  },
+  webFleetRatingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  webFleetRatingStar: {
+    fontSize: 10,
+  },
+  webFleetRatingText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#92400E',
+  },
+  webFleetSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  webFleetSpecsContainer: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  webFleetSpecRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  webFleetSpecIcon: {
+    fontSize: 14,
+    width: 20,
+    textAlign: 'center',
+  },
+  webFleetSpecText: {
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '600',
+    flex: 1,
+  },
+  webFleetDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 12,
+  },
+  webFleetBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 12,
+  },
+  webFleetRateLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  webFleetRateAmount: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  webFleetRateUnit: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    marginLeft: 2,
+  },
+  webFleetBookBtn: {
+    backgroundColor: '#0F172A',
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  webFleetBookBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
   bottomNav: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
