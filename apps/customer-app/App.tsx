@@ -15,8 +15,9 @@ import {
   ImageBackground,
   Dimensions,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
+import MapView, { Marker, Region, UrlTile } from 'react-native-maps';
 import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
 import {
@@ -3207,6 +3208,7 @@ export default function App() {
               <MapView
                 ref={mapRef}
                 style={StyleSheet.absoluteFillObject}
+                mapType={Platform.OS === 'android' ? 'none' : 'standard'}
                 initialRegion={{
                   latitude: tempMapCoords.latitude,
                   longitude: tempMapCoords.longitude,
@@ -3221,7 +3223,14 @@ export default function App() {
                 scrollEnabled={true}
                 zoomEnabled={true}
                 pitchEnabled={true}
-              />
+              >
+                <UrlTile
+                  urlTemplate="https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+                  maximumZ={19}
+                  flipY={false}
+                  zIndex={1}
+                />
+              </MapView>
 
               {/* Fixed Center Pin on Top of Interactive Map */}
               <View style={styles.centerPinFixedWrapper} pointerEvents="none">
