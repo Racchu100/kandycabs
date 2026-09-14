@@ -12,6 +12,8 @@ import {
   Linking,
   Modal,
   Image,
+  ImageBackground,
+  Dimensions,
 } from 'react-native';
 import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
@@ -110,6 +112,8 @@ const FLEET_CATEGORIES: VehicleCategory[] = [
     description: '12-seater pushback AC minibus for large group tours, weddings & corporate outings.',
   },
 ];
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function App() {
   // Navigation State
@@ -320,31 +324,38 @@ export default function App() {
     });
   };
 
+  // Hero is only visible on HOME tab, SEARCH step
+  const isHeroVisible = activeTab === 'HOME' && currentStep === 'SEARCH';
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar
+        barStyle={isHeroVisible ? 'light-content' : 'dark-content'}
+        backgroundColor={isHeroVisible ? 'transparent' : '#FFFFFF'}
+        translucent={isHeroVisible}
+      />
 
-      {/* HEADER NAVBAR (Matching Web Header Image 1 & 2) */}
-      <View style={styles.navbar}>
-        <TouchableOpacity
-          style={styles.brandContainer}
-          onPress={() => {
-            setActiveTab('HOME');
-            setCurrentStep('SEARCH');
-          }}
-        >
-          <Image
-            source={require('./assets/kandycabs-logo.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-
-        {/* Hamburger Menu Icon (☰) */}
-        <TouchableOpacity style={styles.hamburgerBtn} onPress={() => setMenuOpen(true)}>
-          <Text style={styles.hamburgerIcon}>☰</Text>
-        </TouchableOpacity>
-      </View>
+      {/* HEADER NAVBAR — hidden when hero is visible (hero has its own inline navbar) */}
+      {!isHeroVisible && (
+        <View style={styles.navbar}>
+          <TouchableOpacity
+            style={styles.brandContainer}
+            onPress={() => {
+              setActiveTab('HOME');
+              setCurrentStep('SEARCH');
+            }}
+          >
+            <Image
+              source={require('./assets/kandycabs-logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.hamburgerBtn} onPress={() => setMenuOpen(true)}>
+            <Text style={styles.hamburgerIcon}>☰</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* DRAWER / HAMBURGER SLIDE-OUT MENU MODAL (Matching Web Drawer Image 3) */}
       <Modal visible={menuOpen} animationType="fade" transparent={true}>
@@ -505,38 +516,72 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* TAB 1: HOME & BOOKING WIZARD */}
-      {activeTab === 'HOME' && (
-        <ScrollView style={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          {/* HERO BANNER SECTION (Matching Image 2) */}
-          <View style={styles.heroSection}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>✨ SOUTH INDIA'S PREMIUM INTERCITY CAB SERVICE</Text>
-            </View>
-            <Text style={styles.heroTitle}>
-              Book Outstation & Local Cabs with <Text style={{ color: KANDY_THEME.colors.primary }}>Transparent Fares</Text>
-            </Text>
-            <Text style={styles.heroSubtitle}>
-              Pay 25% advance only. Clean sanitized cabs, courteous verified drivers, and doorstep pickup.
-            </Text>
-          </View>
 
-          {/* STEP 1: INTERCITY CAB BOOKING WIDGET (Matching Image 2) */}
-          {currentStep === 'SEARCH' && (
+      {/* ════════════════════════════════════════════════════
+          TAB 1: HOME — SEARCH STEP with HERO BACKGROUND
+          ════════════════════════════════════════════════════ */}
+      {activeTab === 'HOME' && currentStep === 'SEARCH' && (
+        <>
+          {/* HERO IMAGE BACKGROUND */}
+          <ImageBackground
+            source={require('./assets/hero-bg.jpg')}
+            style={styles.heroBgImage}
+            resizeMode="cover"
+          >
+            <View style={styles.heroOverlay}>
+              {/* Navbar inside hero */}
+              <View style={styles.heroNavbar}>
+                <TouchableOpacity
+                  style={styles.brandContainer}
+                  onPress={() => { setActiveTab('HOME'); setCurrentStep('SEARCH'); }}
+                >
+                  <Image
+                    source={require('./assets/kandycabs-logo.png')}
+                    style={styles.logoImageHero}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.hamburgerBtn} onPress={() => setMenuOpen(true)}>
+                  <Text style={[styles.hamburgerIcon, { color: '#FFFFFF' }]}>☰</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Hero text content */}
+              <View style={styles.heroContent}>
+                <View style={styles.heroBadge}>
+                  <Text style={styles.heroBadgeText}>✨ SOUTH INDIA'S PREMIUM INTERCITY CAB SERVICE</Text>
+                </View>
+                <Text style={styles.heroTitle}>
+                  Book Outstation & Local Cabs with{' '}
+                  <Text style={{ color: '#F97316' }}>Transparent Fares</Text>
+                </Text>
+                <Text style={styles.heroSubtitleWhite}>
+                  Pay only 25% advance. Verified chauffeurs, sanitized cabs & doorstep pickup.
+                </Text>
+              </View>
+            </View>
+          </ImageBackground>
+
+          {/* BOOKING CARD + TRUST BADGES + FLEET below hero */}
+          <ScrollView
+            style={styles.homeScrollBelowHero}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* BOOKING WIDGET */}
             <View style={styles.bookingCard}>
-              {/* PICKUP LOCATION WITH SEARCH DROPDOWN */}
+              <Text style={styles.bookingCardTitle}>📍 WHERE ARE YOU GOING?</Text>
+
+              {/* PICKUP LOCATION */}
               <Text style={styles.inputLabel}>PICKUP LOCATION</Text>
               <View style={styles.inputSearchWrapper}>
                 <Text style={styles.inputIcon}>🔍</Text>
                 <TextInput
                   style={styles.inputWithIcon}
                   value={pickupInput}
-                  onChangeText={(val) => {
-                    setPickupInput(val);
-                    setShowPickupDropdown(true);
-                  }}
+                  onChangeText={(val) => { setPickupInput(val); setShowPickupDropdown(true); }}
                   onFocus={() => setShowPickupDropdown(true)}
-                  placeholder="Enter Pickup Place, Landmark, Railway Station..."
+                  placeholder="Enter Pickup Place, Landmark, Station..."
                 />
               </View>
               {showPickupDropdown && (
@@ -549,10 +594,7 @@ export default function App() {
                     <TouchableOpacity
                       key={idx}
                       style={styles.suggestionItem}
-                      onPress={() => {
-                        setPickupInput(loc.name);
-                        setShowPickupDropdown(false);
-                      }}
+                      onPress={() => { setPickupInput(loc.name); setShowPickupDropdown(false); }}
                     >
                       <Text style={styles.suggestionName}>📍 {loc.name}</Text>
                       <Text style={styles.suggestionAddr}>{loc.address}</Text>
@@ -561,7 +603,7 @@ export default function App() {
                 </View>
               )}
 
-              {/* SWAP LOCATION BUTTON (⇅) */}
+              {/* SWAP BUTTON */}
               <View style={styles.swapContainer}>
                 <View style={styles.swapLine} />
                 <TouchableOpacity style={styles.swapCircleBtn} onPress={handleSwapLocations}>
@@ -570,17 +612,14 @@ export default function App() {
                 <View style={styles.swapLine} />
               </View>
 
-              {/* DESTINATION LOCATION WITH SEARCH DROPDOWN */}
-              <Text style={styles.inputLabel}>DESTINATION LOCATION</Text>
+              {/* DESTINATION */}
+              <Text style={styles.inputLabel}>DESTINATION</Text>
               <View style={styles.inputSearchWrapper}>
                 <Text style={styles.inputIcon}>🔍</Text>
                 <TextInput
                   style={styles.inputWithIcon}
                   value={dropInput}
-                  onChangeText={(val) => {
-                    setDropInput(val);
-                    setShowDropDropdown(true);
-                  }}
+                  onChangeText={(val) => { setDropInput(val); setShowDropDropdown(true); }}
                   onFocus={() => setShowDropDropdown(true)}
                   placeholder="Enter Drop City, Hotel, Landmark..."
                 />
@@ -595,10 +634,7 @@ export default function App() {
                     <TouchableOpacity
                       key={idx}
                       style={styles.suggestionItem}
-                      onPress={() => {
-                        setDropInput(loc.name);
-                        setShowDropDropdown(false);
-                      }}
+                      onPress={() => { setDropInput(loc.name); setShowDropDropdown(false); }}
                     >
                       <Text style={styles.suggestionName}>🏁 {loc.name}</Text>
                       <Text style={styles.suggestionAddr}>{loc.address}</Text>
@@ -607,36 +643,25 @@ export default function App() {
                 </View>
               )}
 
-              {/* SIDE-BY-SIDE DATE & TIME PICKER GRID (Matching Image 2) */}
+              {/* DATE & TIME GRID */}
               <View style={styles.dateTimeGrid}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>PICK UP DATE</Text>
                   <View style={styles.inputSearchWrapper}>
                     <Text style={styles.inputIcon}>📅</Text>
-                    <TextInput
-                      style={styles.inputWithIcon}
-                      value={pickupDate}
-                      onChangeText={setPickupDate}
-                      placeholder="DD-MM-YYYY"
-                    />
+                    <TextInput style={styles.inputWithIcon} value={pickupDate} onChangeText={setPickupDate} placeholder="DD-MM-YYYY" />
                   </View>
                 </View>
-
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>PICK UP TIME</Text>
                   <View style={styles.inputSearchWrapper}>
                     <Text style={styles.inputIcon}>⏰</Text>
-                    <TextInput
-                      style={styles.inputWithIcon}
-                      value={pickupTime}
-                      onChangeText={setPickupTime}
-                      placeholder="HH:MM"
-                    />
+                    <TextInput style={styles.inputWithIcon} value={pickupTime} onChangeText={setPickupTime} placeholder="HH:MM" />
                   </View>
                 </View>
               </View>
 
-              {/* BIG ORANGE ACTION BUTTON (Matching Image 2) */}
+              {/* BIG ORANGE CTA BUTTON */}
               <TouchableOpacity
                 style={styles.exploreCabsBtn}
                 onPress={() => {
@@ -650,60 +675,51 @@ export default function App() {
                 <Text style={styles.exploreCabsBtnText}>EXPLORE CABS & RATES →</Text>
               </TouchableOpacity>
             </View>
-          )}
 
-          {/* 4 TRUST BADGES GRID (Matching Image 2) */}
-          <View style={styles.trustBadgesGrid}>
-            <View style={styles.trustBadgeItem}>
-              <Text style={styles.trustBadgeIcon}>🛡️</Text>
-              <View>
-                <Text style={styles.trustBadgeTitle}>VERIFIED CHAUFFEURS</Text>
-                <Text style={styles.trustBadgeSub}>Background Checked</Text>
+            {/* 4 TRUST BADGES GRID */}
+            <View style={styles.trustBadgesGrid}>
+              <View style={styles.trustBadgeItem}>
+                <Text style={styles.trustBadgeIcon}>🛡️</Text>
+                <View>
+                  <Text style={styles.trustBadgeTitle}>VERIFIED CHAUFFEURS</Text>
+                  <Text style={styles.trustBadgeSub}>Police Background Checked</Text>
+                </View>
+              </View>
+              <View style={styles.trustBadgeItem}>
+                <Text style={styles.trustBadgeIcon}>💰</Text>
+                <View>
+                  <Text style={styles.trustBadgeTitle}>25% ADVANCE ONLY</Text>
+                  <Text style={styles.trustBadgeSub}>Pay Rest on Completion</Text>
+                </View>
+              </View>
+              <View style={styles.trustBadgeItem}>
+                <Text style={styles.trustBadgeIcon}>🎗️</Text>
+                <View>
+                  <Text style={styles.trustBadgeTitle}>ZERO HIDDEN FEES</Text>
+                  <Text style={styles.trustBadgeSub}>Itemized Transparent Bill</Text>
+                </View>
+              </View>
+              <View style={styles.trustBadgeItem}>
+                <Text style={styles.trustBadgeIcon}>📞</Text>
+                <View>
+                  <Text style={styles.trustBadgeTitle}>24×7 OPS SUPPORT</Text>
+                  <Text style={styles.trustBadgeSub}>Dedicated Helpline</Text>
+                </View>
               </View>
             </View>
 
-            <View style={styles.trustBadgeItem}>
-              <Text style={styles.trustBadgeIcon}>🟢</Text>
-              <View>
-                <Text style={styles.trustBadgeTitle}>25% ADVANCE ONLY</Text>
-                <Text style={styles.trustBadgeSub}>Pay Rest to Driver</Text>
-              </View>
-            </View>
-
-            <View style={styles.trustBadgeItem}>
-              <Text style={styles.trustBadgeIcon}>🎗️</Text>
-              <View>
-                <Text style={styles.trustBadgeTitle}>TRANSPARENT BILLING</Text>
-                <Text style={styles.trustBadgeSub}>Zero Hidden Fees</Text>
-              </View>
-            </View>
-
-            <View style={styles.trustBadgeItem}>
-              <Text style={styles.trustBadgeIcon}>📞</Text>
-              <View>
-                <Text style={styles.trustBadgeTitle}>24X7 OPS SUPPORT</Text>
-                <Text style={styles.trustBadgeSub}>On-Road Assistance</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* OUR VEHICLE FLEET SECTION (Matching Image 1) */}
-          {currentStep === 'SEARCH' && (
+            {/* FLEET PREVIEW */}
             <View style={styles.homeFleetSection}>
               <Text style={styles.homeFleetTag}>OUR VEHICLE FLEET</Text>
               <Text style={styles.homeFleetTitle}>Choose the Right Cab for Your Journey</Text>
               <TouchableOpacity onPress={() => setActiveTab('FLEET')}>
                 <Text style={styles.homeFleetAction}>VIEW FULL FLEET & RATE CHART →</Text>
               </TouchableOpacity>
-
               {FLEET_CATEGORIES.slice(0, 3).map((v) => (
                 <TouchableOpacity
                   key={v.id}
                   style={styles.fleetPreviewCard}
-                  onPress={() => {
-                    setSelectedVehicle(v);
-                    setCurrentStep('VEHICLES');
-                  }}
+                  onPress={() => { setSelectedVehicle(v); setCurrentStep('VEHICLES'); }}
                 >
                   <View style={styles.fleetHeader}>
                     <Text style={styles.fleetTitle}>{v.name}</Text>
@@ -722,9 +738,16 @@ export default function App() {
                 </TouchableOpacity>
               ))}
             </View>
-          )}
+          </ScrollView>
+        </>
+      )}
 
-          {/* STEP 2: VEHICLE CATEGORY SELECTION & RATES */}
+      {/* ════════════════════════════════════
+          TAB 1: HOME — VEHICLES / CONFIRMATION / SUCCESS STEPS
+          ════════════════════════════════════ */}
+      {activeTab === 'HOME' && currentStep !== 'SEARCH' && (
+        <ScrollView style={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          {/* STEP 2: VEHICLE SELECTION */}
           {currentStep === 'VEHICLES' && (
             <View style={{ marginBottom: 20 }}>
               <View style={styles.stepHeaderRow}>
@@ -733,12 +756,10 @@ export default function App() {
                 </TouchableOpacity>
                 <Text style={styles.stepHeaderTitle}>STEP 2: CHOOSE CAB</Text>
               </View>
-
               <Text style={styles.sectionHeading}>AVAILABLE CABS FOR YOUR ROUTE</Text>
               <Text style={styles.sectionSubheading}>
                 {pickupInput} → {dropInput} (~{estimatedDistanceKm} km)
               </Text>
-
               {FLEET_CATEGORIES.map((v) => {
                 const isSelected = selectedVehicle.id === v.id;
                 const fare = Math.max(v.baseFare, estimatedDistanceKm * v.ratePerKm);
@@ -766,13 +787,9 @@ export default function App() {
                       </View>
                     </View>
                     <Text style={styles.vehicleDesc}>{v.description}</Text>
-
                     <TouchableOpacity
                       style={styles.selectVehicleBtn}
-                      onPress={() => {
-                        setSelectedVehicle(v);
-                        setCurrentStep('CONFIRMATION');
-                      }}
+                      onPress={() => { setSelectedVehicle(v); setCurrentStep('CONFIRMATION'); }}
                     >
                       <Text style={styles.selectVehicleBtnText}>SELECT {v.name.toUpperCase()} →</Text>
                     </TouchableOpacity>
@@ -782,7 +799,7 @@ export default function App() {
             </View>
           )}
 
-          {/* STEP 3: BOOKING CONFIRMATION & FARE BREAKDOWN */}
+          {/* STEP 3: CONFIRMATION */}
           {currentStep === 'CONFIRMATION' && (
             <View style={{ marginBottom: 20 }}>
               <View style={styles.stepHeaderRow}>
@@ -803,70 +820,25 @@ export default function App() {
 
                 <Text style={styles.cardSectionTitle}>PASSENGER CONTACT DETAILS</Text>
                 <Text style={styles.inputLabel}>FULL NAME</Text>
-                <TextInput
-                  style={styles.input}
-                  value={customerName}
-                  onChangeText={setCustomerName}
-                  placeholder="Your Full Name"
-                />
-
+                <TextInput style={styles.input} value={customerName} onChangeText={setCustomerName} placeholder="Your Full Name" />
                 <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
-                <TextInput
-                  style={styles.input}
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="10-digit mobile number"
-                />
-
+                <TextInput style={styles.input} keyboardType="phone-pad" value={phone} onChangeText={setPhone} placeholder="10-digit mobile number" />
                 <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-                <TextInput
-                  style={styles.input}
-                  keyboardType="email-address"
-                  value={customerEmail}
-                  onChangeText={setCustomerEmail}
-                  placeholder="customer@email.com"
-                />
-
+                <TextInput style={styles.input} keyboardType="email-address" value={customerEmail} onChangeText={setCustomerEmail} placeholder="customer@email.com" />
                 <Text style={styles.inputLabel}>SPECIAL INSTRUCTIONS (OPTIONAL)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={specialNotes}
-                  onChangeText={setSpecialNotes}
-                  placeholder="e.g. Flight number, extra luggage space"
-                />
+                <TextInput style={styles.input} value={specialNotes} onChangeText={setSpecialNotes} placeholder="e.g. Flight number, extra luggage space" />
 
-                {/* FARE BREAKDOWN BOX */}
                 <View style={styles.fareBreakdownBox}>
                   <Text style={styles.fareBreakdownTitle}>TRANSPARENT FARE BREAKDOWN</Text>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Route Distance:</Text>
-                    <Text style={styles.infoValue}>~{estimatedDistanceKm} km</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Cab Rate per km:</Text>
-                    <Text style={styles.infoValue}>₹{selectedVehicle.ratePerKm}/km</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Total Estimated Fare:</Text>
-                    <Text style={styles.infoValueHighlight}>₹{calculatedFare.toLocaleString()}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>25% Advance Payable Now:</Text>
-                    <Text style={[styles.infoValue, { color: KANDY_THEME.colors.primary }]}>
-                      ₹{advancePayable.toLocaleString()}
-                    </Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Balance Payable to Driver:</Text>
-                    <Text style={styles.infoValue}>₹{balancePayable.toLocaleString()}</Text>
-                  </View>
+                  <View style={styles.infoRow}><Text style={styles.infoLabel}>Route Distance:</Text><Text style={styles.infoValue}>~{estimatedDistanceKm} km</Text></View>
+                  <View style={styles.infoRow}><Text style={styles.infoLabel}>Cab Rate per km:</Text><Text style={styles.infoValue}>₹{selectedVehicle.ratePerKm}/km</Text></View>
+                  <View style={styles.infoRow}><Text style={styles.infoLabel}>Total Estimated Fare:</Text><Text style={styles.infoValueHighlight}>₹{calculatedFare.toLocaleString()}</Text></View>
+                  <View style={styles.infoRow}><Text style={styles.infoLabel}>25% Advance Payable Now:</Text><Text style={[styles.infoValue, { color: KANDY_THEME.colors.primary }]}>₹{advancePayable.toLocaleString()}</Text></View>
+                  <View style={styles.infoRow}><Text style={styles.infoLabel}>Balance Payable to Driver:</Text><Text style={styles.infoValue}>₹{balancePayable.toLocaleString()}</Text></View>
                 </View>
 
                 <TouchableOpacity style={styles.finalBookBtn} onPress={handleConfirmFinalBooking}>
-                  <Text style={styles.finalBookBtnText}>
-                    CONFIRM & PAY ₹{advancePayable.toLocaleString()} ADVANCE →
-                  </Text>
+                  <Text style={styles.finalBookBtnText}>CONFIRM & PAY ₹{advancePayable.toLocaleString()} ADVANCE →</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -880,7 +852,6 @@ export default function App() {
               <Text style={styles.successSub}>
                 Your chauffeur will be assigned 2 hours prior to your scheduled pickup time.
               </Text>
-
               <View style={styles.successDetailsBox}>
                 <Text style={styles.successRef}>Booking Ref: {userBookings[0].id}</Text>
                 <Text style={styles.successRoute}>{pickupInput} → {dropInput}</Text>
@@ -888,13 +859,9 @@ export default function App() {
                 <Text style={styles.successFare}>Total Fare: ₹{calculatedFare.toLocaleString()}</Text>
                 <Text style={styles.successAdvance}>25% Advance Paid: ₹{advancePayable.toLocaleString()} (PAID)</Text>
               </View>
-
               <TouchableOpacity
                 style={styles.primaryButton}
-                onPress={() => {
-                  setActiveTab('TRIPS');
-                  setCurrentStep('SEARCH');
-                }}
+                onPress={() => { setActiveTab('TRIPS'); setCurrentStep('SEARCH'); }}
               >
                 <Text style={styles.primaryButtonText}>VIEW MY TRIPS & CHAUFFEUR STATUS →</Text>
               </TouchableOpacity>
@@ -902,6 +869,9 @@ export default function App() {
           )}
         </ScrollView>
       )}
+
+
+
 
       {/* TAB 2: MY TRIPS & LIVE TRACKING */}
       {activeTab === 'TRIPS' && (
@@ -1529,30 +1499,61 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 14,
   },
-  heroSection: {
-    marginVertical: 10,
+
+  // ─── HERO IMAGE BACKGROUND ───
+  heroBgImage: {
+    width: '100%',
+    minHeight: 250,
+  },
+  heroOverlay: {
+    backgroundColor: 'rgba(10, 15, 35, 0.62)',
+    paddingBottom: 28,
+  },
+  heroNavbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+  },
+  logoImageHero: {
+    width: 145,
+    height: 40,
+    tintColor: '#FFFFFF',
+  },
+  heroContent: {
+    paddingHorizontal: 18,
+    paddingTop: 8,
   },
   heroBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: 'rgba(249, 115, 22, 0.25)',
     borderWidth: 1,
-    borderColor: '#FFEDD5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderColor: 'rgba(249, 115, 22, 0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 999,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   heroBadgeText: {
-    color: KANDY_THEME.colors.primary,
+    color: '#FED7AA',
     fontSize: 10,
     fontWeight: '900',
+    letterSpacing: 0.5,
   },
   heroTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#0F172A',
-    lineHeight: 28,
-    marginBottom: 6,
+    color: '#FFFFFF',
+    lineHeight: 32,
+    marginBottom: 8,
+  },
+  heroSubtitleWhite: {
+    fontSize: 12,
+    color: '#CBD5E1',
+    lineHeight: 18,
+    marginBottom: 4,
   },
   heroSubtitle: {
     fontSize: 12,
@@ -1568,10 +1569,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  homeScrollBelowHero: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+  },
+  bookingCardTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 12,
+    letterSpacing: 0.3,
   },
   inputLabel: {
     fontSize: 10,
@@ -2199,11 +2212,15 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    backgroundColor: '#0F172A',
+    borderTopWidth: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
   },
   bottomNavItem: {
     flex: 1,
@@ -2212,7 +2229,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   bottomNavItemActive: {
-    backgroundColor: KANDY_THEME.colors.primary,
+    backgroundColor: '#EA580C',
   },
   bottomNavIcon: {
     fontSize: 16,
@@ -2220,10 +2237,10 @@ const styles = StyleSheet.create({
   bottomNavText: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#475569',
+    color: '#94A3B8',
     marginTop: 2,
   },
   bottomNavTextActive: {
-    color: '#FFF',
+    color: '#FFFFFF',
   },
 });
