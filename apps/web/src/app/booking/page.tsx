@@ -861,7 +861,7 @@ function BookingContent() {
                                 )}
                               </div>
 
-                              {/* Toggle Inclusions & Exclusions Pill Button (Matching baseline on tablet) */}
+                              {/* Toggle Inclusions & Exclusions Pill Button (Matching baseline on tablet/desktop) */}
                               <div className="pt-2 mt-auto">
                                 <button
                                   type="button"
@@ -884,33 +884,10 @@ function BookingContent() {
                                   )}
                                 </button>
                               </div>
-
-                              {/* Expandable Inclusions & Exclusions Content List */}
-                              {expandedInclusionsCategory === v.category && (
-                                <div className="mt-2.5 bg-[#F8FAFC] border border-blue-100 rounded-xl p-3.5 space-y-2">
-                                  <h4 className="text-xs font-black text-gray-900 mb-1.5">
-                                    Inclusions & Exclusions Details
-                                  </h4>
-                                  <ul className="space-y-1.5 text-[11px] font-bold text-gray-800">
-                                    {vFare.inclusions?.map((inc, i) => (
-                                      <li key={i} className="flex items-center gap-2 text-emerald-700">
-                                        <span className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center font-black text-emerald-600 text-[10px] shrink-0">✓</span>
-                                        <span>{inc}</span>
-                                      </li>
-                                    ))}
-                                    {vFare.exclusions?.map((exc, eIdx) => (
-                                      <li key={eIdx} className="flex items-center gap-2 text-rose-600 pt-1 border-t border-gray-200">
-                                        <span className="w-4 h-4 rounded-full bg-rose-100 flex items-center justify-center font-black text-rose-600 text-[10px] shrink-0">✕</span>
-                                        <span>{exc}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
                             </div>
                           </div>
 
-                          {/* Right: Pricing Box & SELECT CAR CTA Button (Proportionate padding & bottom-aligned button on tablet) */}
+                          {/* Right: Pricing Box & SELECT CAR CTA Button (Proportionate padding & bottom-aligned button on tablet/desktop) */}
                           <div className="px-2 pb-2.5 sm:p-0 shrink-0 space-y-2 sm:space-y-3 border-t md:border-t-0 md:border-l border-gray-100 pt-2.5 md:pt-0 md:pl-5 md:pr-1 lg:pl-6 lg:pr-0 w-full md:w-56 lg:w-64 flex flex-col justify-between">
                             {isAvailable ? (
                               <div className="space-y-2 sm:space-y-3 flex-1 flex flex-col justify-between">
@@ -966,28 +943,28 @@ function BookingContent() {
                           </div>
                         </div>
 
-
-                        {/* Desktop Expandable Inclusions and Exclusions Section */}
+                        {/* Expandable Inclusions & Exclusions Content List (Opens below card row on tablet/desktop) */}
                         {expandedInclusionsCategory === v.category && (
-                          <div className="hidden sm:block bg-gray-50 border-t border-gray-200 p-5 space-y-3">
-                            <h4 className="text-sm font-black text-gray-900 mb-3">
-                              Inclusions and Exclusions
-                            </h4>
-
-                            <ul className="space-y-2 text-xs font-bold text-gray-800">
-                              {vFare.inclusions?.map((inc, i) => (
-                                <li key={i} className="flex items-center gap-2.5 text-emerald-700">
-                                  <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center font-black text-emerald-600 text-xs shrink-0">✓</span>
-                                  <span>{inc}</span>
-                                </li>
-                              ))}
-                              {vFare.exclusions?.map((exc, eIdx) => (
-                                <li key={eIdx} className="flex items-center gap-2.5 text-rose-600 pt-1 border-t border-gray-200">
-                                  <span className="w-5 h-5 rounded-full bg-rose-100 flex items-center justify-center font-black text-rose-600 text-xs shrink-0">✕</span>
-                                  <span>{exc}</span>
-                                </li>
-                              ))}
-                            </ul>
+                          <div className="p-3 sm:p-4 md:p-5 pt-0 bg-[#F8FAFC] border-t border-blue-100">
+                            <div className="mt-2 bg-white border border-blue-100 rounded-xl p-3.5 space-y-2 shadow-xs">
+                              <h4 className="text-xs font-black text-gray-900 mb-1.5">
+                                Inclusions & Exclusions Details
+                              </h4>
+                              <ul className="space-y-1.5 text-[11px] font-bold text-gray-800">
+                                {vFare.inclusions?.map((inc, i) => (
+                                  <li key={i} className="flex items-center gap-2 text-emerald-700">
+                                    <span className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center font-black text-emerald-600 text-[10px] shrink-0">✓</span>
+                                    <span>{inc}</span>
+                                  </li>
+                                ))}
+                                {vFare.exclusions?.map((exc, eIdx) => (
+                                  <li key={eIdx} className="flex items-center gap-2 text-rose-600 pt-1 border-t border-gray-200">
+                                    <span className="w-4 h-4 rounded-full bg-rose-100 flex items-center justify-center font-black text-rose-600 text-[10px] shrink-0">✕</span>
+                                    <span>{exc}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
                           </div>
                         )}
                       </div>
