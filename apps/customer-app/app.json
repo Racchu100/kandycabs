@@ -15,15 +15,30 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Kandy Cabs uses your location to automatically detect your pickup location."
+      }
     },
     "android": {
       "package": "com.kandycabs.customer",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F59E0B"
       }
     },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Kandy Cabs uses your location to automatically detect your pickup location."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "4b5c4ef1-0362-4f69-90be-2e7705d28122"

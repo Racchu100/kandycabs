@@ -14,6 +14,7 @@ import {
   Image,
   ImageBackground,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { KANDY_THEME } from './theme';
 import { testSupabaseConnection } from './services/supabase';
@@ -27,6 +28,12 @@ import {
   createCustomerBooking,
   createPaymentOrder,
 } from './services/api';
+import {
+  requestLocationPermission,
+  openLocationAppSettings,
+  getCurrentCoordinates,
+  reverseGeocodeCoordinates,
+} from './services/locationService';
 
 // Types & Data Schemas
 type TripType = 'ONEWAY' | 'ROUNDTRIP' | 'LOCAL' | 'AIRPORT';
@@ -196,6 +203,23 @@ export default function App() {
   const [returnDate, setReturnDate] = useState<string>('');
   const [pickupTime, setPickupTime] = useState<string>('');
 
+  // ─── CURRENT LOCATION & MAP PICKER STATE ───
+  const [pickupLatitude, setPickupLatitude] = useState<number | null>(null);
+  const [pickupLongitude, setPickupLongitude] = useState<number | null>(null);
+  const [pickupAccuracy, setPickupAccuracy] = useState<number | null>(null);
+  const [isDetectingLocation, setIsDetectingLocation] = useState<boolean>(false);
+  const [locationStatusText, setLocationStatusText] = useState<string>('📍 Detecting your location...');
+  const [mapModalOpen, setMapModalOpen] = useState<boolean>(false);
+  const [tempMapCoords, setTempMapCoords] = useState<{ latitude: number; longitude: number; accuracy: number | null }>({
+    latitude: 12.8797,
+    longitude: 74.8430,
+    accuracy: 5,
+  });
+  const [tempGeocodedAddress, setTempGeocodedAddress] = useState<string>('');
+  const [tempShortAddress, setTempShortAddress] = useState<string>('');
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState<boolean>(false);
+  const [mapZoomLevel, setMapZoomLevel] = useState<number>(16);
+
   // ─── DATE & TIME PICKER STATE & HELPERS ───
   const [datePickerTarget, setDatePickerTarget] = useState<'PICKUP' | 'RETURN' | null>(null);
   const [datePickerMonth, setDatePickerMonth] = useState<Date>(() => new Date());
@@ -333,6 +357,127 @@ export default function App() {
   // Location Suggestion Dropdowns
   const [showPickupDropdown, setShowPickupDropdown] = useState<boolean>(false);
   const [showDropDropdown, setShowDropDropdown] = useState<boolean>(false);
+
+  // ─── GPS CURRENT LOCATION HANDLERS ───
+  const handleUseCurrentLocation = async () => {
+    if (isDetectingLocation) return;
+    setIsDetectingLocation(true);
+    setLocationStatusText('📍 Checking location permission...');
+
+    try {
+      const perm = await requestLocationPermission();
+      if (perm.status === 'services_disabled') {
+        Alert.alert(
+          'Location Services Disabled',
+          'Please turn on GPS / Location Services on your device to automatically detect your pickup location.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Settings', onPress: () => openLocationAppSettings() },
+          ]
+        );
+        setIsDetectingLocation(false);
+        return;
+      }
+
+      if (perm.status === 'denied') {
+        if (!perm.canAskAgain) {
+          Alert.alert(
+            'Location Permission Required',
+            'Kandy Cabs needs location access to detect your pickup point. Please enable Location in app settings.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => openLocationAppSettings() },
+            ]
+          );
+        } else {
+          Alert.alert(
+            'Permission Denied',
+            'Location permission was not granted. You can type your pickup location manually or try again.'
+          );
+        }
+        setIsDetectingLocation(false);
+        return;
+      }
+
+      if (perm.status !== 'granted') {
+        Alert.alert('Location Error', 'Unable to access location at this time.');
+        setIsDetectingLocation(false);
+        return;
+      }
+
+      setLocationStatusText('📍 Detecting your location...');
+      const coords = await getCurrentCoordinates();
+
+      setLocationStatusText('Finding your address...');
+      const geo = await reverseGeocodeCoordinates(coords.latitude, coords.longitude);
+
+      setTempMapCoords({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: coords.accuracy,
+      });
+      setTempGeocodedAddress(geo.formattedAddress);
+      setTempShortAddress(geo.shortAddress);
+      setShowPickupDropdown(false);
+      setMapModalOpen(true);
+    } catch (err: any) {
+      console.warn('[handleUseCurrentLocation error]', err);
+      Alert.alert('Location Error', err.message || 'Unable to retrieve your current location. Please enter manually.');
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
+
+  const handleNudgeMapLocation = async (dLat: number, dLng: number) => {
+    const newLat = tempMapCoords.latitude + dLat;
+    const newLng = tempMapCoords.longitude + dLng;
+
+    setTempMapCoords((prev) => ({
+      ...prev,
+      latitude: newLat,
+      longitude: newLng,
+    }));
+
+    setIsReverseGeocoding(true);
+    try {
+      const geo = await reverseGeocodeCoordinates(newLat, newLng);
+      setTempGeocodedAddress(geo.formattedAddress);
+      setTempShortAddress(geo.shortAddress);
+    } catch (err) {
+      console.warn('[handleNudgeMapLocation geocode error]', err);
+    } finally {
+      setIsReverseGeocoding(false);
+    }
+  };
+
+  const handleRecenterGps = async () => {
+    setIsReverseGeocoding(true);
+    try {
+      const coords = await getCurrentCoordinates();
+      const geo = await reverseGeocodeCoordinates(coords.latitude, coords.longitude);
+      setTempMapCoords({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: coords.accuracy,
+      });
+      setTempGeocodedAddress(geo.formattedAddress);
+      setTempShortAddress(geo.shortAddress);
+    } catch (err: any) {
+      Alert.alert('GPS Recenter', 'Unable to re-acquire GPS position.');
+    } finally {
+      setIsReverseGeocoding(false);
+    }
+  };
+
+  const handleConfirmMapPickup = () => {
+    const chosenAddress = tempGeocodedAddress || tempShortAddress || `Pickup (${tempMapCoords.latitude.toFixed(4)}, ${tempMapCoords.longitude.toFixed(4)})`;
+    setPickupInput(chosenAddress);
+    setPickupLatitude(tempMapCoords.latitude);
+    setPickupLongitude(tempMapCoords.longitude);
+    setPickupAccuracy(tempMapCoords.accuracy);
+    setMapModalOpen(false);
+    setShowPickupDropdown(false);
+  };
 
   // Selected Vehicle & Distance
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleCategory>(FLEET_CATEGORIES[0]);
@@ -587,6 +732,8 @@ export default function App() {
       const payload = {
         tripType,
         pickupAddress: pickupInput,
+        pickupLatitude: pickupLatitude ?? undefined,
+        pickupLongitude: pickupLongitude ?? undefined,
         dropAddress: dropInput,
         pickupDate,
         pickupTime,
@@ -1094,6 +1241,32 @@ export default function App() {
                 </View>
                 {showPickupDropdown && (
                   <View style={styles.suggestionsBox}>
+                    {/* Use Current Location Quick Button */}
+                    <TouchableOpacity
+                      style={styles.currentLocationOption}
+                      onPress={handleUseCurrentLocation}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.currentLocationIconBg}>
+                        {isDetectingLocation ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Text style={{ fontSize: 16 }}>📍</Text>
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.currentLocationHeading}>
+                          {isDetectingLocation ? locationStatusText : 'Use Current Location'}
+                        </Text>
+                        <Text style={styles.currentLocationSubheading}>
+                          {isDetectingLocation ? 'Obtaining GPS coordinates...' : 'Auto-detect GPS & fine-tune pickup pin'}
+                        </Text>
+                      </View>
+                      <Text style={styles.currentLocationArrow}>➔</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.suggestionDivider} />
+
                     {POPULAR_LOCATIONS.filter(
                       (loc) =>
                         loc.name.toLowerCase().includes(pickupInput.toLowerCase()) ||
@@ -1769,6 +1942,32 @@ export default function App() {
                 </View>
                 {showPickupDropdown && (
                   <View style={styles.suggestionsBox}>
+                    {/* Use Current Location Quick Button */}
+                    <TouchableOpacity
+                      style={styles.currentLocationOption}
+                      onPress={handleUseCurrentLocation}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.currentLocationIconBg}>
+                        {isDetectingLocation ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Text style={{ fontSize: 16 }}>📍</Text>
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.currentLocationHeading}>
+                          {isDetectingLocation ? locationStatusText : 'Use Current Location'}
+                        </Text>
+                        <Text style={styles.currentLocationSubheading}>
+                          {isDetectingLocation ? 'Obtaining GPS coordinates...' : 'Auto-detect GPS & fine-tune pickup pin'}
+                        </Text>
+                      </View>
+                      <Text style={styles.currentLocationArrow}>➔</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.suggestionDivider} />
+
                     {POPULAR_LOCATIONS.filter((loc) =>
                       loc.name.toLowerCase().includes(pickupInput.toLowerCase())
                     ).map((loc, idx) => (
@@ -2954,6 +3153,171 @@ export default function App() {
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
+      </Modal>
+
+      {/* ─── INTERACTIVE PICKUP MAP PIN ADJUSTMENT MODAL ─── */}
+      <Modal
+        visible={mapModalOpen}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setMapModalOpen(false)}
+      >
+        <View style={styles.mapModalOverlay}>
+          <View style={styles.mapModalCard}>
+            {/* Header */}
+            <View style={styles.mapModalHeader}>
+              <View>
+                <Text style={styles.mapModalTitle}>SET PICKUP PIN</Text>
+                <Text style={styles.mapModalSubtitle}>Fine-tune your exact pickup location</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.mapModalCloseBtn}
+                onPress={() => setMapModalOpen(false)}
+              >
+                <Text style={styles.mapModalCloseIcon}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Interactive Map Visual Area */}
+            <View style={styles.mapCanvasWrapper}>
+              {/* Map Canvas Background Grid */}
+              <View style={styles.mapCanvasBackground}>
+                {/* Street Lines & Route Blocks */}
+                <View style={styles.mapRoadH1} />
+                <View style={styles.mapRoadH2} />
+                <View style={styles.mapRoadV1} />
+                <View style={styles.mapRoadV2} />
+                <View style={styles.mapBuildingBlock1} />
+                <View style={styles.mapBuildingBlock2} />
+                <View style={styles.mapBuildingBlock3} />
+                <View style={styles.mapGreenArea} />
+
+                {/* Accuracy Circle & Center Pin */}
+                <View style={styles.mapAccuracyCircle} />
+                <View style={styles.mapPinContainer}>
+                  <View style={styles.mapPinBadge}>
+                    <Text style={styles.mapPinBadgeText}>📍 PICKUP HERE</Text>
+                  </View>
+                  <Text style={styles.mapPinIcon}>📍</Text>
+                  <View style={styles.mapPinShadow} />
+                </View>
+
+                {/* Map Floating Controls: Zoom & Recenter */}
+                <View style={styles.mapFloatingControls}>
+                  <TouchableOpacity
+                    style={styles.mapControlBtn}
+                    onPress={() => setMapZoomLevel((prev) => Math.min(prev + 1, 19))}
+                  >
+                    <Text style={styles.mapControlBtnText}>+</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.mapControlBtn}
+                    onPress={() => setMapZoomLevel((prev) => Math.max(prev - 1, 12))}
+                  >
+                    <Text style={styles.mapControlBtnText}>−</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.mapControlBtn, { marginTop: 8, backgroundColor: '#FF6B1A' }]}
+                    onPress={handleRecenterGps}
+                  >
+                    <Text style={[styles.mapControlBtnText, { color: '#FFF' }]}>🎯</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Map Directional Nudge Pad (To move pin smoothly on all devices) */}
+                <View style={styles.mapNudgePad}>
+                  <TouchableOpacity
+                    style={styles.nudgeBtn}
+                    onPress={() => handleNudgeMapLocation(0.0003, 0)}
+                  >
+                    <Text style={styles.nudgeText}>▲</Text>
+                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 14 }}>
+                    <TouchableOpacity
+                      style={styles.nudgeBtn}
+                      onPress={() => handleNudgeMapLocation(0, -0.0003)}
+                    >
+                      <Text style={styles.nudgeText}>◀</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.nudgeBtn}
+                      onPress={() => handleNudgeMapLocation(0, 0.0003)}
+                    >
+                      <Text style={styles.nudgeText}>▶</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.nudgeBtn}
+                    onPress={() => handleNudgeMapLocation(-0.0003, 0)}
+                  >
+                    <Text style={styles.nudgeText}>▼</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Bottom Sheet Details & Confirmation */}
+            <View style={styles.mapBottomSheet}>
+              {/* Accuracy Pill */}
+              <View style={styles.accuracyPillRow}>
+                <View
+                  style={[
+                    styles.accuracyPill,
+                    tempMapCoords.accuracy && tempMapCoords.accuracy > 25
+                      ? styles.accuracyPillWarning
+                      : styles.accuracyPillSuccess,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.accuracyPillText,
+                      tempMapCoords.accuracy && tempMapCoords.accuracy > 25
+                        ? styles.accuracyPillTextWarning
+                        : styles.accuracyPillTextSuccess,
+                    ]}
+                  >
+                    {tempMapCoords.accuracy
+                      ? tempMapCoords.accuracy <= 25
+                        ? `🟢 GPS Accuracy: ~${Math.round(tempMapCoords.accuracy)} m`
+                        : `🟠 GPS Accuracy: ~${Math.round(tempMapCoords.accuracy)} m (Adjust pin for precision)`
+                      : '📍 Estimated Location'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Detected Address Box */}
+              <View style={styles.mapAddressCard}>
+                <View style={styles.mapAddressHeaderRow}>
+                  <Text style={styles.mapAddressIcon}>📍</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.mapAddressTitle} numberOfLines={1}>
+                      {tempShortAddress || 'Pickup Location'}
+                    </Text>
+                    {isReverseGeocoding ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <ActivityIndicator size="small" color="#FF6B1A" />
+                        <Text style={styles.mapAddressSub}>Finding updated address...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.mapAddressSub} numberOfLines={2}>
+                        {tempGeocodedAddress || 'Address detected from GPS pin'}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <TouchableOpacity
+                style={styles.mapConfirmBtn}
+                activeOpacity={0.8}
+                onPress={handleConfirmMapPickup}
+              >
+                <Text style={styles.mapConfirmBtnText}>CONFIRM PICKUP LOCATION →</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -5645,6 +6009,371 @@ const styles = StyleSheet.create({
   timeDoneBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
+  // ─── CURRENT LOCATION & MAP STYLES ───
+  currentLocationOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF7ED',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    marginBottom: 6,
+    gap: 10,
+  },
+  currentLocationIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FF6B1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentLocationHeading: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#C2410C',
+  },
+  currentLocationSubheading: {
+    fontSize: 10,
+    color: '#EA580C',
+    marginTop: 1,
+  },
+  currentLocationArrow: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FF6B1A',
+  },
+  suggestionDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 4,
+  },
+
+  // Map Modal Styles
+  mapModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'flex-end',
+  },
+  mapModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '92%',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  mapModalHeader: {
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  mapModalTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.5,
+  },
+  mapModalSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  mapModalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapModalCloseIcon: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#475569',
+  },
+  mapCanvasWrapper: {
+    flex: 1,
+    backgroundColor: '#E2E8F0',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  mapCanvasBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#E5E9EC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapRoadH1: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '38%',
+    height: 24,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  mapRoadH2: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: '22%',
+    height: 18,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  mapRoadV1: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: '42%',
+    width: 26,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  mapRoadV2: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: '25%',
+    width: 18,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  mapBuildingBlock1: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    width: 100,
+    height: 80,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 8,
+  },
+  mapBuildingBlock2: {
+    position: 'absolute',
+    bottom: 40,
+    left: 30,
+    width: 90,
+    height: 70,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 8,
+  },
+  mapBuildingBlock3: {
+    position: 'absolute',
+    top: 30,
+    right: 30,
+    width: 80,
+    height: 100,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 8,
+  },
+  mapGreenArea: {
+    position: 'absolute',
+    bottom: 30,
+    right: 40,
+    width: 90,
+    height: 90,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  mapAccuracyCircle: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 107, 26, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 107, 26, 0.4)',
+    borderStyle: 'dashed',
+  },
+  mapPinContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 30,
+  },
+  mapPinBadge: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  mapPinBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  mapPinIcon: {
+    fontSize: 38,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 4,
+  },
+  mapPinShadow: {
+    width: 14,
+    height: 6,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    marginTop: -4,
+  },
+  mapFloatingControls: {
+    position: 'absolute',
+    right: 14,
+    top: 14,
+    gap: 6,
+    zIndex: 40,
+  },
+  mapControlBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  mapControlBtnText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1E293B',
+  },
+  mapNudgePad: {
+    position: 'absolute',
+    left: 14,
+    top: 14,
+    alignItems: 'center',
+    gap: 4,
+    zIndex: 40,
+  },
+  nudgeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  nudgeText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#334155',
+  },
+  mapBottomSheet: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 12,
+  },
+  accuracyPillRow: {
+    alignItems: 'flex-start',
+  },
+  accuracyPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  accuracyPillSuccess: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  accuracyPillWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  accuracyPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  accuracyPillTextSuccess: {
+    color: '#047857',
+  },
+  accuracyPillTextWarning: {
+    color: '#B45309',
+  },
+  mapAddressCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  mapAddressHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  mapAddressIcon: {
+    fontSize: 18,
+    marginTop: 2,
+  },
+  mapAddressTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  mapAddressSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  mapConfirmBtn: {
+    backgroundColor: '#FF6B1A',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  mapConfirmBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
