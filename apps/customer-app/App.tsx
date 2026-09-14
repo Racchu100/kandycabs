@@ -395,6 +395,8 @@ export default function App() {
       setIsLoggedIn(true);
       setCustomerName(finalName);
       setAuthModalOpen(false);
+      setMenuOpen(false);
+      setActiveTab('ACCOUNT');
       Alert.alert('Welcome!', res.message || `Logged in successfully as ${finalName}`);
       
       // Load user's bookings from backend API
@@ -408,6 +410,8 @@ export default function App() {
       setIsLoggedIn(true);
       setCustomerName(finalName);
       setAuthModalOpen(false);
+      setMenuOpen(false);
+      setActiveTab('ACCOUNT');
       Alert.alert('Welcome!', `Logged in successfully as ${finalName}`);
     } finally {
       setIsSubmitting(false);
@@ -2339,6 +2343,62 @@ export default function App() {
                       Driver details will be released by ops prior to pickup time.
                     </Text>
                   </View>
+
+                  {/* Fare Breakdown Box (Matching Website Image) */}
+                  <View style={styles.profileFareBox}>
+                    <Text style={styles.profileFareLabel}>ESTIMATED TOTAL</Text>
+                    <Text style={styles.profileFareTotal}>₹{b.totalFare.toLocaleString()}</Text>
+                    <View style={styles.profileFareRow}>
+                      <Text style={styles.profileFareSubLabel}>25% Advance Paid:</Text>
+                      <Text style={styles.profileFareAdvanceVal}>₹{b.advancePaid.toLocaleString()}</Text>
+                    </View>
+                    <View style={styles.profileFareRow}>
+                      <Text style={styles.profileFareSubLabel}>Balance Pending:</Text>
+                      <Text style={styles.profileFareBalanceVal}>₹{b.balanceDue.toLocaleString()}</Text>
+                    </View>
+                  </View>
+
+                  {/* Action Buttons: Cancel Ride & View Invoice */}
+                  <TouchableOpacity
+                    style={styles.profileCancelBtn}
+                    onPress={() => {
+                      Alert.alert(
+                        'Cancel Booking',
+                        `Are you sure you want to cancel booking ${b.id}? Free cancellations are allowed up to 1 hour before pickup.`,
+                        [
+                          { text: 'Keep Booking', style: 'cancel' },
+                          {
+                            text: 'Yes, Cancel',
+                            style: 'destructive',
+                            onPress: () => {
+                              setUserBookings((prev) =>
+                                prev.map((item) =>
+                                  item.id === b.id ? { ...item, status: 'CANCELLED' } : item
+                                )
+                              );
+                              Alert.alert('Booking Cancelled', `Booking ${b.id} has been cancelled.`);
+                            },
+                          },
+                        ]
+                      );
+                    }}
+                  >
+                    <Text style={styles.profileCancelIcon}>ⓧ</Text>
+                    <Text style={styles.profileCancelText}>CANCEL RIDE</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.profileInvoiceBtn}
+                    onPress={() => {
+                      Alert.alert(
+                        'Trip Tax Invoice',
+                        `==============================\nKANDY CABS OFFICIAL INVOICE\n==============================\nBooking Ref: ${b.id}\nCustomer: ${customerName || 'Valued Customer'}\nPhone: +91 ${phone}\n\nRoute: ${b.pickup} → ${b.drop}\nVehicle: ${b.vehicleName}\n\nTotal Fare: ₹${b.totalFare}\n25% Advance Paid: ₹${b.advancePaid} (PAID)\nBalance Due: ₹${b.balanceDue}\nStatus: ${b.status}\n==============================`
+                      );
+                    }}
+                  >
+                    <Text style={styles.profileInvoiceIcon}>📄</Text>
+                    <Text style={styles.profileInvoiceText}>VIEW INVOICE</Text>
+                  </TouchableOpacity>
                 </View>
               ))}
             </View>
@@ -4823,11 +4883,102 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginBottom: 12,
   },
   profileOpsNoticeText: {
     fontSize: 10.5,
     fontWeight: '600',
     color: '#92400E',
     flex: 1,
+  },
+
+  // ─── PROFILE FARE SUMMARY BOX & ACTION BUTTONS (Matches Image 2) ───
+  profileFareBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+  },
+  profileFareLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 0.6,
+  },
+  profileFareTotal: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginVertical: 4,
+  },
+  profileFareRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 3,
+  },
+  profileFareSubLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  profileFareAdvanceVal: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  profileFareBalanceVal: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#475569',
+  },
+  profileCancelBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    borderRadius: 12,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  profileCancelIcon: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  profileCancelText: {
+    color: '#DC2626',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  profileInvoiceBtn: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  profileInvoiceIcon: {
+    color: '#FFFFFF',
+    fontSize: 13,
+  },
+  profileInvoiceText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });
