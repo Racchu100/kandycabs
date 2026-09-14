@@ -2271,58 +2271,60 @@ export default function App() {
         </ScrollView>
       )}
 
-      {/* FLOATING BOTTOM NAVIGATION TAB BAR */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={[styles.bottomNavItem, activeTab === 'HOME' && tripType === 'ONEWAY' && styles.bottomNavItemActive]}
-          onPress={() => {
-            setTripType('ONEWAY');
-            setActiveTab('HOME');
-            setCurrentStep('SEARCH');
-          }}
-        >
-          <Text style={styles.bottomNavIcon}>🚗</Text>
-          <Text style={[styles.bottomNavText, activeTab === 'HOME' && tripType === 'ONEWAY' && styles.bottomNavTextActive]}>ONE WAY</Text>
-        </TouchableOpacity>
+      {/* FLOATING BOTTOM NAVIGATION TAB BAR (Only shown on Home Search Page) */}
+      {activeTab === 'HOME' && currentStep === 'SEARCH' && (
+        <View style={styles.bottomNav}>
+          <TouchableOpacity
+            style={[styles.bottomNavItem, tripType === 'ONEWAY' && styles.bottomNavItemActive]}
+            onPress={() => {
+              setTripType('ONEWAY');
+              setActiveTab('HOME');
+              setCurrentStep('SEARCH');
+            }}
+          >
+            <Text style={styles.bottomNavIcon}>🚗</Text>
+            <Text style={[styles.bottomNavText, tripType === 'ONEWAY' && styles.bottomNavTextActive]}>ONE WAY</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.bottomNavItem, activeTab === 'HOME' && tripType === 'ROUNDTRIP' && styles.bottomNavItemActive]}
-          onPress={() => {
-            setTripType('ROUNDTRIP');
-            setActiveTab('HOME');
-            setCurrentStep('SEARCH');
-          }}
-        >
-          <Text style={styles.bottomNavIcon}>🔄</Text>
-          <Text style={[styles.bottomNavText, activeTab === 'HOME' && tripType === 'ROUNDTRIP' && styles.bottomNavTextActive]}>
-            ROUND TRIP
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bottomNavItem, tripType === 'ROUNDTRIP' && styles.bottomNavItemActive]}
+            onPress={() => {
+              setTripType('ROUNDTRIP');
+              setActiveTab('HOME');
+              setCurrentStep('SEARCH');
+            }}
+          >
+            <Text style={styles.bottomNavIcon}>🔄</Text>
+            <Text style={[styles.bottomNavText, tripType === 'ROUNDTRIP' && styles.bottomNavTextActive]}>
+              ROUND TRIP
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.bottomNavItem, activeTab === 'HOME' && tripType === 'LOCAL' && styles.bottomNavItemActive]}
-          onPress={() => {
-            setTripType('LOCAL');
-            setActiveTab('HOME');
-            setCurrentStep('SEARCH');
-          }}
-        >
-          <Text style={styles.bottomNavIcon}>📍</Text>
-          <Text style={[styles.bottomNavText, activeTab === 'HOME' && tripType === 'LOCAL' && styles.bottomNavTextActive]}>LOCAL</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bottomNavItem, tripType === 'LOCAL' && styles.bottomNavItemActive]}
+            onPress={() => {
+              setTripType('LOCAL');
+              setActiveTab('HOME');
+              setCurrentStep('SEARCH');
+            }}
+          >
+            <Text style={styles.bottomNavIcon}>📍</Text>
+            <Text style={[styles.bottomNavText, tripType === 'LOCAL' && styles.bottomNavTextActive]}>LOCAL</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.bottomNavItem, activeTab === 'HOME' && tripType === 'AIRPORT' && styles.bottomNavItemActive]}
-          onPress={() => {
-            setTripType('AIRPORT');
-            setActiveTab('HOME');
-            setCurrentStep('SEARCH');
-          }}
-        >
-          <Text style={styles.bottomNavIcon}>✈️</Text>
-          <Text style={[styles.bottomNavText, activeTab === 'HOME' && tripType === 'AIRPORT' && styles.bottomNavTextActive]}>AIRPORT</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.bottomNavItem, tripType === 'AIRPORT' && styles.bottomNavItemActive]}
+            onPress={() => {
+              setTripType('AIRPORT');
+              setActiveTab('HOME');
+              setCurrentStep('SEARCH');
+            }}
+          >
+            <Text style={styles.bottomNavIcon}>✈️</Text>
+            <Text style={[styles.bottomNavText, tripType === 'AIRPORT' && styles.bottomNavTextActive]}>AIRPORT</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
