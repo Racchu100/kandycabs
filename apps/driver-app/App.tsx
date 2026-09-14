@@ -75,7 +75,7 @@ export default function App() {
       await sendDriverOtpApi(digitsOnly);
       setOtpSent(true);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to send OTP code.');
+      Alert.alert('Driver Access', err.message || 'Driver number is not registered');
     } finally {
       setIsSubmitting(false);
     }
@@ -103,7 +103,7 @@ export default function App() {
         Alert.alert('✅ Login Successful', `Welcome back, ${res.user.fullName || 'Driver Partner'}!`);
       }
     } catch (err: any) {
-      Alert.alert('Verification Failed', err.message || 'Incorrect OTP code.');
+      Alert.alert('Driver Access', err.message || 'Driver number is not registered');
     } finally {
       setIsSubmitting(false);
     }

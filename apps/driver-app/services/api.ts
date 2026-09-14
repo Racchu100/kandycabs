@@ -27,6 +27,19 @@ export function getCurrentDriverUser() {
   return currentDriverUser;
 }
 
+export const KNOWN_CONFIRMED_DRIVERS: Record<
+  string,
+  { fullName: string; vehicleName: string; status: string }
+> = {
+  '8888888888': { fullName: 'Ramesh Kumar (Chauffeur)', vehicleName: 'Swift Dzire (Sedan)', status: 'APPROVED' },
+  '8659745632': { fullName: 'Ranju', vehicleName: 'Sedan (Standard)', status: 'APPROVED' },
+  '9844011223': { fullName: 'Rajesh Gowda', vehicleName: 'Ertiga (SUV)', status: 'APPROVED' },
+  '9741098765': { fullName: 'Ramesh Poojary', vehicleName: 'Innova Crysta', status: 'APPROVED' },
+  '9481088776': { fullName: 'Suresh Naik', vehicleName: 'Swift Dzire (Sedan)', status: 'APPROVED' },
+  '9900223344': { fullName: 'Mahesh Shetty', vehicleName: 'Etios (Sedan)', status: 'APPROVED' },
+  '9845011998': { fullName: 'Ganesh Hegde', vehicleName: 'Tempo Traveller', status: 'APPROVED' },
+};
+
 async function request(endpoint: string, options: RequestInit = {}) {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const hostsToTry = [workingHost, ...CANDIDATE_HOSTS.filter(h => h !== workingHost)];
@@ -57,14 +70,17 @@ async function request(endpoint: string, options: RequestInit = {}) {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || data.message || `Request failed with status ${res.status}`);
+        const httpErr: any = new Error(data.error || data.message || `Request failed with status ${res.status}`);
+        httpErr.isHttpError = true;
+        httpErr.status = res.status;
+        throw httpErr;
       }
       workingHost = host;
       return data;
     } catch (err: any) {
       clearTimeout(timeoutId);
       lastError = err;
-      if (err.message && (err.message.includes('status 4') || err.message.includes('status 5'))) {
+      if (err.isHttpError) {
         throw err;
       }
     }
@@ -76,25 +92,37 @@ async function request(endpoint: string, options: RequestInit = {}) {
   throw lastError || new Error('Network request failed');
 }
 
-// 1. Driver Authentication
+// 1. Driver Authentication - STRICT Admin-Confirmed Drivers Only
 export async function sendDriverOtpApi(phone: string) {
+  const last10 = normalizePhone(phone);
   try {
     return await request('/api/auth/send-otp', {
       method: 'POST',
-      body: JSON.stringify({ phone: normalizePhone(phone), loginType: 'driver' }),
+      body: JSON.stringify({ phone: last10, loginType: 'driver' }),
     });
   } catch (err: any) {
-    console.warn('[sendDriverOtpApi fallback]', err.message);
+    if (err.isHttpError || err.message?.includes('Driver number') || err.message?.includes('admin')) {
+      throw err;
+    }
+    // Fallback: check against known confirmed drivers list
+    const driver = KNOWN_CONFIRMED_DRIVERS[last10];
+    if (!driver) {
+      throw new Error('Driver number is not registered');
+    }
+    if (driver.status !== 'APPROVED') {
+      throw new Error('Your driver account is pending admin verification. Only confirmed drivers can log in.');
+    }
     return { success: true, message: 'OTP sent successfully (Demo: 1234)' };
   }
 }
 
 export async function verifyDriverOtpApi(phone: string, otp: string) {
+  const last10 = normalizePhone(phone);
   try {
     const res = await request('/api/auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify({
-        phone: normalizePhone(phone),
+        phone: last10,
         otp,
         loginType: 'driver',
       }),
@@ -104,14 +132,27 @@ export async function verifyDriverOtpApi(phone: string, otp: string) {
     }
     return res;
   } catch (err: any) {
-    console.warn('[verifyDriverOtpApi fallback]', err.message);
-    const mockToken = `mock_driver_token_${Date.now()}`;
+    if (err.isHttpError || err.message?.includes('Driver number') || err.message?.includes('admin') || err.message?.includes('Invalid')) {
+      throw err;
+    }
+    // Fallback: check against known confirmed drivers list
+    const driver = KNOWN_CONFIRMED_DRIVERS[last10];
+    if (!driver) {
+      throw new Error('Driver number is not registered');
+    }
+    if (driver.status !== 'APPROVED') {
+      throw new Error('Your driver account is pending admin verification. Only confirmed drivers can log in.');
+    }
+    if (otp !== '1234') {
+      throw new Error('Invalid 4-digit OTP code');
+    }
+    const mockToken = `driver_token_${last10}`;
     const mockUser = {
-      id: `d_${normalizePhone(phone)}`,
-      phone: normalizePhone(phone),
-      fullName: 'Ramesh Kumar (Chauffeur)',
-      vehicleName: 'Swift Dzire (Sedan)',
-      status: 'APPROVED',
+      id: `d_${last10}`,
+      phone: last10,
+      fullName: driver.fullName,
+      vehicleName: driver.vehicleName,
+      status: driver.status,
     };
     setDriverAuthToken(mockToken, mockUser);
     return { success: true, user: mockUser, token: mockToken };

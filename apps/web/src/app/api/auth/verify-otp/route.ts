@@ -25,6 +25,31 @@ export async function POST(req: Request) {
 
     let { isRegistered, user } = await getUserByPhone(last10);
 
+    // If driver login: Only admin-confirmed drivers can log in
+    if (loginType === 'driver') {
+      const isDriver =
+        Boolean(user?.driver) ||
+        (Array.isArray(user?.roles) && user.roles.includes('DRIVER'));
+
+      if (!isRegistered || !isDriver) {
+        return NextResponse.json(
+          { error: 'Driver number is not registered' },
+          { status: 400 }
+        );
+      }
+
+      const isApproved =
+        user?.driver?.status === 'APPROVED' ||
+        user?.driver?.isVerifiedByAdmin === true;
+
+      if (!isApproved) {
+        return NextResponse.json(
+          { error: 'Your driver account is pending admin verification. Only confirmed drivers can log in.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // If not registered but a name was provided (e.g. from booking or registration), save them now
     if (!isRegistered && providedName) {
       user = await saveUser(last10, providedName);

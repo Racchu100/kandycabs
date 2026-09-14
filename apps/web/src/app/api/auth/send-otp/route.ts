@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 const sendOtpSchema = z.object({
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  loginType: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -22,6 +23,31 @@ export async function POST(req: Request) {
 
     const { isRegistered, user } = await getUserByPhone(last10);
     const fullName = user?.fullName || '';
+
+    // If driver login: Only admin-confirmed drivers can log in
+    if (parsed.loginType === 'driver') {
+      const isDriver =
+        Boolean(user?.driver) ||
+        (Array.isArray(user?.roles) && user.roles.includes('DRIVER'));
+
+      if (!isRegistered || !isDriver) {
+        return NextResponse.json(
+          { error: 'Driver number is not registered' },
+          { status: 400 }
+        );
+      }
+
+      const isApproved =
+        user?.driver?.status === 'APPROVED' ||
+        user?.driver?.isVerifiedByAdmin === true;
+
+      if (!isApproved) {
+        return NextResponse.json(
+          { error: 'Your driver account is pending admin verification. Only confirmed drivers can log in.' },
+          { status: 403 }
+        );
+      }
+    }
 
     // Standard dev/demo OTP
     const devOtp = '1234';
