@@ -158,7 +158,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function App() {
   // Navigation State
-  type AppTab = 'HOME' | 'TRIPS' | 'FLEET' | 'ACCOUNT' | 'ABOUT' | 'CONTACT';
+  type AppTab = 'HOME' | 'TRIPS' | 'FLEET' | 'ACCOUNT' | 'CONTACT';
   const [currentStep, setCurrentStep] = useState<WizardStep>('SEARCH');
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<AppTab>('HOME');
@@ -569,22 +569,7 @@ export default function App() {
                   <Text style={[styles.drawerNavChevron, activeTab === 'FLEET' && styles.drawerNavChevronActive]}>›</Text>
                 </TouchableOpacity>
 
-                {/* 4. About Us */}
-                <TouchableOpacity
-                  style={[styles.drawerNavItem, activeTab === 'ABOUT' && styles.drawerNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('ABOUT');
-                    setMenuOpen(false);
-                  }}
-                >
-                  <View style={styles.drawerNavLeft}>
-                    <Text style={[styles.drawerNavIcon, activeTab === 'ABOUT' && styles.drawerNavIconActive]}>ℹ️</Text>
-                    <Text style={[styles.drawerNavText, activeTab === 'ABOUT' && styles.drawerNavTextActive]}>About Us</Text>
-                  </View>
-                  <Text style={[styles.drawerNavChevron, activeTab === 'ABOUT' && styles.drawerNavChevronActive]}>›</Text>
-                </TouchableOpacity>
-
-                {/* 5. Contact */}
+                {/* 4. Contact */}
                 <TouchableOpacity
                   style={[styles.drawerNavItem, activeTab === 'CONTACT' && styles.drawerNavItemActive]}
                   onPress={() => {
@@ -2126,70 +2111,6 @@ export default function App() {
         </ScrollView>
       )}
 
-      {/* TAB: ABOUT US PAGE */}
-      {activeTab === 'ABOUT' && (
-        <ScrollView style={styles.scrollContent}>
-          <View style={styles.bookingCard}>
-            <Text style={styles.cardSectionTitle}>ABOUT KANDY CABS</Text>
-            <Text style={styles.pageHeading}>South India & Sri Lanka's Premier Intercity Taxi Service</Text>
-            <Text style={styles.heroSubtitle}>
-              Kandy Cabs provides premium outstation, intercity, local hourly rental, and airport transfer cab services with 100% verified chauffeurs, sanitized vehicles, and transparent billing.
-            </Text>
-
-            <View style={styles.menuDivider} />
-
-            <Text style={styles.cardSectionTitle}>WHY CHOOSE US</Text>
-            <View style={styles.trustBadgesGrid}>
-              <View style={styles.trustBadgeItem}>
-                <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#FFF7ED' }]}>
-                  <Text style={{ fontSize: 13 }}>🛡️</Text>
-                </View>
-                <Text style={styles.trustBadgeTitle}>VERIFIED CHAUFFEURS</Text>
-              </View>
-
-              <View style={styles.trustBadgeItem}>
-                <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#ECFDF5' }]}>
-                  <Text style={{ fontSize: 13 }}>🟢</Text>
-                </View>
-                <Text style={styles.trustBadgeTitle}>25% ADVANCE ONLY</Text>
-              </View>
-
-              <View style={styles.trustBadgeItem}>
-                <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#EFF6FF' }]}>
-                  <Text style={{ fontSize: 13 }}>👤</Text>
-                </View>
-                <Text style={styles.trustBadgeTitle}>TRANSPARENT BILLING</Text>
-              </View>
-
-              <View style={styles.trustBadgeItem}>
-                <View style={[styles.trustBadgeIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                  <Text style={{ fontSize: 13 }}>📞</Text>
-                </View>
-                <Text style={styles.trustBadgeTitle}>24X7 OPS SUPPORT</Text>
-              </View>
-            </View>
-
-            <View style={styles.menuDivider} />
-
-            <Text style={styles.cardSectionTitle}>OPERATING CITIES & REGIONS</Text>
-            <Text style={[styles.heroSubtitle, { marginBottom: 16 }]}>
-              • Karnataka: Bangalore, Mysore, Coorg, Chikmagalur, Mangalore{"\n"}
-              • Tamil Nadu: Chennai, Ooty, Madurai, Coimbatore{"\n"}
-              • Sri Lanka: Colombo, Kandy, Galle, Negombo, Nuwara Eliya
-            </Text>
-
-            <TouchableOpacity
-              style={styles.exploreCabsBtn}
-              onPress={() => {
-                setActiveTab('HOME');
-                setCurrentStep('SEARCH');
-              }}
-            >
-              <Text style={styles.exploreCabsBtnText}>BOOK A CAB NOW →</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      )}
 
       {/* TAB: CONTACT US PAGE */}
       {activeTab === 'CONTACT' && (
