@@ -387,7 +387,8 @@ export function getAllStoredDrivers(): any[] {
   const drivers: any[] = [];
   for (const [phone, user] of userRegistry.entries()) {
     if (user.roles.includes(UserRole.DRIVER) || user.driver) {
-      const isActive = (user as any).isActive !== false && user.driver?.status !== 'INACTIVE';
+      const isActive = (user as any).isActive !== false && user.driver?.status !== 'SUSPENDED' && user.driver?.status !== 'DEACTIVATED';
+      const isOnline = (user as any).isOnline !== false;
       const docRecord = driverDocsRegistry.get(phone) || (user.driver as any) || {};
       drivers.push({
         id: `d_${phone}`,
@@ -401,8 +402,9 @@ export function getAllStoredDrivers(): any[] {
         vehicleNumber: docRecord.vehicleNumber || (user.driver as any)?.vehicleNumber || 'KA-01-AB-1234',
         docsUploaded: !!docRecord.docsUploaded,
         isActive,
+        isOnline,
         isVerifiedByAdmin: true,
-        status: isActive ? 'APPROVED' : 'INACTIVE',
+        status: isActive ? 'APPROVED' : 'SUSPENDED',
         user: { phone: user.phone },
       });
     }
@@ -416,8 +418,20 @@ export function toggleStoredDriverActive(phoneOrId: string, isActive: boolean): 
     if (phone === cleanPhone || user.id === phoneOrId || `d_${phone}` === phoneOrId) {
       (user as any).isActive = isActive;
       if (user.driver) {
-        user.driver.status = isActive ? 'APPROVED' : 'INACTIVE';
+        user.driver.status = isActive ? 'APPROVED' : 'SUSPENDED';
       }
+      userRegistry.set(phone, user);
+      return true;
+    }
+  }
+  return false;
+}
+
+export function updateStoredDriverDuty(phoneOrId: string, isOnline: boolean): boolean {
+  const cleanPhone = normalizePhone(phoneOrId);
+  for (const [phone, user] of userRegistry.entries()) {
+    if (phone === cleanPhone || user.id === phoneOrId || `d_${phone}` === phoneOrId) {
+      (user as any).isOnline = isOnline;
       userRegistry.set(phone, user);
       return true;
     }

@@ -805,7 +805,8 @@ export default function AdminBookingsPage() {
               <div className="space-y-2 max-h-48 overflow-y-auto border border-kandy-border rounded p-2 text-xs">
                 {activeDrivers.map((d) => {
                   const isChecked = selectedDriverIds.includes(d.id);
-                  const isOnline = d.isActive !== false && d.status !== 'INACTIVE' && d.status !== 'DEACTIVATED';
+                  const isOnline = d.isOnline !== false;
+                  const isSuspended = d.isActive === false || d.status === 'SUSPENDED' || d.status === 'DEACTIVATED';
                   return (
                     <div
                       key={d.id}
@@ -828,11 +829,15 @@ export default function AdminBookingsPage() {
                           className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 shadow-sm ${
                             isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
                           }`}
-                          title={isOnline ? 'Online' : 'Offline'}
+                          title={isOnline ? 'Duty: Online' : 'Duty: Offline'}
                         />
                         <span>{d.fullName} (+91 {d.user?.phone || '8888888888'})</span>
                       </div>
-                      {isOnline ? (
+                      {isSuspended ? (
+                        <span className="text-[10px] bg-red-100 text-red-800 border border-red-300 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                          SUSPENDED
+                        </span>
+                      ) : isOnline ? (
                         <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-black uppercase tracking-wider flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0 animate-pulse" />
                           ONLINE

@@ -245,7 +245,8 @@ export default function AdminDriversPage() {
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
               {drivers.map((d) => {
-                const isOnline = d.isActive !== false && d.status !== 'INACTIVE' && d.status !== 'DEACTIVATED';
+                const isOnline = d.isOnline !== false;
+                const isActive = d.isActive !== false && d.status !== 'SUSPENDED' && d.status !== 'DEACTIVATED';
                 return (
                   <tr key={d.id} className="hover:bg-gray-50">
                     <td className="p-2 sm:p-3.5 font-bold whitespace-nowrap">
@@ -254,7 +255,7 @@ export default function AdminDriversPage() {
                           className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 shadow-sm ${
                             isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
                           }`}
-                          title={isOnline ? 'Online' : 'Offline'}
+                          title={isOnline ? 'Duty Status: Online' : 'Duty Status: Offline'}
                         />
                         <span>{d.fullName}</span>
                       </div>
@@ -264,37 +265,35 @@ export default function AdminDriversPage() {
                     <td className="p-2 sm:p-3.5 whitespace-nowrap">
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                          d.status === 'APPROVED'
+                          d.status === 'APPROVED' || d.status === 'ACTIVE'
                             ? 'bg-emerald-100 text-emerald-700'
-                            : d.status === 'REJECTED'
+                            : d.status === 'REJECTED' || d.status === 'SUSPENDED' || d.status === 'DEACTIVATED'
                             ? 'bg-red-100 text-red-700'
                             : 'bg-amber-100 text-amber-800'
                         }`}
                       >
-                        {d.status}
+                        {d.status === 'APPROVED' ? 'VERIFIED' : d.status}
                       </span>
                     </td>
                     <td className="p-2 sm:p-3.5 whitespace-nowrap">
                       <button
-                        onClick={() => handleToggleDeactivate(d.id, isOnline)}
-                        title="Click to toggle Driver Portal Duty Status (ONLINE / OFFLINE)"
+                        onClick={() => handleToggleDeactivate(d.id, isActive)}
+                        title="Click to toggle Admin Driver Portal Access (ACTIVE / SUSPENDED)"
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-black uppercase transition-all shadow-sm cursor-pointer ${
-                          isOnline
+                          isActive
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
                             : 'bg-red-100 text-red-800 border border-red-300 hover:bg-red-200'
                         }`}
                       >
-                        {isOnline ? (
+                        {isActive ? (
                           <>
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                             <ToggleRight className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>ONLINE</span>
+                            <span>ACTIVE</span>
                           </>
                         ) : (
                           <>
-                            <span className="w-2 h-2 rounded-full bg-red-500" />
                             <ToggleLeft className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                            <span>OFFLINE</span>
+                            <span>SUSPENDED</span>
                           </>
                         )}
                       </button>

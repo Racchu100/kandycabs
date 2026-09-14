@@ -28,7 +28,7 @@ export async function POST(
 
       await prisma.auditLog.create({
         data: {
-          action: isActive ? 'ACTIVATE_DRIVER' : 'DEACTIVATE_DRIVER',
+          action: isActive ? 'ACTIVATE_DRIVER' : 'SUSPEND_DRIVER',
           entityType: 'DRIVER',
           entityId: params.id,
           afterJson: JSON.stringify({ isActive }),
@@ -44,7 +44,7 @@ export async function POST(
       success: true,
       driverId: params.id,
       isActive,
-      message: `Driver portal status set to ${isActive ? 'ACTIVE' : 'INACTIVE'}.`,
+      message: `Driver account status set to ${isActive ? 'ACTIVE' : 'SUSPENDED'}.`,
     });
   } catch (err: any) {
     return NextResponse.json(

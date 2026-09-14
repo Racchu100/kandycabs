@@ -664,10 +664,10 @@ export default function DriverDashboardPage() {
                   try {
                     const phoneNum = user?.phone || '8659745632';
                     const driverId = driver?.id || `d_${phoneNum}`;
-                    await fetch(`/api/admin/drivers/${driverId}/deactivate`, {
+                    await fetch('/api/driver/duty', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ isActive: nextState }),
+                      body: JSON.stringify({ isOnline: nextState, phone: phoneNum, driverId }),
                     });
                   } catch (err) {
                     console.warn('Duty toggle sync error:', err);
