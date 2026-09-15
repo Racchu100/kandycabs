@@ -8,19 +8,71 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const driverId = searchParams.get('driverId') || '';
+    const phone = searchParams.get('phone') || '';
+
+    // --- Resolve the actual DB driver record ---
+    let resolvedDriverId = driverId;
+    let resolvedPhone = phone;
+
+    try {
+      // If driverId looks like d_<phone>, extract the phone
+      if (driverId && driverId.startsWith('d_')) {
+        resolvedPhone = resolvedPhone || driverId.replace('d_', '');
+      }
+      // Try to find driver by actual DB id first
+      let dbDriver: any = null;
+      if (driverId && !driverId.startsWith('d_') && driverId.length > 5) {
+        dbDriver = await prisma.driver.findFirst({
+          where: { id: driverId },
+          include: { user: true },
+        });
+      }
+      // Fallback: find by phone
+      if (!dbDriver && resolvedPhone) {
+        dbDriver = await prisma.driver.findFirst({
+          where: { user: { phone: resolvedPhone } },
+          include: { user: true },
+        });
+      }
+      if (dbDriver) {
+        resolvedDriverId = dbDriver.id;
+        resolvedPhone = dbDriver.user?.phone || resolvedPhone;
+      }
+    } catch (_) { /* proceed with what we have */ }
+
+    const hasDriverFilter = !!(resolvedDriverId || resolvedPhone);
 
     let dbBookings: any[] = [];
     try {
-      dbBookings = await prisma.booking.findMany({
-        where: {
-          status: {
-            in: ['DISPATCHED', 'DRIVER_ACCEPTED', 'TRIP_STARTED', 'TRIP_COMPLETED', 'CANCELLED'],
-          },
+      // Build where clause: only fetch trips for this specific driver
+      const whereClause: any = {
+        status: {
+          in: ['DISPATCHED', 'DRIVER_ACCEPTED', 'TRIP_STARTED', 'TRIP_COMPLETED', 'CANCELLED'],
         },
+      };
+
+      if (hasDriverFilter) {
+        // Filter: dispatched TO this driver OR assigned to this driver
+        const orClauses: any[] = [];
+        if (resolvedDriverId) {
+          orClauses.push({ assignedDriverId: resolvedDriverId });
+          orClauses.push({ dispatches: { some: { driverId: resolvedDriverId } } });
+        }
+        if (resolvedPhone) {
+          orClauses.push({ assignedDriver: { user: { phone: resolvedPhone } } });
+        }
+        if (orClauses.length > 0) {
+          whereClause.OR = orClauses;
+        }
+      }
+
+      dbBookings = await prisma.booking.findMany({
+        where: whereClause,
         include: {
           customer: { include: { user: true } },
           assignedDriver: { include: { user: true } },
           vehicle: true,
+          dispatches: true,
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -40,6 +92,18 @@ export async function GET(req: Request) {
     for (const s of storedBookings) {
       if (!refSet.has(s.humanReadableRef) && !refSet.has(s.id)) {
         if (['DISPATCHED', 'DRIVER_ACCEPTED', 'TRIP_STARTED', 'TRIP_COMPLETED', 'CANCELLED'].includes(s.status)) {
+          // Apply driver filter to in-memory store as well
+          if (hasDriverFilter) {
+            const assignedId = s.assignedDriver?.id || s.assignedDriverId || '';
+            const assignedPhone = s.assignedDriver?.user?.phone || s.assignedDriver?.phone || '';
+            const isAssigned =
+              (resolvedDriverId && (assignedId === resolvedDriverId || assignedId.includes(resolvedDriverId))) ||
+              (resolvedPhone && (assignedPhone === resolvedPhone || assignedPhone.includes(resolvedPhone.slice(-10)))) ||
+              // Also match d_<phone> style IDs
+              (resolvedPhone && assignedId === `d_${resolvedPhone}`);
+
+            if (!isAssigned) continue;
+          }
           refSet.add(s.humanReadableRef || s.id);
           allBookings.push(s);
         }

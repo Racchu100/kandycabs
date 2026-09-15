@@ -38,6 +38,8 @@ export default function DriverDashboardPage() {
   const [driver, setDriver] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dispatches, setDispatches] = useState<any[]>([]);
+  const [newDispatchCount, setNewDispatchCount] = useState(0);
+  const prevDispatchIdsRef = useRef<Set<string>>(new Set());
   const [isOnline, setIsOnline] = useState(true);
   const [activeTripModalBooking, setActiveTripModalBooking] = useState<any | null>(null);
   const fetchedDriverRef = useRef<string | null>(null);
@@ -276,7 +278,10 @@ export default function DriverDashboardPage() {
 
   const fetchDriverDispatches = async (driverId?: string) => {
     try {
-      const res = await fetch(`/api/driver/dispatches?driverId=${driverId || 'd_1'}`);
+      const phone = user?.phone || '';
+      const res = await fetch(
+        `/api/driver/dispatches?driverId=${encodeURIComponent(driverId || '')}&phone=${encodeURIComponent(phone)}`
+      );
       if (res.ok) {
         const data = await res.json();
         const rawDispatches: any[] = data.dispatches || [];
@@ -301,23 +306,21 @@ export default function DriverDashboardPage() {
           return timeB - timeA;
         });
 
+        // Detect NEW dispatches (status=DISPATCHED) that weren't seen before
+        const currentIds = new Set<string>(
+          sorted.filter((d) => (d.booking?.status || d.status) === 'DISPATCHED').map((d) => d.id)
+        );
+        let newCount = 0;
+        currentIds.forEach((id) => {
+          if (!prevDispatchIdsRef.current.has(id)) newCount++;
+        });
+        prevDispatchIdsRef.current = currentIds;
+        if (newCount > 0) setNewDispatchCount((c) => c + newCount);
+
         setDispatches(sorted);
       } else {
-        setDispatches([
-          {
-            id: 'disp_1',
-            bookingId: 'b_1',
-            booking: {
-              humanReadableRef: 'KC73744',
-              tripType: 'ONEWAY',
-              pickupAddress: 'Bangalore, Karnataka',
-              dropAddress: 'Coorg (Madikeri), Karnataka',
-              scheduledAt: '2026-09-15T06:00:00.000Z',
-              estimatedFare: 4250,
-              vehicle: { name: 'Swift Dzire (Sedan)' },
-            },
-          },
-        ]);
+        // Don't replace with fake data on error — just leave empty or keep existing
+        console.warn('Dispatch fetch returned error status');
       }
     } catch (err) {
       console.warn('Error fetching dispatches:', err);
@@ -528,6 +531,16 @@ export default function DriverDashboardPage() {
     return () => clearInterval(interval);
   }, [driver, user]);
 
+  // Auto-poll for new dispatches every 5 seconds
+  useEffect(() => {
+    if (!driver && !user) return;
+    const driverId = driver?.id;
+    const pollFn = () => fetchDriverDispatches(driverId);
+    const pollInterval = setInterval(pollFn, 5000);
+    return () => clearInterval(pollInterval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [driver, user]);
+
   const isAdmin =
     user?.phone?.includes('9481086058') ||
     user?.phone?.includes('9999999999') ||
@@ -695,6 +708,27 @@ export default function DriverDashboardPage() {
                   setDocSuccess(null);
                 }}
               />
+
+              {/* NEW DISPATCH ALERT BANNER */}
+              {newDispatchCount > 0 && (
+                <div
+                  className="flex items-center gap-3 bg-orange-500 text-white px-4 py-3 rounded-2xl shadow-lg cursor-pointer animate-pulse border border-orange-400"
+                  onClick={() => setNewDispatchCount(0)}
+                >
+                  <div className="flex-shrink-0 w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
+                    <Radio className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-black text-sm leading-tight">
+                      🚨 {newDispatchCount} New Dispatch{newDispatchCount > 1 ? 'es' : ''} Incoming!
+                    </p>
+                    <p className="text-[11px] text-orange-100 mt-0.5">
+                      Admin has assigned new trip{newDispatchCount > 1 ? 's' : ''} to you — check below
+                    </p>
+                  </div>
+                  <div className="text-orange-200 text-xs font-bold">TAP TO DISMISS</div>
+                </div>
+              )}
 
               {/* Dispatches Partitioning */}
               {(() => {
