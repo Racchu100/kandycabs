@@ -95,7 +95,7 @@ export async function GET(req: Request) {
           // Apply driver filter to in-memory store as well
           if (hasDriverFilter) {
             const assignedId = s.assignedDriver?.id || '';
-            const assignedPhone = s.assignedDriver?.user?.phone || s.assignedDriver?.phone || '';
+            const assignedPhone = s.assignedDriver?.user?.phone || '';
             const isAssigned =
               (resolvedDriverId && (assignedId === resolvedDriverId || assignedId.includes(resolvedDriverId))) ||
               (resolvedPhone && (assignedPhone === resolvedPhone || assignedPhone.includes(resolvedPhone.slice(-10)))) ||
