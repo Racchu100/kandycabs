@@ -15,10 +15,12 @@ import {
   Modal,
   Linking,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { Camera } from 'expo-camera';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { KANDY_THEME } from '@kandycabs/shared';
 import {
   sendDriverOtpApi,
@@ -31,9 +33,20 @@ import {
   startTripApi,
   endTripApi,
   sendGpsPingApi,
+  fetchDriverDocumentsApi,
+  uploadDriverDocumentsApi,
 } from './services/api';
 
 const SESSION_STORAGE_KEY = 'kandy_driver_session';
+
+const VEHICLE_CATEGORIES = [
+  'Swift Dzire (Sedan)',
+  'Toyota Etios (Sedan)',
+  'Hatchback (WagonR / Indica)',
+  'SUV (Ertiga / Marazzo)',
+  'SUV Premium (Toyota Innova Crysta)',
+  'Tempo Traveler (12 Seater Luxury)',
+];
 
 const SAMPLE_DISPATCHES = [
   {
@@ -97,6 +110,33 @@ export default function App() {
   const [dispatches, setDispatches] = useState<any[]>(SAMPLE_DISPATCHES);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // ─── DRIVER & VEHICLE DOCUMENTS POPUP MODAL STATE ───
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [hasPendingDocs, setHasPendingDocs] = useState(true);
+  const [isNoticeDismissed, setIsNoticeDismissed] = useState(false);
+  const [docLicenseNumber, setDocLicenseNumber] = useState('KA-19-2024-8659');
+  const [docVehicleName, setDocVehicleName] = useState('Swift Dzire (Sedan)');
+  const [docVehicleNumber, setDocVehicleNumber] = useState('KA-19-KC-1001');
+  const [isUploadingDocs, setIsUploadingDocs] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [activeUploadField, setActiveUploadField] = useState<string | null>(null);
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
+
+  // Selected files map
+  const [selectedFiles, setSelectedFiles] = useState<
+    Record<string, { uri: string; name?: string; type?: string } | null>
+  >({
+    license: null,
+    driverPhoto: null,
+    rc: null,
+    insurance: null,
+    vehicleFront: null,
+    vehicleBack: null,
+    vehicleLeft: null,
+    vehicleRight: null,
+    vehicleInside: null,
+  });
+
   // Active Selected Trip Lifecycle Modal State
   const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
   const [showTripModal, setShowTripModal] = useState(false);
@@ -124,6 +164,7 @@ export default function App() {
             setDriverUser(parsed.user);
             setDriverAuthToken(parsed.token, parsed.user);
             setIsLoggedIn(true);
+            checkDriverDocs(parsed.user.phone);
           }
         }
       } catch (err) {
@@ -134,6 +175,17 @@ export default function App() {
     };
     restoreSession();
   }, []);
+
+  const checkDriverDocs = async (phone: string) => {
+    try {
+      const res = await fetchDriverDocumentsApi(phone);
+      if (res?.docs?.docsUploaded) {
+        setHasPendingDocs(false);
+      } else {
+        setHasPendingDocs(true);
+      }
+    } catch (e) {}
+  };
 
   // ─── REQUEST NATIVE CAMERA & GPS PERMISSIONS ───
   const requestPermissions = async () => {
@@ -257,7 +309,8 @@ export default function App() {
         );
         setDriverUser(res.user);
         setIsLoggedIn(true);
-        Alert.alert('✅ Login Successful', `Welcome back, ${res.user.fullName || 'Driver Partner'}!`);
+        // Automatically pop up the Driver & Vehicle Necessary Documents Modal
+        setShowDocModal(true);
       }
     } catch (err: any) {
       Alert.alert('Driver Access', err.message || 'Driver number is not registered');
@@ -284,10 +337,154 @@ export default function App() {
             setIsLoggedIn(false);
             setOtpSent(false);
             setLoginOtp('');
+            setShowDocModal(false);
           },
         },
       ]
     );
+  };
+
+  // ─── IMAGE PICKER & DOCUMENT HANDLERS ───
+  const openFilePicker = (fieldKey: string) => {
+    setActiveUploadField(fieldKey);
+    setShowImagePickerModal(true);
+  };
+
+  const handlePickFromCamera = async () => {
+    setShowImagePickerModal(false);
+    if (!activeUploadField) return;
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Camera permission is required to capture photos.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setSelectedFiles((prev) => ({
+          ...prev,
+          [activeUploadField]: {
+            uri: asset.uri,
+            name: asset.fileName || `${activeUploadField}_${Date.now()}.jpg`,
+            type: asset.mimeType || 'image/jpeg',
+          },
+        }));
+      }
+    } catch (err: any) {
+      Alert.alert('Camera Error', err.message || 'Failed to capture photo.');
+    }
+  };
+
+  const handlePickFromGallery = async () => {
+    setShowImagePickerModal(false);
+    if (!activeUploadField) return;
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Gallery access permission is required.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setSelectedFiles((prev) => ({
+          ...prev,
+          [activeUploadField]: {
+            uri: asset.uri,
+            name: asset.fileName || `${activeUploadField}_${Date.now()}.jpg`,
+            type: asset.mimeType || 'image/jpeg',
+          },
+        }));
+      }
+    } catch (err: any) {
+      Alert.alert('Gallery Error', err.message || 'Failed to select photo.');
+    }
+  };
+
+  // Stepper completion calculation
+  const isSec1Complete = Boolean(docLicenseNumber && (selectedFiles.license || selectedFiles.driverPhoto));
+  const isSec2Complete = Boolean(docVehicleName && (selectedFiles.rc || selectedFiles.insurance));
+  const isSec3Complete = Boolean(
+    selectedFiles.vehicleFront ||
+    selectedFiles.vehicleBack ||
+    selectedFiles.vehicleLeft ||
+    selectedFiles.vehicleRight ||
+    selectedFiles.vehicleInside
+  );
+
+  const currentStep = !isSec1Complete ? 1 : !isSec2Complete ? 2 : 3;
+  const currentStepTitle =
+    currentStep === 1
+      ? 'License & Driver Photo'
+      : currentStep === 2
+      ? 'RC & Insurance'
+      : 'Vehicle Photos';
+
+  const totalFields = 9;
+  const filledCount =
+    (selectedFiles.license ? 1 : 0) +
+    (selectedFiles.driverPhoto ? 1 : 0) +
+    (selectedFiles.rc ? 1 : 0) +
+    (selectedFiles.insurance ? 1 : 0) +
+    (selectedFiles.vehicleFront ? 1 : 0) +
+    (selectedFiles.vehicleBack ? 1 : 0) +
+    (selectedFiles.vehicleLeft ? 1 : 0) +
+    (selectedFiles.vehicleRight ? 1 : 0) +
+    (selectedFiles.vehicleInside ? 1 : 0);
+
+  const percentComplete = Math.round((filledCount / totalFields) * 100);
+
+  const handleUploadDocumentsSubmit = async () => {
+    if (!docLicenseNumber.trim()) {
+      Alert.alert('Required Field', 'Please enter your Driving License Number.');
+      return;
+    }
+    if (!docVehicleNumber.trim()) {
+      Alert.alert('Required Field', 'Please enter your Vehicle Plate Number.');
+      return;
+    }
+
+    setIsUploadingDocs(true);
+    try {
+      const phone = driverUser?.phone || loginPhone || '8888888888';
+      const res = await uploadDriverDocumentsApi({
+        phone,
+        licenseNumber: docLicenseNumber,
+        vehicleName: docVehicleName,
+        vehicleNumber: docVehicleNumber,
+        files: selectedFiles,
+      });
+
+      if (res?.success) {
+        setHasPendingDocs(false);
+        Alert.alert(
+          '🎉 Upload Complete!',
+          'Driver profile, license, RC, insurance & vehicle photos have been saved to Supabase and Admin database.',
+          [
+            {
+              text: 'Go to Dashboard',
+              onPress: () => setShowDocModal(false),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Notice', res?.message || 'Documents updated successfully!');
+        setShowDocModal(false);
+      }
+    } catch (err: any) {
+      Alert.alert('Upload Failed', err.message || 'Could not upload documents.');
+    } finally {
+      setIsUploadingDocs(false);
+    }
   };
 
   // ─── TRIP LIFECYCLE HANDLERS ───
@@ -348,7 +545,7 @@ export default function App() {
       return;
     }
     if (!tollConfirmed) {
-      Alert.alert('Toll Required', 'Please confirm toll fare (enter 0 if none) before completing the trip.');
+      Alert.alert('Toll Required', 'Please confirm Toll amount paid (₹0 if none) before closing out trip.');
       return;
     }
     const bId = selectedBooking?.humanReadableRef || selectedBooking?.id || 'KC54120';
@@ -356,168 +553,194 @@ export default function App() {
       await uploadOdometerPhotoApi({
         bookingId: bId,
         type: 'END',
-        odometerReading: 45460,
-        lat: 12.3375,
-        lng: 75.8069,
+        odometerReading: 45385,
+        lat: 12.3051,
+        lng: 76.6551,
       });
       await endTripApi({
         bookingId: bId,
-        finalReading: 45460,
-        tollAmount: Number(tollAmountInput) || 0,
-        lat: 12.3375,
-        lng: 75.8069,
+        finalReading: 45385,
+        tollAmount: parseFloat(tollAmountInput) || 0,
+        lat: 12.3051,
+        lng: 76.6551,
       });
       setEndOdometerCaptured(true);
       setTripState('COMPLETED');
-      Alert.alert('🎉 Trip Completed!', 'End Odometer photo stamped. Billing closed out for admin review.');
+      Alert.alert('🏁 Trip Completed!', 'Final distance & toll fare billed. Invoice sent to customer.');
+      await loadDispatches();
     } catch (err: any) {
-      Alert.alert('Trip Completion Error', err.message || 'Failed to end trip.');
+      Alert.alert('End Trip Error', err.message || 'Failed to close out trip.');
     }
   };
 
-  // ─── 1. LOADING SCREEN WHILE CHECKING SESSION ───
+  // ─── AUTH SCREEN RENDER ───
   if (isCheckingAuth) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF6B1A" />
-        <Text style={styles.loadingText}>Loading Kandy Cabs Driver Partner...</Text>
-      </View>
+        <Text style={styles.loadingText}>Connecting to Kandy Cabs Network...</Text>
+      </SafeAreaView>
     );
   }
 
-  // ─── 2. SIGN IN SCREEN ───
   if (!isLoggedIn) {
     return (
       <SafeAreaView style={styles.authContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+        <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
         <ScrollView contentContainerStyle={styles.authScrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.authCard}>
+            {/* Logo Badge */}
             <View style={styles.authLogoWrapper}>
-              <Image
-                source={require('./assets/kandycabs-logo.png')}
-                style={styles.authLogo}
-                resizeMode="contain"
-              />
+              <View style={styles.brandBadge}>
+                <Text style={styles.brandTitleText}>KANDY CABS</Text>
+                <Text style={styles.brandSubtitleText}>DRIVER PARTNER NETWORK</Text>
+              </View>
             </View>
 
-            <Text style={styles.authTitle}>Sign In to Kandy Cabs</Text>
+            <Text style={styles.authTitle}>Driver Partner Portal</Text>
             <Text style={styles.authSubtitle}>
-              Sign in with your driver-partner number to go online
+              Sign in with your admin-registered mobile number to access dispatches & live trips.
             </Text>
 
-            {!otpSent ? (
-              <View style={styles.authForm}>
-                <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
-                <View style={styles.phoneInputRow}>
-                  <View style={styles.phonePrefixBox}>
-                    <Text style={styles.phonePrefixText}>+91</Text>
-                  </View>
-                  <TextInput
-                    style={styles.phoneInput}
-                    keyboardType="phone-pad"
-                    maxLength={10}
-                    value={loginPhone}
-                    onChangeText={setLoginPhone}
-                    placeholder="98765 43210"
-                    placeholderTextColor="#94A3B8"
-                  />
+            <View style={styles.authForm}>
+              <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
+              <View style={styles.phoneInputRow}>
+                <View style={styles.phonePrefixBox}>
+                  <Text style={styles.phonePrefixText}>+91</Text>
                 </View>
-
-                <TouchableOpacity
-                  style={styles.primaryAuthBtn}
-                  onPress={handleSendOtp}
-                  disabled={isSubmitting}
-                >
-                  <Text style={styles.lockIcon}>🔒</Text>
-                  <Text style={styles.primaryAuthBtnText}>
-                    {isSubmitting ? 'SENDING OTP...' : 'SEND OTP →'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.authForm}>
-                <View style={styles.demoOtpBanner}>
-                  <Text style={styles.demoOtpText}>
-                    Verification Code: <Text style={{ fontWeight: '900', color: '#FF6B1A' }}>1234</Text> (Sent to +91 {loginPhone})
-                  </Text>
-                </View>
-
-                <Text style={styles.inputLabel}>ENTER 4-DIGIT OTP</Text>
                 <TextInput
-                  style={styles.otpCodeInput}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                  value={loginOtp}
-                  onChangeText={setLoginOtp}
-                  placeholder="1234"
-                  placeholderTextColor="#CBD5E1"
-                />
-
-                <TouchableOpacity
-                  style={styles.primaryAuthBtn}
-                  onPress={handleVerifyOtp}
-                  disabled={isSubmitting}
-                >
-                  <Text style={styles.lockIcon}>✓</Text>
-                  <Text style={styles.primaryAuthBtnText}>
-                    {isSubmitting ? 'VERIFYING...' : 'VERIFY & ACCESS PORTAL →'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.changeNumberBtn}
-                  onPress={() => {
+                  style={styles.phoneInput}
+                  placeholder="98765 43210"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  value={loginPhone}
+                  onChangeText={(val) => {
+                    setLoginPhone(val);
                     setOtpSent(false);
-                    setLoginOtp('');
                   }}
-                >
-                  <Text style={styles.changeNumberText}>← Change Mobile Number</Text>
-                </TouchableOpacity>
+                  editable={!isSubmitting}
+                />
               </View>
-            )}
-          </View>
 
-          <View style={styles.authFooterBanner}>
-            <Text style={styles.authFooterText}>
-              South India's most trusted outstation & local cab booking platform. Premium chauffeur-driven cabs with transparent pricing.
-            </Text>
+              {otpSent && (
+                <View style={styles.otpSection}>
+                  <Text style={styles.inputLabel}>ENTER 4-DIGIT OTP</Text>
+                  <TextInput
+                    style={styles.otpInputBox}
+                    placeholder="• • • •"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    value={loginOtp}
+                    onChangeText={setLoginOtp}
+                    editable={!isSubmitting}
+                  />
+                  <Text style={styles.otpHintText}>💡 Demo Test OTP: 1234</Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.primaryAuthBtn}
+                onPress={otpSent ? handleVerifyOtp : handleSendOtp}
+                disabled={isSubmitting}
+                activeOpacity={0.85}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Text style={styles.primaryAuthBtnText}>
+                      {otpSent ? 'VERIFY OTP & SIGN IN →' : 'GET LOGIN OTP →'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // ─── 3. LOGGED-IN DRIVER DASHBOARD (MATCHES WEB DRIVER PORTAL) ───
-  const driverName = driverUser?.fullName || 'Ranju';
+  // ─── DRIVER DASHBOARD VIEW ───
+  const driverName = driverUser?.fullName || 'Ramesh Kumar';
   const driverInitial = driverName.charAt(0).toUpperCase();
-  const vehicleName = driverUser?.vehicleName || 'Sedan (Standard)';
-  const driverPhone = driverUser?.phone || '8659745632';
+  const vehicleName = driverUser?.vehicleName || 'Swift Dzire (Sedan)';
+  const driverPhone = driverUser?.phone || '8888888888';
+
+  // Helper render for Upload Box
+  const renderUploadBox = (label: string, fieldKey: string) => {
+    const file = selectedFiles[fieldKey];
+    return (
+      <View style={styles.uploadCardContainer} key={fieldKey}>
+        <View style={styles.uploadDashedCard}>
+          {file ? (
+            <View style={styles.uploadPreviewRow}>
+              {file.uri ? (
+                <Image source={{ uri: file.uri }} style={styles.uploadThumbImage} />
+              ) : (
+                <View style={styles.uploadThumbPlaceholder}>
+                  <Text style={styles.uploadThumbPlaceholderIcon}>📄</Text>
+                </View>
+              )}
+              <View style={styles.uploadPreviewInfo}>
+                <View style={styles.uploadBadgeSuccess}>
+                  <Text style={styles.uploadBadgeSuccessText}>✓ Ready to upload</Text>
+                </View>
+                <Text style={styles.uploadFileName} numberOfLines={1}>
+                  {file.name || `${fieldKey}.jpg`}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => openFilePicker(fieldKey)}
+                  style={styles.uploadChangeBtn}
+                >
+                  <Text style={styles.uploadChangeBtnText}>Change Photo</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.uploadEmptyContent}>
+              <View style={styles.uploadCloudIconCircle}>
+                <Text style={styles.uploadCloudIcon}>☁️</Text>
+              </View>
+              <Text style={styles.uploadLabelTitle}>{label} *</Text>
+              <Text style={styles.uploadFileSubText}>JPG, PNG or PDF, up to 10MB</Text>
+              <TouchableOpacity
+                style={styles.chooseFileBtn}
+                onPress={() => openFilePicker(fieldKey)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.chooseFileBtnText}>Choose file</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#101522" />
 
       {/* Top Navbar */}
       <View style={styles.topNavbar}>
-        <Image
-          source={require('./assets/kandycabs-logo.png')}
-          style={styles.navbarLogo}
-          resizeMode="contain"
-        />
-        <View style={styles.topNavbarRight}>
-          <TouchableOpacity style={styles.logoutHeaderBtn} onPress={handleLogout} activeOpacity={0.7}>
-            <Text style={styles.logoutHeaderBtnText}>LOG OUT</Text>
-          </TouchableOpacity>
+        <View style={styles.navBrandCol}>
+          <Text style={styles.navBrandText}>KANDY CABS</Text>
+          <Text style={styles.navBrandSub}>DRIVER CONSOLE</Text>
         </View>
+        <TouchableOpacity style={styles.navLogoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+          <Text style={styles.navLogoutText}>LOG OUT 🚪</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
-        style={styles.scrollContent}
-        contentContainerStyle={styles.scrollContentContainer}
-        showsVerticalScrollIndicator={false}
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
-        {/* 1. Driver Profile Card (Matching Web Dashboard Screenshot) */}
+        {/* 1. Driver Profile Card */}
         <View style={styles.driverProfileCard}>
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarCircle}>
@@ -552,11 +775,13 @@ export default function App() {
         <TouchableOpacity
           style={styles.pendingDocsBanner}
           activeOpacity={0.8}
-          onPress={() => Alert.alert('Documents', 'All driver documents and vehicle photos are recorded.')}
+          onPress={() => setShowDocModal(true)}
         >
           <View style={styles.pendingDocsLeft}>
             <Text style={styles.pendingDocsIcon}>⚠️</Text>
-            <Text style={styles.pendingDocsText}>9 Pending Verification Documents ...</Text>
+            <Text style={styles.pendingDocsText}>
+              {hasPendingDocs ? '9 Pending Verification Documents ...' : '✓ Driver & Vehicle Documents Verified'}
+            </Text>
           </View>
           <Text style={styles.pendingDocsChevron}>›</Text>
         </TouchableOpacity>
@@ -628,7 +853,7 @@ export default function App() {
           </View>
         </View>
 
-        {/* 5. Dispatched Bookings List (Matching Web Portal Cards) */}
+        {/* 5. Dispatched Bookings List */}
         {dispatches.map((disp, idx) => {
           const b = disp.booking || disp;
           const refCode = b.humanReadableRef || b.id || 'KC54120';
@@ -650,46 +875,44 @@ export default function App() {
                 isAvailable && styles.availableDispatchCard,
               ]}
             >
-              {/* Top Row: Ref & Tag */}
-              <View style={styles.dispatchCardHeader}>
-                <View style={styles.refTypeRow}>
-                  <Text style={styles.dispatchRefText}>Ref: {refCode}</Text>
-                  <View style={styles.dispatchTripTypeBadge}>
-                    <Text style={styles.dispatchTripTypeText}>{tripType}</Text>
+              {/* Header: Ref & Status Pill */}
+              <View style={styles.dispatchHeaderRow}>
+                <View style={styles.refPillWrap}>
+                  <Text style={styles.refCodeText}>Ref: {refCode}</Text>
+                  <View style={styles.tripTypePill}>
+                    <Text style={styles.tripTypePillText}>{tripType}</Text>
                   </View>
                 </View>
-
-                {isAvailable ? (
-                  <View style={styles.availableBadge}>
-                    <Text style={styles.availableBadgeText}>AVAILABLE</Text>
-                  </View>
-                ) : (
-                  <View style={styles.assignedBadge}>
-                    <Text style={styles.assignedBadgeIcon}>✓</Text>
-                    <Text style={styles.assignedBadgeText}>ASSIGNED TO YOU</Text>
-                  </View>
-                )}
+                <View
+                  style={[
+                    styles.statusPill,
+                    isAvailable ? styles.availableStatusPill : styles.assignedStatusPill,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusPillText,
+                      isAvailable ? styles.availableStatusText : styles.assignedStatusText,
+                    ]}
+                  >
+                    {isAvailable ? 'AVAILABLE' : 'ASSIGNED TO YOU'}
+                  </Text>
+                </View>
               </View>
 
-              {/* Customer Name */}
-              <View style={styles.dispatchFieldBlock}>
-                <Text style={styles.fieldLabel}>CUSTOMER NAME</Text>
-                <Text style={styles.customerNameValue}>👤 {customerName}</Text>
-              </View>
-
-              {/* Contact Phone */}
-              <View style={styles.dispatchFieldBlock}>
-                <Text style={styles.fieldLabel}>CONTACT PHONE</Text>
+              {/* Customer Row with Privacy Masking */}
+              <View style={styles.customerRow}>
+                <Text style={styles.customerName}>👤 {customerName}</Text>
                 {isPhoneReleased ? (
                   <TouchableOpacity
-                    style={styles.callPhonePill}
-                    onPress={() => Linking.openURL(`tel:+91${customerPhone}`)}
+                    style={styles.phoneLinkBtn}
+                    onPress={() => Linking.openURL(`tel:${customerPhone}`)}
                   >
-                    <Text style={styles.callPhoneText}>📞 +91 {customerPhone} (Call)</Text>
+                    <Text style={styles.phoneLinkText}>📞 +91 {customerPhone}</Text>
                   </TouchableOpacity>
                 ) : (
-                  <View style={styles.contactHiddenPill}>
-                    <Text style={styles.contactHiddenText}>🔒 Contact Hidden (Pending Admin Release)</Text>
+                  <View style={styles.phoneHiddenBadge}>
+                    <Text style={styles.phoneHiddenText}>🔒 Contact Hidden (Pending Admin Release)</Text>
                   </View>
                 )}
               </View>
@@ -747,7 +970,279 @@ export default function App() {
         })}
       </ScrollView>
 
-      {/* ─── 6. TRIP LIFECYCLE MODAL ─── */}
+      {/* ─── 6. DRIVER & VEHICLE NECESSARY DOCUMENTS POPUP MODAL (EXACT SCREENSHOT UI) ─── */}
+      <Modal
+        visible={showDocModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDocModal(false)}
+      >
+        <View style={styles.docModalOverlay}>
+          <View style={styles.docModalCard}>
+            {/* Modal Header */}
+            <View style={styles.docModalHeader}>
+              <View style={styles.docModalTitleRow}>
+                <View style={styles.docBrandLogoBadge}>
+                  <Text style={styles.docBrandText}>KANDY</Text>
+                  <Text style={styles.docBrandTextOrange}>CABS</Text>
+                </View>
+                <Text style={styles.docModalTitle}>🚗 Driver & Vehicle Necessary Documents</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.docModalCloseBtn}
+                onPress={() => setShowDocModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.docModalCloseBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.docModalScroll} showsVerticalScrollIndicator={false}>
+              {/* Stepper Progress Card */}
+              <View style={styles.stepperCard}>
+                <View style={styles.stepperHeaderRow}>
+                  <View style={styles.stepperLeft}>
+                    <View style={styles.stepperStepBadge}>
+                      <Text style={styles.stepperStepBadgeText}>{currentStep}</Text>
+                    </View>
+                    <Text style={styles.stepperStepTitle}>
+                      Step {currentStep} of 3: {currentStepTitle}
+                    </Text>
+                  </View>
+                  <Text style={styles.stepperPercentText}>{percentComplete}% Complete</Text>
+                </View>
+
+                {/* 3-Segment Progress Bar */}
+                <View style={styles.stepperBarRow}>
+                  <View
+                    style={[
+                      styles.stepperSegment,
+                      isSec1Complete ? styles.stepperSegmentDone : styles.stepperSegmentActive,
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.stepperSegment,
+                      isSec2Complete
+                        ? styles.stepperSegmentDone
+                        : isSec1Complete
+                        ? styles.stepperSegmentActive
+                        : styles.stepperSegmentPending,
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.stepperSegment,
+                      isSec3Complete
+                        ? styles.stepperSegmentDone
+                        : isSec2Complete
+                        ? styles.stepperSegmentActive
+                        : styles.stepperSegmentPending,
+                    ]}
+                  />
+                </View>
+              </View>
+
+              {/* Admin Notice Banner */}
+              {!isNoticeDismissed && (
+                <View style={styles.adminNoticeBox}>
+                  <View style={styles.adminNoticeLeft}>
+                    <Text style={styles.adminNoticeIcon}>ℹ️</Text>
+                    <Text style={styles.adminNoticeText}>
+                      <Text style={styles.adminNoticeBold}>Admin Notice: </Text>
+                      Upload clear documents & vehicle photos. Upload queue processes 2 files concurrently.
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setIsNoticeDismissed(true)}
+                    style={styles.adminNoticeCloseBtn}
+                  >
+                    <Text style={styles.adminNoticeCloseText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* SECTION 1: DRIVER PROFILE & LICENSE DOCUMENT */}
+              <View style={styles.docSectionCard}>
+                <View style={styles.docSectionHeader}>
+                  <View style={styles.docSectionIconBox}>
+                    <Text style={styles.docSectionIcon}>📄</Text>
+                  </View>
+                  <Text style={styles.docSectionTitle}>1. DRIVER PROFILE & LICENSE DOCUMENT</Text>
+                </View>
+
+                <View style={styles.docFieldGroup}>
+                  <Text style={styles.docFieldLabel}>DRIVING LICENSE NUMBER *</Text>
+                  <TextInput
+                    style={styles.docTextInput}
+                    value={docLicenseNumber}
+                    onChangeText={setDocLicenseNumber}
+                    placeholder="KA-19-2024-8659"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+
+                {renderUploadBox('Upload License File', 'license')}
+                {renderUploadBox('Upload Driver Photo', 'driverPhoto')}
+              </View>
+
+              {/* SECTION 2: VEHICLE RC & INSURANCE DOCUMENTS */}
+              <View style={styles.docSectionCard}>
+                <View style={styles.docSectionHeader}>
+                  <View style={styles.docSectionIconBox}>
+                    <Text style={styles.docSectionIcon}>🚗</Text>
+                  </View>
+                  <Text style={styles.docSectionTitle}>2. VEHICLE RC & INSURANCE DOCUMENTS</Text>
+                </View>
+
+                <View style={styles.docFieldGroup}>
+                  <Text style={styles.docFieldLabel}>VEHICLE MODEL & CATEGORY *</Text>
+                  <TouchableOpacity
+                    style={styles.docSelectInput}
+                    onPress={() => setShowCategoryPicker(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.docSelectText}>{docVehicleName}</Text>
+                    <Text style={styles.docSelectChevron}>▾</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.docFieldGroup}>
+                  <Text style={styles.docFieldLabel}>VEHICLE PLATE NUMBER</Text>
+                  <TextInput
+                    style={styles.docTextInput}
+                    value={docVehicleNumber}
+                    onChangeText={setDocVehicleNumber}
+                    placeholder="KA-19-KC-1001"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+
+                {renderUploadBox('Upload RC (Registration Cert)', 'rc')}
+                {renderUploadBox('Upload Vehicle Insurance', 'insurance')}
+              </View>
+
+              {/* SECTION 3: VEHICLE PHOTOS (FRONT, BACK, SIDES & INTERIOR) */}
+              <View style={styles.docSectionCard}>
+                <View style={styles.docSectionHeader}>
+                  <View style={styles.docSectionIconBox}>
+                    <Text style={styles.docSectionIcon}>📷</Text>
+                  </View>
+                  <Text style={styles.docSectionTitle}>
+                    3. VEHICLE PHOTOS (FRONT, BACK, SIDES & INTERIOR)
+                  </Text>
+                </View>
+
+                {renderUploadBox('Front View Photo', 'vehicleFront')}
+                {renderUploadBox('Back View Photo', 'vehicleBack')}
+                {renderUploadBox('Left Side View Photo', 'vehicleLeft')}
+                {renderUploadBox('Right Side View Photo', 'vehicleRight')}
+                {renderUploadBox('Car Inside View Photo', 'vehicleInside')}
+              </View>
+            </ScrollView>
+
+            {/* Bottom Footer Actions */}
+            <View style={styles.docModalFooter}>
+              <TouchableOpacity
+                style={styles.docSkipBtn}
+                onPress={() => setShowDocModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.docSkipBtnText}>SKIP FOR NOW</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.docUploadSubmitBtn}
+                onPress={handleUploadDocumentsSubmit}
+                disabled={isUploadingDocs}
+                activeOpacity={0.85}
+              >
+                {isUploadingDocs ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.docUploadSubmitIcon}>⬆</Text>
+                    <Text style={styles.docUploadSubmitBtnText}>UPLOAD & SAVE PATHS →</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── VEHICLE MODEL CATEGORY PICKER MODAL ─── */}
+      <Modal
+        visible={showCategoryPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowCategoryPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.pickerModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCategoryPicker(false)}
+        >
+          <View style={styles.pickerModalCard}>
+            <Text style={styles.pickerModalTitle}>Select Vehicle Model & Category</Text>
+            {VEHICLE_CATEGORIES.map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[
+                  styles.pickerItem,
+                  docVehicleName === cat && styles.pickerItemActive,
+                ]}
+                onPress={() => {
+                  setDocVehicleName(cat);
+                  setShowCategoryPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.pickerItemText,
+                    docVehicleName === cat && styles.pickerItemTextActive,
+                  ]}
+                >
+                  {cat}
+                </Text>
+                {docVehicleName === cat && <Text style={styles.pickerItemCheck}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ─── IMAGE PICKER SOURCE ACTION SHEET MODAL ─── */}
+      <Modal
+        visible={showImagePickerModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImagePickerModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.pickerModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowImagePickerModal(false)}
+        >
+          <View style={styles.pickerModalCard}>
+            <Text style={styles.pickerModalTitle}>Upload Document / Photo</Text>
+            <TouchableOpacity style={styles.pickerItem} onPress={handlePickFromCamera}>
+              <Text style={styles.pickerItemText}>📷 Take Photo with Camera</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pickerItem} onPress={handlePickFromGallery}>
+              <Text style={styles.pickerItemText}>🖼️ Choose from Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.pickerItem, { borderBottomWidth: 0 }]}
+              onPress={() => setShowImagePickerModal(false)}
+            >
+              <Text style={[styles.pickerItemText, { color: '#EF4444' }]}>✕ Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ─── 7. TRIP LIFECYCLE MODAL ─── */}
       <Modal
         visible={showTripModal}
         animationType="slide"
@@ -921,9 +1416,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  authLogo: {
-    width: 150,
-    height: 48,
+  brandBadge: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#0F172A',
+  },
+  brandTitleText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FF6B1A',
+    letterSpacing: 1.5,
+  },
+  brandSubtitleText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 1,
+    marginTop: 2,
   },
   authTitle: {
     fontSize: 22,
@@ -985,6 +1496,29 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     letterSpacing: 0.5,
   },
+  otpSection: {
+    marginBottom: 20,
+  },
+  otpInputBox: {
+    height: 52,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    textAlign: 'center',
+    letterSpacing: 10,
+  },
+  otpHintText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FF6B1A',
+    marginTop: 6,
+    textAlign: 'center',
+  },
   primaryAuthBtn: {
     backgroundColor: '#FF6B1A',
     height: 52,
@@ -999,149 +1533,106 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  lockIcon: {
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
   primaryAuthBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  demoOtpBanner: {
-    backgroundColor: '#FFF7ED',
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 16,
-  },
-  demoOtpText: {
-    fontSize: 11.5,
-    color: '#9A3412',
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  otpCodeInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#0F172A',
-    textAlign: 'center',
-    letterSpacing: 8,
-    marginBottom: 16,
-  },
-  changeNumberBtn: {
-    alignItems: 'center',
-    marginTop: 14,
-  },
-  changeNumberText: {
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  authFooterBanner: {
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    alignItems: 'center',
-  },
-  authFooterText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 16,
+    letterSpacing: 0.5,
   },
 
-  // ─── LOGGED-IN DASHBOARD (WEB THEME) ───
-  container: {
+  // ─── DASHBOARD TOP NAVBAR ───
+  mainContainer: {
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
   topNavbar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#101522',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#1E293B',
   },
-  navbarLogo: {
-    width: 130,
-    height: 38,
+  navBrandCol: {
+    flexDirection: 'column',
   },
-  topNavbarRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoutHeaderBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: '#EF4444',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  logoutHeaderBtnText: {
-    color: '#EF4444',
+  navBrandText: {
+    fontSize: 16,
     fontWeight: '900',
+    color: '#FF6B1A',
+    letterSpacing: 1,
+  },
+  navBrandSub: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  navLogoutBtn: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  navLogoutText: {
+    color: '#F8FAFC',
     fontSize: 11,
-  },
-  scrollContent: {
-    flex: 1,
-  },
-  scrollContentContainer: {
-    padding: 16,
-    paddingBottom: 40,
+    fontWeight: '800',
   },
 
-  // Driver Profile Card
+  // ─── SCROLL CONTENT ───
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+    gap: 14,
+  },
+
+  // ─── DRIVER PROFILE CARD ───
   driverProfileCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 16,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 5,
+    shadowRadius: 4,
     elevation: 2,
+    gap: 12,
   },
   avatarWrapper: {
     position: 'relative',
-    marginRight: 12,
   },
   avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FF8A00',
-    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#101522',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarText: {
-    color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
+    color: '#FFFFFF',
   },
   avatarOnlineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
     position: 'absolute',
     bottom: 0,
     right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
@@ -1154,45 +1645,44 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   driverFullName: {
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#101522',
   },
   verifiedCheckBadge: {
     width: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: '#10B981',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   verifiedCheckIcon: {
-    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '900',
+    color: '#FFFFFF',
   },
   driverVehicleSub: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 11,
     fontWeight: '600',
+    color: '#64748B',
     marginTop: 2,
   },
   dutySwitchCol: {
-    paddingLeft: 8,
+    alignItems: 'center',
   },
 
-  // Pending Docs Banner
+  // ─── PENDING VERIFICATION BANNER ───
   pendingDocsBanner: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#FEF3C7',
     borderWidth: 1,
     borderColor: '#FDE68A',
-    borderRadius: 14,
+    borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    justifyContent: 'space-between',
   },
   pendingDocsLeft: {
     flexDirection: 'row',
@@ -1201,165 +1691,153 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pendingDocsIcon: {
-    fontSize: 16,
+    fontSize: 14,
   },
   pendingDocsText: {
-    color: '#B45309',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
+    color: '#92400E',
     flex: 1,
   },
   pendingDocsChevron: {
-    color: '#B45309',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
+    color: '#92400E',
+    marginLeft: 6,
   },
 
-  // Hardware Permissions Card
+  // ─── HARDWARE PERMISSIONS ───
   permissionBox: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    padding: 14,
   },
   permissionHeaderRow: {
-    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 8,
+    marginBottom: 8,
   },
   permissionTitle: {
-    fontSize: 11.5,
+    fontSize: 10,
     fontWeight: '900',
-    color: '#FF6B1A',
-    letterSpacing: 0.4,
+    color: '#64748B',
+    letterSpacing: 0.5,
   },
   switchRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   switchLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#334155',
   },
   alertWarning: {
-    backgroundColor: '#FEF2F2',
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 10,
+    backgroundColor: '#FEE2E2',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#FCA5A5',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 8,
   },
   alertWarningText: {
-    color: '#DC2626',
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '700',
+    color: '#991B1B',
   },
 
-  // Telemetry Card
+  // ─── TELEMETRY CARD ───
   telemetryCard: {
-    backgroundColor: '#101522',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 3,
+    borderColor: '#E2E8F0',
+    padding: 12,
   },
   telemetryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   telemetryLabel: {
-    color: '#94A3B8',
-    fontSize: 10.5,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    marginBottom: 2,
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#64748B',
+    letterSpacing: 0.5,
   },
   telemetrySpeed: {
-    color: '#FF6B1A',
-    fontSize: 26,
+    fontSize: 18,
     fontWeight: '900',
+    color: '#101522',
+    marginTop: 2,
   },
   pingBadge: {
-    backgroundColor: 'rgba(5, 150, 105, 0.2)',
+    backgroundColor: '#DCFCE7',
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.35)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+    borderColor: '#86EFAC',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
   pingBadgeLost: {
-    backgroundColor: 'rgba(220, 38, 38, 0.2)',
-    borderColor: 'rgba(248, 113, 113, 0.35)',
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
   },
   pingText: {
-    color: '#34D399',
+    fontSize: 10,
     fontWeight: '800',
-    fontSize: 11,
+    color: '#15803D',
   },
   pingTextLost: {
-    color: '#F87171',
+    color: '#B91C1C',
   },
 
-  // Dispatches Section Header
+  // ─── DISPATCHES SECTION HEADER ───
   dispatchesSectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
     marginTop: 4,
   },
   dispatchesHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   broadcastIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFEDD5',
-    justifyContent: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   broadcastIcon: {
-    fontSize: 14,
-    color: '#EA580C',
+    fontSize: 12,
+    color: '#D97706',
     fontWeight: '900',
   },
   dispatchesTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#101522',
   },
   dispatchesSub: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 10,
     fontWeight: '600',
+    color: '#64748B',
   },
   liveFeedBadge: {
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1370,381 +1848,807 @@ const styles = StyleSheet.create({
     fontSize: 8,
   },
   liveFeedText: {
-    color: '#065F46',
+    fontSize: 10,
     fontWeight: '800',
-    fontSize: 11,
+    color: '#475569',
   },
 
-  // Dispatched Card
+  // ─── DISPATCH CARDS ───
   dispatchCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: 4,
+    elevation: 2,
+    gap: 10,
   },
   availableDispatchCard: {
     borderLeftWidth: 5,
     borderLeftColor: '#10B981',
   },
-  dispatchCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  refTypeRow: {
+  dispatchHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
   },
-  dispatchRefText: {
-    fontSize: 16,
+  refPillWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  refCodeText: {
+    fontSize: 13,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#101522',
   },
-  dispatchTripTypeBadge: {
-    backgroundColor: '#EFF6FF',
+  tripTypePill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  tripTypePillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  statusPill: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    alignSelf: 'center',
   },
-  dispatchTripTypeText: {
+  availableStatusPill: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  assignedStatusPill: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  statusPillText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#1D4ED8',
-    letterSpacing: 0.3,
   },
-  availableBadge: {
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1.5,
-    borderColor: '#A7F3D0',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  availableBadgeText: {
+  availableStatusText: {
     color: '#059669',
-    fontSize: 10.5,
-    fontWeight: '900',
-    letterSpacing: 0.4,
   },
-  assignedBadge: {
-    backgroundColor: '#E2E8F0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+  assignedStatusText: {
+    color: '#2563EB',
+  },
+  customerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  assignedBadgeIcon: {
-    fontSize: 10,
-    color: '#334155',
-  },
-  assignedBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#334155',
-  },
-  dispatchFieldBlock: {
-    marginBottom: 10,
-  },
-  fieldLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#94A3B8',
-    letterSpacing: 0.6,
-    marginBottom: 3,
-  },
-  customerNameValue: {
-    fontSize: 14.5,
+  customerName: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#1E293B',
   },
-  callPhonePill: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginTop: 2,
+  phoneLinkBtn: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  callPhoneText: {
-    color: '#16A34A',
+  phoneLinkText: {
+    fontSize: 11,
     fontWeight: '800',
-    fontSize: 12.5,
+    color: '#15803D',
   },
-  contactHiddenPill: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginTop: 2,
+  phoneHiddenBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  contactHiddenText: {
-    color: '#64748B',
+  phoneHiddenText: {
+    fontSize: 10,
     fontWeight: '700',
-    fontSize: 12,
+    color: '#64748B',
+  },
+  dispatchFieldBlock: {
+    gap: 2,
+  },
+  fieldLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
   },
   locationValue: {
-    fontSize: 13.5,
+    fontSize: 12,
     fontWeight: '700',
     color: '#1E293B',
   },
   timeFareRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    padding: 10,
+    borderRadius: 10,
   },
   pickupTimeWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     flex: 1,
   },
   clockIcon: {
-    fontSize: 13,
+    fontSize: 11,
   },
   pickupTimeText: {
-    fontSize: 11.5,
-    color: '#64748B',
+    fontSize: 10,
     fontWeight: '700',
+    color: '#475569',
   },
   fareAmountText: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '900',
     color: '#0F172A',
+    marginLeft: 8,
   },
   swipeToAcceptBtn: {
-    backgroundColor: '#059669',
-    borderRadius: 14,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    backgroundColor: '#10B981',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 6,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
   },
   swipeCircleIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    justifyContent: 'center',
   },
   swipeChevronText: {
-    color: '#059669',
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '900',
-    letterSpacing: -1,
+    color: '#10B981',
   },
   swipeTextCol: {
     flex: 1,
   },
   swipeMainText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 0.6,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   swipeSubText: {
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontSize: 10.5,
-    fontWeight: '600',
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#D1FAE5',
   },
   swipeRightArrow: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
-    paddingRight: 8,
+    color: '#FFFFFF',
   },
   manageTripBtn: {
-    backgroundColor: '#10B981',
-    height: 48,
+    backgroundColor: '#FF6B1A',
+    paddingVertical: 12,
     borderRadius: 12,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 6,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
   },
   manageTripBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 0.4,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 
-  // ─── MODAL STYLES ───
-  modalContainer: {
+  // ─── 6. DRIVER DOCUMENTS POPUP MODAL STYLES (MATCHING SCREENSHOTS) ───
+  docModalOverlay: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 12,
   },
-  modalHeader: {
-    backgroundColor: '#101522',
+  docModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    width: '100%',
+    maxHeight: '92%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  docModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  docModalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  docBrandLogoBadge: {
+    flexDirection: 'row',
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  docBrandText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  docBrandTextOrange: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FF6B1A',
+  },
+  docModalTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
+    flex: 1,
+  },
+  docModalCloseBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  docModalCloseBtnText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#475569',
+  },
+  docModalScroll: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+
+  // Stepper Card
+  stepperCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  stepperHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  modalTitle: {
+  stepperLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  stepperStepBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FF6B1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperStepBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
     color: '#FFFFFF',
-    fontSize: 16,
+  },
+  stepperStepTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0F172A',
+    flex: 1,
+  },
+  stepperPercentText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#FF6B1A',
+  },
+  stepperBarRow: {
+    flexDirection: 'row',
+    gap: 6,
+    height: 6,
+  },
+  stepperSegment: {
+    flex: 1,
+    borderRadius: 3,
+  },
+  stepperSegmentDone: {
+    backgroundColor: '#10B981',
+  },
+  stepperSegmentActive: {
+    backgroundColor: '#FF6B1A',
+  },
+  stepperSegmentPending: {
+    backgroundColor: '#CBD5E1',
+  },
+
+  // Admin Notice Box
+  adminNoticeBox: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  adminNoticeLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    flex: 1,
+  },
+  adminNoticeIcon: {
+    fontSize: 14,
+    marginTop: 1,
+  },
+  adminNoticeText: {
+    fontSize: 11,
+    color: '#92400E',
+    lineHeight: 16,
+    flex: 1,
+  },
+  adminNoticeBold: {
     fontWeight: '900',
   },
-  modalSubtitle: {
+  adminNoticeCloseBtn: {
+    padding: 2,
+  },
+  adminNoticeCloseText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '900',
+  },
+
+  // Section Cards
+  docSectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    marginBottom: 14,
+    gap: 12,
+  },
+  docSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 10,
+  },
+  docSectionIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FFEDD5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docSectionIcon: {
+    fontSize: 14,
+  },
+  docSectionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.3,
+    flex: 1,
+  },
+  docFieldGroup: {
+    gap: 6,
+  },
+  docFieldLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#475569',
+    letterSpacing: 0.5,
+  },
+  docTextInput: {
+    height: 44,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  docSelectInput: {
+    height: 44,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  docSelectText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  docSelectChevron: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#64748B',
+  },
+
+  // Upload Boxes
+  uploadCardContainer: {
+    marginTop: 4,
+  },
+  uploadDashedCard: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadEmptyContent: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  uploadCloudIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  uploadCloudIcon: {
+    fontSize: 16,
+  },
+  uploadLabelTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  uploadFileSubText: {
+    fontSize: 10,
+    fontWeight: '600',
     color: '#94A3B8',
+    marginBottom: 6,
+  },
+  chooseFileBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  chooseFileBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#334155',
+  },
+  uploadPreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+  },
+  uploadThumbImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  uploadThumbPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadThumbPlaceholderIcon: {
+    fontSize: 24,
+  },
+  uploadPreviewInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  uploadBadgeSuccess: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  uploadBadgeSuccessText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#15803D',
+  },
+  uploadFileName: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  uploadChangeBtn: {
+    marginTop: 2,
+  },
+  uploadChangeBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FF6B1A',
+  },
+
+  // Modal Footer Actions
+  docModalFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    gap: 10,
+  },
+  docSkipBtn: {
+    flex: 1,
+    height: 46,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docSkipBtnText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#475569',
+    letterSpacing: 0.5,
+  },
+  docUploadSubmitBtn: {
+    flex: 2,
+    height: 46,
+    backgroundColor: '#FF6B1A',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#FF6B1A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  docUploadSubmitIcon: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  docUploadSubmitBtnText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+
+  // Picker Modals (Vehicle & Image source)
+  pickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  pickerModalCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    gap: 6,
+  },
+  pickerModalTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 8,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  pickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  pickerItemActive: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 8,
+  },
+  pickerItemText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  pickerItemTextActive: {
+    color: '#FF6B1A',
+    fontWeight: '900',
+  },
+  pickerItemCheck: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FF6B1A',
+  },
+
+  // ─── TRIP MODAL STYLES ───
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#101522',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E293B',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  modalSubtitle: {
     fontSize: 12,
     fontWeight: '600',
+    color: '#94A3B8',
+    marginTop: 2,
   },
   modalCloseBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 10,
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
   modalCloseBtnText: {
-    color: '#FFFFFF',
+    color: '#F8FAFC',
     fontSize: 12,
     fontWeight: '800',
   },
   modalScroll: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   routeContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginBottom: 16,
     gap: 6,
   },
   routeText: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#1E293B',
   },
   stepBox: {
     backgroundColor: '#FFFFFF',
-    padding: 14,
-    borderRadius: 14,
-    marginTop: 10,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginBottom: 14,
+    gap: 10,
   },
   stepBoxActive: {
-    borderColor: '#FFD4B8',
+    borderColor: '#FF6B1A',
     borderWidth: 1.5,
-    shadowColor: '#FF6B1A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
   },
   stepTitle: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '900',
     color: '#0F172A',
-    letterSpacing: 0.4,
-    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   stepDesc: {
     fontSize: 12,
     fontWeight: '600',
     color: '#64748B',
-    marginBottom: 8,
   },
   otpInput: {
+    height: 48,
     backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#CBD5E1',
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     color: '#0F172A',
-    marginBottom: 10,
   },
   actionButton: {
     backgroundColor: '#FF6B1A',
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
-    shadowColor: '#FF6B1A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
   },
   completeButton: {
-    backgroundColor: '#059669',
-    height: 50,
-    borderRadius: 12,
-    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
   },
   disabledButton: {
-    backgroundColor: '#CBD5E1',
-    shadowOpacity: 0,
-    elevation: 0,
+    opacity: 0.5,
   },
   actionButtonText: {
-    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '900',
-    fontSize: 12.5,
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
   successBanner: {
     backgroundColor: '#ECFDF5',
     borderWidth: 1,
     borderColor: '#A7F3D0',
-    borderRadius: 10,
     padding: 10,
-    alignItems: 'center',
+    borderRadius: 8,
   },
   successText: {
-    color: '#059669',
-    fontWeight: '800',
     fontSize: 12,
+    fontWeight: '800',
+    color: '#059669',
   },
 });
-
