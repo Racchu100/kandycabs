@@ -94,7 +94,7 @@ export async function GET(req: Request) {
         if (['DISPATCHED', 'DRIVER_ACCEPTED', 'TRIP_STARTED', 'TRIP_COMPLETED', 'CANCELLED'].includes(s.status)) {
           // Apply driver filter to in-memory store as well
           if (hasDriverFilter) {
-            const assignedId = s.assignedDriver?.id || s.assignedDriverId || '';
+            const assignedId = s.assignedDriver?.id || '';
             const assignedPhone = s.assignedDriver?.user?.phone || s.assignedDriver?.phone || '';
             const isAssigned =
               (resolvedDriverId && (assignedId === resolvedDriverId || assignedId.includes(resolvedDriverId))) ||
