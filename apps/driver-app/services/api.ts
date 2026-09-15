@@ -1,11 +1,11 @@
 import { Platform } from 'react-native';
 import { normalizePhone } from '@kandycabs/shared';
 
-// Candidate API Base URLs for Android emulator, LAN device, and web
+// Candidate API Base URLs for Vercel live backend, Android emulator, LAN device, and web
 const CANDIDATE_HOSTS = [
   process.env.EXPO_PUBLIC_API_URL,
+  'https://web-three-delta-32.vercel.app',
   Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000',
-  'http://192.168.43.207:3000',
   'http://localhost:3000',
 ].filter(Boolean).map(h => (h as string).replace(/\/$/, ''));
 
