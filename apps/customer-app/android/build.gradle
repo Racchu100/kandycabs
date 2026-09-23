@@ -23,27 +23,15 @@ buildscript {
 
 apply plugin: "com.facebook.react.rootproject"
 
-def monorepoRoot = rootDir.getParentFile().getParentFile().getParentFile()
-def projectRootDir = rootDir.getParentFile()
-
-def findFile = { String relativePath ->
-  def local = new File(projectRootDir, relativePath)
-  if (local.exists()) return local
-  def root = new File(monorepoRoot, relativePath)
-  if (root.exists()) return root
-  return local
-}
-
-def rnDir = findFile("node_modules/react-native")
-def jscAndroidDir = findFile("node_modules/jsc-android")
-
 allprojects {
     repositories {
         maven {
-            url(new File(rnDir, 'android'))
+            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+            url(new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim(), "../android"))
         }
         maven {
-            url(new File(jscAndroidDir, 'dist'))
+            // Android JSC is installed from npm
+            url(new File(["node", "--print", "require.resolve('jsc-android/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim(), "../dist"))
         }
 
         google()

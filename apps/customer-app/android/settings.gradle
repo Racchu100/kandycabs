@@ -1,46 +1,22 @@
 pluginManagement {
-  def monorepoRoot = settingsDir.getParentFile().getParentFile().getParentFile()
-  def gradlePluginDir = new File(monorepoRoot, "node_modules/@react-native/gradle-plugin")
-  if (!gradlePluginDir.exists()) {
-    gradlePluginDir = new File(settingsDir, "../node_modules/@react-native/gradle-plugin")
-  }
-  if (gradlePluginDir.exists()) {
-    includeBuild(gradlePluginDir)
-  }
+    includeBuild(new File(["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile().toString())
 }
-
 plugins { id("com.facebook.react.settings") }
+
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 
 rootProject.name = 'Kandy Cabs Customer'
 
-def monorepoRoot = settingsDir.getParentFile().getParentFile().getParentFile()
-def projectRootDir = settingsDir.getParentFile()
-
-def findFile = { String relativePath ->
-  def local = new File(projectRootDir, relativePath)
-  if (local.exists()) return local
-  def root = new File(monorepoRoot, relativePath)
-  if (root.exists()) return root
-  return local
-}
-
-def rnDir = findFile("node_modules/react-native")
-def expoDir = findFile("node_modules/expo")
-def cliDir = findFile("node_modules/@react-native-community/cli-platform-android")
-def gradlePluginDir = findFile("node_modules/@react-native/gradle-plugin")
-
 dependencyResolutionManagement {
-  versionCatalogs {
-    reactAndroidLibs {
-      from(files(new File(rnDir, "gradle/libs.versions.toml")))
+    versionCatalogs {
+        reactAndroidLibs {
+            from(files(new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim(), "../gradle/libs.versions.toml")))
+        }
     }
-  }
 }
 
-apply from: new File(expoDir, "scripts/autolinking.gradle")
+apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle");
 useExpoModules()
 
-apply from: new File(cliDir, "native_modules.gradle")
-applyNativeModulesSettingsGradle(settings)
-
 include ':app'
+includeBuild(new File(["node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile().toString())
