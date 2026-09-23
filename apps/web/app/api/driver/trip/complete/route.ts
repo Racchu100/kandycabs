@@ -137,14 +137,14 @@ export async function POST(req: NextRequest) {
     // Realtime SSE: Notify customer and driver
     RealtimeEvents.emitToBooking(bookingId, 'BOOKING_STATUS', {
       bookingId,
-      status: BookingStatus.COMPLETED,
+      status: BookingStatus.TRIP_COMPLETED,
       actualDistanceKm,
       totalBalanceCollected,
     });
 
     RealtimeEvents.emitToDriver(session.driverId, 'TRIP_STATUS', {
       bookingId,
-      status: BookingStatus.COMPLETED,
+      status: BookingStatus.TRIP_COMPLETED,
     });
 
     const res = NextResponse.json(
