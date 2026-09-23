@@ -19,6 +19,7 @@
     "db:studio": "npm run db:studio --workspace=@kandy-cabs/db"
   },
   "devDependencies": {
+    "react-native": "0.74.5",
     "turbo": "^2.0.0",
     "typescript": "^5.4.5"
   },
