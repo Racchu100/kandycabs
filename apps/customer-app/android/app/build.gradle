@@ -19,7 +19,7 @@ def cliAndroidDir = file("../../../../node_modules/@react-native-community/cli-p
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
-    entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
+    entryFile = file("../../../../node_modules/expo-router/entry.js").exists() ? file("../../../../node_modules/expo-router/entry.js") : file("../../node_modules/expo-router/entry.js")
     reactNativeDir = rnDir.getAbsoluteFile()
     hermesCommand = new File(rnDir, "sdks/hermesc/%OS-BIN%/hermesc").getAbsolutePath()
     codegenDir = codegenDirFile.getAbsoluteFile()
