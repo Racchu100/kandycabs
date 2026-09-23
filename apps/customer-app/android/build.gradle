@@ -25,6 +25,7 @@ buildscript {
 apply plugin: "com.facebook.react.rootproject"
 
 allprojects {
+    ext.useExpoPublishing = {}
     repositories {
         maven {
             // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
@@ -39,4 +40,8 @@ allprojects {
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
     }
+}
+
+subprojects {
+    ext.useExpoPublishing = {}
 }
