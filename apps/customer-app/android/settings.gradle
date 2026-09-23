@@ -1,12 +1,12 @@
 pluginManagement {
-  includeBuild("react-settings-plugin")
-
   def monorepoRoot = settingsDir.getParentFile().getParentFile().getParentFile()
   def gradlePluginDir = new File(monorepoRoot, "node_modules/@react-native/gradle-plugin")
   if (!gradlePluginDir.exists()) {
     gradlePluginDir = new File(settingsDir, "../node_modules/@react-native/gradle-plugin")
   }
-  includeBuild(gradlePluginDir)
+  if (gradlePluginDir.exists()) {
+    includeBuild(gradlePluginDir)
+  }
 }
 
 plugins { id("com.facebook.react.settings") }
@@ -44,4 +44,3 @@ apply from: new File(cliDir, "native_modules.gradle")
 applyNativeModulesSettingsGradle(settings)
 
 include ':app'
-includeBuild(gradlePluginDir)
