@@ -1,7 +1,8 @@
 pluginManagement {
   includeBuild("react-settings-plugin")
 
-  def gradlePluginDir = new File(settingsDir, "../../../node_modules/@react-native/gradle-plugin")
+  def monorepoRoot = settingsDir.getParentFile().getParentFile().getParentFile()
+  def gradlePluginDir = new File(monorepoRoot, "node_modules/@react-native/gradle-plugin")
   if (!gradlePluginDir.exists()) {
     gradlePluginDir = new File(settingsDir, "../node_modules/@react-native/gradle-plugin")
   }
@@ -12,25 +13,21 @@ plugins { id("com.facebook.react.settings") }
 
 rootProject.name = 'Kandy Cabs Customer'
 
-def rnDir = new File(settingsDir, "../../../node_modules/react-native")
-if (!rnDir.exists()) {
-  rnDir = new File(settingsDir, "../node_modules/react-native")
+def monorepoRoot = settingsDir.getParentFile().getParentFile().getParentFile()
+def projectRootDir = settingsDir.getParentFile()
+
+def findFile = { String relativePath ->
+  def local = new File(projectRootDir, relativePath)
+  if (local.exists()) return local
+  def root = new File(monorepoRoot, relativePath)
+  if (root.exists()) return root
+  return local
 }
 
-def expoDir = new File(settingsDir, "../../../node_modules/expo")
-if (!expoDir.exists()) {
-  expoDir = new File(settingsDir, "../node_modules/expo")
-}
-
-def cliDir = new File(settingsDir, "../../../node_modules/@react-native-community/cli-platform-android")
-if (!cliDir.exists()) {
-  cliDir = new File(settingsDir, "../node_modules/@react-native-community/cli-platform-android")
-}
-
-def gradlePluginDir = new File(settingsDir, "../../../node_modules/@react-native/gradle-plugin")
-if (!gradlePluginDir.exists()) {
-  gradlePluginDir = new File(settingsDir, "../node_modules/@react-native/gradle-plugin")
-}
+def rnDir = findFile("node_modules/react-native")
+def expoDir = findFile("node_modules/expo")
+def cliDir = findFile("node_modules/@react-native-community/cli-platform-android")
+def gradlePluginDir = findFile("node_modules/@react-native/gradle-plugin")
 
 dependencyResolutionManagement {
   versionCatalogs {

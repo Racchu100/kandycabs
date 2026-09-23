@@ -9,24 +9,36 @@ static def versionToNumber(major, minor, patch) {
 }
 def rnVersion = versionToNumber(0, 74, 5)
 
-def rnDir = file("../../../../node_modules/react-native").exists() ? file("../../../../node_modules/react-native") : file("../../node_modules/react-native")
-def codegenDirFile = file("../../../../node_modules/@react-native/codegen").exists() ? file("../../../../node_modules/@react-native/codegen") : file("../../node_modules/@react-native/codegen")
-def expoCliFile = file("../../../../node_modules/@expo/cli/build/bin/cli").exists() ? file("../../../../node_modules/@expo/cli/build/bin/cli") : file("../../node_modules/@expo/cli/build/bin/cli")
-def cliAndroidDir = file("../../../../node_modules/@react-native-community/cli-platform-android").exists() ? file("../../../../node_modules/@react-native-community/cli-platform-android") : file("../../node_modules/@react-native-community/cli-platform-android")
+def monorepoRoot = rootDir.getParentFile().getParentFile().getParentFile()
+def projectRootDir = rootDir.getParentFile()
+
+def findFile = { String relativePath ->
+  def local = new File(projectRootDir, relativePath)
+  if (local.exists()) return local
+  def root = new File(monorepoRoot, relativePath)
+  if (root.exists()) return root
+  return local
+}
+
+def rnDir = findFile("node_modules/react-native")
+def codegenDirFile = findFile("node_modules/@react-native/codegen")
+def expoCliFile = findFile("node_modules/@expo/cli/build/bin/cli")
+def cliAndroidDir = findFile("node_modules/@react-native-community/cli-platform-android")
+def entryFileFile = findFile("node_modules/expo-router/entry.js")
 
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
-    entryFile = file("../../../../node_modules/expo-router/entry.js").exists() ? file("../../../../node_modules/expo-router/entry.js") : file("../../node_modules/expo-router/entry.js")
+    entryFile = entryFileFile.getAbsoluteFile()
     reactNativeDir = rnDir.getAbsoluteFile()
     hermesCommand = new File(rnDir, "sdks/hermesc/%OS-BIN%/hermesc").getAbsolutePath()
     codegenDir = codegenDirFile.getAbsoluteFile()
 
     cliFile = expoCliFile.getAbsoluteFile()
     bundleCommand = "export:embed"
-
+}
     /* Folders */
     //   The root of your project, i.e. where "package.json" lives. Default is '..'
     // root = file("../")
