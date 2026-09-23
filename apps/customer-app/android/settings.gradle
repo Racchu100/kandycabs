@@ -1,0 +1,48 @@
+pluginManagement {
+  def gradlePluginDir = file("../../../node_modules/@react-native/gradle-plugin")
+  if (!gradlePluginDir.exists()) {
+    gradlePluginDir = file("../node_modules/@react-native/gradle-plugin")
+  }
+  includeBuild(gradlePluginDir)
+}
+
+plugins { id("com.facebook.react.settings") }
+
+rootProject.name = 'Kandy Cabs Customer'
+
+def rnDir = file("../../../node_modules/react-native")
+if (!rnDir.exists()) {
+  rnDir = file("../node_modules/react-native")
+}
+
+def expoDir = file("../../../node_modules/expo")
+if (!expoDir.exists()) {
+  expoDir = file("../node_modules/expo")
+}
+
+def cliDir = file("../../../node_modules/@react-native-community/cli-platform-android")
+if (!cliDir.exists()) {
+  cliDir = file("../node_modules/@react-native-community/cli-platform-android")
+}
+
+def gradlePluginDir = file("../../../node_modules/@react-native/gradle-plugin")
+if (!gradlePluginDir.exists()) {
+  gradlePluginDir = file("../node_modules/@react-native/gradle-plugin")
+}
+
+dependencyResolutionManagement {
+  versionCatalogs {
+    reactAndroidLibs {
+      from(files(new File(rnDir, "gradle/libs.versions.toml")))
+    }
+  }
+}
+
+apply from: new File(expoDir, "scripts/autolinking.gradle")
+useExpoModules()
+
+apply from: new File(cliDir, "native_modules.gradle")
+applyNativeModulesSettingsGradle(settings)
+
+include ':app'
+includeBuild(gradlePluginDir)
