@@ -4,6 +4,9 @@
  * when NODE_ENV is set to "production".
  */
 function validateDatabaseUrl() {
+  if (process.env.EAS_BUILD === 'true' || process.env.EXPO_PUBLIC_API_URL) {
+    return;
+  }
   const isProd = process.env.NODE_ENV === 'production';
   const dbUrl = process.env.DATABASE_URL;
 
