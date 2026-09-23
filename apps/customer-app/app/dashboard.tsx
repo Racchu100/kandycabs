@@ -15,7 +15,6 @@ import {
   RefreshControl,
   Platform,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { customerApiClient, customerTokenStorage } from '../lib/api';

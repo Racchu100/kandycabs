@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { Image } from 'expo-image';
+import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface FleetCardItemProps {
@@ -46,9 +45,7 @@ export const FleetCardItem = memo(function FleetCardItem({
         <Image
           source={item.image}
           style={styles.carImage}
-          contentFit="contain"
-          cachePolicy="memory-disk"
-          transition={150}
+          resizeMode="contain"
         />
       </View>
 
