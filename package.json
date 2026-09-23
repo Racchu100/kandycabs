@@ -16,8 +16,7 @@
     "db:push": "npm run db:push --workspace=@kandy-cabs/db",
     "db:migrate": "npm run db:migrate --workspace=@kandy-cabs/db",
     "db:seed": "npm run db:seed --workspace=@kandy-cabs/db",
-    "db:studio": "npm run db:studio --workspace=@kandy-cabs/db",
-    "postinstall": "node apps/customer-app/scripts/patch-modules.js"
+    "db:studio": "npm run db:studio --workspace=@kandy-cabs/db"
   },
   "devDependencies": {
     "turbo": "^2.0.0",

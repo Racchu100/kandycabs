@@ -8,8 +8,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "check-types": "tsc --noEmit",
-    "lint": "echo 'No lint needed for customer-app'",
-    "postinstall": "node scripts/patch-modules.js"
+    "lint": "echo 'No lint needed for customer-app'"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

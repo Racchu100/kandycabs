@@ -20,6 +20,8 @@ dist
 # Expo
 .expo/
 web-build/
+android/
+ios/
 
 # Prisma
 packages/db/src/generated
