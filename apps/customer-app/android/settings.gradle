@@ -1,7 +1,9 @@
 pluginManagement {
-  def gradlePluginDir = file("../../../node_modules/@react-native/gradle-plugin")
+  includeBuild("react-settings-plugin")
+
+  def gradlePluginDir = new File(settingsDir, "../../../node_modules/@react-native/gradle-plugin")
   if (!gradlePluginDir.exists()) {
-    gradlePluginDir = file("../node_modules/@react-native/gradle-plugin")
+    gradlePluginDir = new File(settingsDir, "../node_modules/@react-native/gradle-plugin")
   }
   includeBuild(gradlePluginDir)
 }
@@ -10,24 +12,24 @@ plugins { id("com.facebook.react.settings") }
 
 rootProject.name = 'Kandy Cabs Customer'
 
-def rnDir = file("../../../node_modules/react-native")
+def rnDir = new File(settingsDir, "../../../node_modules/react-native")
 if (!rnDir.exists()) {
-  rnDir = file("../node_modules/react-native")
+  rnDir = new File(settingsDir, "../node_modules/react-native")
 }
 
-def expoDir = file("../../../node_modules/expo")
+def expoDir = new File(settingsDir, "../../../node_modules/expo")
 if (!expoDir.exists()) {
-  expoDir = file("../node_modules/expo")
+  expoDir = new File(settingsDir, "../node_modules/expo")
 }
 
-def cliDir = file("../../../node_modules/@react-native-community/cli-platform-android")
+def cliDir = new File(settingsDir, "../../../node_modules/@react-native-community/cli-platform-android")
 if (!cliDir.exists()) {
-  cliDir = file("../node_modules/@react-native-community/cli-platform-android")
+  cliDir = new File(settingsDir, "../node_modules/@react-native-community/cli-platform-android")
 }
 
-def gradlePluginDir = file("../../../node_modules/@react-native/gradle-plugin")
+def gradlePluginDir = new File(settingsDir, "../../../node_modules/@react-native/gradle-plugin")
 if (!gradlePluginDir.exists()) {
-  gradlePluginDir = file("../node_modules/@react-native/gradle-plugin")
+  gradlePluginDir = new File(settingsDir, "../node_modules/@react-native/gradle-plugin")
 }
 
 dependencyResolutionManagement {
