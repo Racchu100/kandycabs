@@ -1,0 +1,11 @@
+{
+  "extends": "@kandy-cabs/typescript-config/base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2020",
+    "jsx": "react-jsx",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

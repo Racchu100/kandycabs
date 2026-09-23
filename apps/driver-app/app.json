@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Kandy Cabs Driver",
+    "slug": "kandy-cabs-driver",
+    "version": "1.0.0",
+    "jsEngine": "hermes",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "scheme": "kandycabsdriver",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kandycabs.driver"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.kandycabs.driver"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "920834a7-9357-4c2f-8435-e527f6bf9d86"
+      }
+    },
+    "owner": "rakshithm"
+  }
+}

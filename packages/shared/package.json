@@ -1,0 +1,23 @@
+{
+  "name": "@kandy-cabs/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "lint": "echo 'No lint needed for shared'"
+  },
+  "devDependencies": {
+    "@kandy-cabs/typescript-config": "*",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/react": "^18.3.2",
+    "react": "^18.3.1",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.12"
+  }
+}

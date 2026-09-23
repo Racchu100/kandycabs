@@ -1,0 +1,26 @@
+{
+  "name": "kandycabs-v2",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "node packages/db/src/env-check.js && turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "check-types": "turbo run check-types",
+    "check-env": "node packages/db/src/env-check.js",
+    "db:generate": "npm run db:generate --workspace=@kandy-cabs/db",
+    "db:push": "npm run db:push --workspace=@kandy-cabs/db",
+    "db:migrate": "npm run db:migrate --workspace=@kandy-cabs/db",
+    "db:seed": "npm run db:seed --workspace=@kandy-cabs/db",
+    "db:studio": "npm run db:studio --workspace=@kandy-cabs/db"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.5"
+  },
+  "packageManager": "npm@11.12.1"
+}

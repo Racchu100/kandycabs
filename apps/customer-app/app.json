@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Kandy Cabs Customer",
+    "slug": "kandy-cabs-customer",
+    "version": "1.0.0",
+    "jsEngine": "hermes",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "scheme": "kandycabscustomer",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kandycabs.customer"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.kandycabs.customer"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ed0ed930-9fcd-4481-9393-539f0fd06809"
+      }
+    },
+    "owner": "rakshithm"
+  }
+}

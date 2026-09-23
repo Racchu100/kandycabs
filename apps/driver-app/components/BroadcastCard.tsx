@@ -1,0 +1,258 @@
+import React, { memo } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { SlideToAccept } from './SlideToAccept';
+
+interface BroadcastCardProps {
+  dispatch: any;
+  isAccepting: boolean;
+  onAccept: (dispatchId: string) => Promise<void>;
+  onDecline: (dispatchId: string) => Promise<void>;
+}
+
+export const BroadcastCard = memo(function BroadcastCard({
+  dispatch,
+  isAccepting,
+  onAccept,
+  onDecline,
+}: BroadcastCardProps) {
+  const b = dispatch.booking;
+  if (!b) return null;
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.topRow}>
+        <View style={styles.badgeRow}>
+          <View style={styles.liveBadge}>
+            <Text style={styles.liveBadgeDot}>●</Text>
+            <Text style={styles.liveBadgeText}>BROADCAST RIDE</Text>
+          </View>
+          <Text style={styles.tripTypeBadge}>{b.tripType || 'ONEWAY'}</Text>
+        </View>
+        <View style={styles.priceTag}>
+          <Text style={styles.priceLabel}>EST. EARNINGS</Text>
+          <Text style={styles.priceValue}>
+            ₹{Number(b.driverAllowance || 0) + Number(b.driverPayeeAmount || 0)}
+          </Text>
+        </View>
+      </View>
+
+      {/* Route Info */}
+      <View style={styles.routeContainer}>
+        <View style={styles.routePoint}>
+          <Text style={styles.pointDotGreen}>🟢</Text>
+          <View style={styles.pointTextContainer}>
+            <Text style={styles.pointLabel}>PICKUP</Text>
+            <Text style={styles.pointValue} numberOfLines={2}>
+              {b.pickupAddress}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.routeLine} />
+
+        <View style={styles.routePoint}>
+          <Text style={styles.pointDotRed}>🔴</Text>
+          <View style={styles.pointTextContainer}>
+            <Text style={styles.pointLabel}>DROP DESTINATION</Text>
+            <Text style={styles.pointValue} numberOfLines={2}>
+              {b.dropAddress}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Trip Meta */}
+      <View style={styles.metaRow}>
+        <View style={styles.metaItem}>
+          <Ionicons name="calendar-outline" size={14} color="#64748b" />
+          <Text style={styles.metaText}>
+            {b.scheduledAt ? new Date(b.scheduledAt).toLocaleDateString() : 'Immediate'}
+          </Text>
+        </View>
+        <View style={styles.metaItem}>
+          <Ionicons name="car-outline" size={14} color="#64748b" />
+          <Text style={styles.metaText}>{b.category || 'SEDAN'}</Text>
+        </View>
+        {b.estimatedDistanceKm ? (
+          <View style={styles.metaItem}>
+            <Ionicons name="speedometer-outline" size={14} color="#64748b" />
+            <Text style={styles.metaText}>{b.estimatedDistanceKm} km</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* Slide To Accept or Decline */}
+      <View style={styles.actionContainer}>
+        <SlideToAccept
+          onSwipeComplete={() => onAccept(dispatch.id)}
+          disabled={isAccepting}
+          trackColor="#065f46"
+          thumbColor="#10b981"
+          text={isAccepting ? 'Accepting...' : 'Slide to Accept Ride →'}
+        />
+        <TouchableOpacity
+          style={styles.declineBtn}
+          onPress={() => {
+            Alert.alert(
+              'Decline Ride',
+              'Are you sure you want to pass on this ride request?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Decline', style: 'destructive', onPress: () => onDecline(dispatch.id) },
+              ]
+            );
+          }}
+          disabled={isAccepting}
+        >
+          <Text style={styles.declineBtnText}>Pass / Decline</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#1e293b',
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#38bdf8',
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#38bdf8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: '#ef4444',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    gap: 4,
+  },
+  liveBadgeDot: {
+    color: '#ef4444',
+    fontSize: 8,
+  },
+  liveBadgeText: {
+    color: '#f87171',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  tripTypeBadge: {
+    color: '#38bdf8',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  priceTag: {
+    alignItems: 'flex-end',
+  },
+  priceLabel: {
+    fontSize: 9,
+    color: '#94a3b8',
+    fontWeight: '700',
+  },
+  priceValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#34d399',
+  },
+  routeContainer: {
+    backgroundColor: '#0f172a',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
+  },
+  routePoint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  pointDotGreen: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  pointDotRed: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  pointTextContainer: {
+    flex: 1,
+  },
+  pointLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748b',
+    letterSpacing: 0.5,
+  },
+  pointValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#f1f5f9',
+    marginTop: 1,
+  },
+  routeLine: {
+    width: 2,
+    height: 14,
+    backgroundColor: '#334155',
+    marginLeft: 7,
+    marginVertical: 3,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 14,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  metaText: {
+    fontSize: 11,
+    color: '#cbd5e1',
+    fontWeight: '600',
+  },
+  actionContainer: {
+    gap: 8,
+  },
+  declineBtn: {
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  declineBtnText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});

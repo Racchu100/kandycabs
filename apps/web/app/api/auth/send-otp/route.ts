@@ -1,0 +1,117 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@kandy-cabs/db';
+import {
+  normalizePhoneNumber,
+  isValidIndianPhoneNumber,
+  generateOtp,
+  hashOtp,
+  sendOtpSms,
+} from '@kandy-cabs/shared';
+import { setCorsHeaders, handleOptions } from '@/lib/cors';
+
+export const dynamic = 'force-dynamic';
+
+export async function OPTIONS() {
+  return handleOptions();
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { phone } = body;
+
+    if (!phone || typeof phone !== 'string') {
+      const res = NextResponse.json(
+        { success: false, message: 'Valid phone number is required' },
+        { status: 400 }
+      );
+      return setCorsHeaders(res);
+    }
+
+    if (!isValidIndianPhoneNumber(phone)) {
+      const res = NextResponse.json(
+        { success: false, message: 'Please provide a valid 10-digit Indian phone number' },
+        { status: 400 }
+      );
+      return setCorsHeaders(res);
+    }
+
+    const normalizedPhone = normalizePhoneNumber(phone);
+
+    // Check if phone number is already registered
+    const existingUser = await prisma.user.findUnique({
+      where: { phone: normalizedPhone },
+      select: {
+        fullName: true,
+        roles: true,
+        driver: { select: { id: true, verificationStatus: true } },
+      },
+    });
+
+    const isDriver = !!(existingUser?.roles?.includes('DRIVER') || existingUser?.driver);
+
+    // If request is from Driver App, reject unregistered numbers immediately
+    if (body.role === 'DRIVER' && (!existingUser || !isDriver)) {
+      const res = NextResponse.json(
+        {
+          success: false,
+          message: 'No driver registered with this number. Please contact admin to register as a driver partner.',
+          isRegistered: false,
+          isDriver: false,
+        },
+        { status: 403 }
+      );
+      return setCorsHeaders(res);
+    }
+
+    const otp = generateOtp(4);
+    const otpHash = await hashOtp(otp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+
+    // Save OTP to database
+    await prisma.otpVerification.create({
+      data: {
+        phone: normalizedPhone,
+        otpHash,
+        expiresAt,
+      },
+    });
+
+    // Dispatch OTP SMS
+    await sendOtpSms(normalizedPhone, otp);
+
+    const isDev = process.env.NODE_ENV !== 'production';
+    const responsePayload: any = {
+      success: true,
+      message: 'OTP sent successfully',
+      isRegistered: !!existingUser,
+      existingName: existingUser?.fullName || null,
+      roles: existingUser?.roles || [],
+      isDriver,
+      driverStatus: existingUser?.driver?.verificationStatus || null,
+    };
+
+    if (isDev) {
+      responsePayload.debugOtp = otp;
+    }
+
+    const res = NextResponse.json(responsePayload, { status: 200 });
+    return setCorsHeaders(res);
+  } catch (error: any) {
+    console.error('Error in POST /api/auth/send-otp:', error);
+    let errorMsg = error.message || 'Failed to send OTP';
+    if (
+      errorMsg.includes('tenant/user') ||
+      errorMsg.includes('ENOTFOUND') ||
+      errorMsg.includes("Can't reach database")
+    ) {
+      errorMsg =
+        'Supabase database is currently sleeping or paused. Please open your Supabase Dashboard (https://supabase.com/dashboard/project/kkerjotsahmkwbldjdhf) and click "Restore / Unpause Project" to resume.';
+    }
+    const res = NextResponse.json(
+      { success: false, message: errorMsg },
+      { status: 500 }
+    );
+    return setCorsHeaders(res);
+  }
+}

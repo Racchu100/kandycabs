@@ -1,0 +1,334 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  CUSTOMER
+  DRIVER
+  ADMIN
+}
+
+enum DriverVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VehicleCategory {
+  HATCHBACK
+  SEDAN
+  SUV
+  SUV_PREMIUM
+  TEMPO_TRAVELER
+}
+
+enum FuelType {
+  CNG
+  DIESEL
+  PETROL
+}
+
+enum TripType {
+  ONEWAY
+  ROUND
+  LOCAL
+  AIRPORT
+  PACKAGE
+}
+
+enum BookingStatus {
+  PENDING_ADMIN
+  DISPATCHED
+  DRIVER_ACCEPTED
+  DRIVER_EN_ROUTE
+  TRIP_STARTED
+  TRIP_COMPLETED
+  CANCELLED
+}
+
+enum DispatchStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentType {
+  ADVANCE
+  BALANCE
+}
+
+model User {
+  id        String     @id @default(cuid())
+  phone     String     @unique
+  fullName  String
+  roles     UserRole[]
+  createdAt DateTime   @default(now())
+  deletedAt DateTime?
+
+  customer  Customer?
+  driver    Driver?
+  auditLogs AuditLog[]
+}
+
+model Customer {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email          String?
+  savedAddresses Json?
+  deletedAt      DateTime?
+
+  bookings Booking[]
+}
+
+model Driver {
+  id                 String                   @id @default(cuid())
+  userId             String                   @unique
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  licenseNumber      String
+  profilePhotoUrl    String?
+  licenseDocUrl      String?
+  rcDocUrl           String?
+  insuranceDocUrl    String?
+  vehiclePhotos      String[]
+  verificationStatus DriverVerificationStatus @default(PENDING)
+  adminNotes         String?
+  onlineStatus       Boolean                  @default(false)
+
+  // Flow A (driver -> admin) live position fields
+  currentLat Float?
+  currentLng Float?
+  lastPingAt DateTime?
+
+  deletedAt DateTime?
+
+  vehicles         Vehicle[]
+  assignedBookings Booking[]
+  dispatches       BookingDispatch[]
+  tripTrackings    TripTracking[]
+
+  @@index([onlineStatus])
+  @@index([verificationStatus, onlineStatus])
+  @@index([userId])
+}
+
+model Vehicle {
+  id              String          @id @default(cuid())
+  driverId        String?
+  driver          Driver?         @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  category        VehicleCategory
+  fuelType        FuelType
+  seatCount       Int
+  baseFarePerKm   Decimal         @db.Decimal(10, 2)
+  extraKmRate     Decimal         @db.Decimal(10, 2)
+  driverAllowance Decimal         @db.Decimal(10, 2)
+  plateNumber     String?
+  deletedAt       DateTime?
+
+  bookings Booking[]
+
+  @@index([driverId])
+  @@index([category, fuelType])
+}
+
+model Booking {
+  id               String   @id @default(cuid())
+  humanReadableRef String   @unique // e.g. KC-2026-000123
+  customerId       String
+  customer         Customer @relation(fields: [customerId], references: [id])
+  vehicleId        String?
+  vehicle          Vehicle? @relation(fields: [vehicleId], references: [id])
+  assignedDriverId String?
+  assignedDriver   Driver?  @relation(fields: [assignedDriverId], references: [id])
+
+  tripType             TripType
+  pickupAddress        String
+  pickupLat            Float
+  pickupLng            Float
+  dropAddress          String
+  dropLat              Float
+  dropLng              Float
+  scheduledAt          DateTime
+  distanceKm           Float
+  estimatedFare        Decimal       @db.Decimal(10, 2)
+  advanceAmount        Decimal       @db.Decimal(10, 2)
+  advancePaymentStatus PaymentStatus @default(PENDING)
+  balanceAmount        Decimal       @db.Decimal(10, 2)
+  balancePaymentStatus PaymentStatus @default(PENDING)
+  status               BookingStatus @default(PENDING_ADMIN)
+
+  customerPhoneReleased Boolean @default(false)
+  pickupOtp             String?
+
+  startingOdometer          Float?
+  startingOdometerImagePath String?
+  finalOdometer             Float?
+  finalOdometerImagePath    String?
+  actualDistanceKm          Float?
+  tollAmount                Decimal? @db.Decimal(10, 2)
+  parkingAmount             Decimal? @db.Decimal(10, 2)
+
+  // Driver Settlement & Payee tracking (Admin -> Driver)
+  driverAllowance           Decimal? @db.Decimal(10, 2)
+  driverPayeeAmount         Decimal? @db.Decimal(10, 2)
+  driverPaymentStatus       PaymentStatus @default(PENDING)
+
+  // Flow B (customer -> driver) pickup-window fields
+  customerCurrentLat             Float?
+  customerCurrentLng             Float?
+  customerLocationUpdatedAt      DateTime?
+  customerLocationSharingEnabled Boolean   @default(true)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  dispatches    BookingDispatch[]
+  tripEvents    TripEvent[]
+  tripTrackings TripTracking[]
+  payments      Payment[]
+
+  @@index([status])
+  @@index([customerId])
+  @@index([assignedDriverId])
+  @@index([createdAt])
+  @@index([status, scheduledAt])
+  @@index([tripType, status])
+}
+
+model BookingDispatch {
+  id          String         @id @default(cuid())
+  bookingId   String
+  booking     Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driverId    String
+  driver      Driver         @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  broadcastAt DateTime       @default(now())
+  respondedAt DateTime?
+  status      DispatchStatus @default(PENDING)
+
+  @@index([bookingId, status])
+  @@index([driverId, status])
+}
+
+model TripEvent {
+  id          String   @id @default(cuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  type        String
+  payloadJson Json?
+  createdAt   DateTime @default(now())
+}
+
+model TripTracking {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driverId   String
+  driver     Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  lat        Float
+  lng        Float
+  recordedAt DateTime @default(now())
+
+  @@index([bookingId])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  bookingId         String
+  booking           Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  type              PaymentType
+  amount            Decimal       @db.Decimal(10, 2)
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  paymentMethod     String?       // 'RAZORPAY', 'UPI_QR', 'CASH'
+  status            PaymentStatus @default(PENDING)
+  verifiedAt        DateTime?
+
+  @@index([bookingId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorUser   User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  action      String
+  entityType  String
+  entityId    String
+  reason      String?
+  createdAt   DateTime @default(now())
+}
+
+model OtpVerification {
+  id        String    @id @default(cuid())
+  phone     String
+  otpHash   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([phone])
+  @@index([expiresAt])
+}
+
+model FleetCategory {
+  id                   String          @id @default(cuid())
+  category             VehicleCategory @unique
+  name                 String
+  description          String?
+  seatCount            Int             @default(4)
+  luggageCount         Int             @default(2)
+  cngRate              Decimal         @default(11.0) @db.Decimal(10, 2)
+  cngEnabled           Boolean         @default(true)
+  petrolRate           Decimal         @default(12.0) @db.Decimal(10, 2)
+  petrolEnabled        Boolean         @default(true)
+  dieselRate           Decimal         @default(13.0) @db.Decimal(10, 2)
+  dieselEnabled        Boolean         @default(true)
+  extraKmRate          Decimal         @default(13.0) @db.Decimal(10, 2)
+  driverAllowance      Decimal         @default(300.0) @db.Decimal(10, 2)
+  nightCharge          Decimal         @default(250.0) @db.Decimal(10, 2)
+  minRoundTripKmPerDay Float           @default(250.0)
+  localPackage4hrBase  Decimal         @default(1200.0) @db.Decimal(10, 2)
+  localPackage8hrBase  Decimal         @default(2200.0) @db.Decimal(10, 2)
+  imageUrl             String?
+  isActive             Boolean         @default(true)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([isActive])
+}
+
+model PricingRule {
+  id                   String          @id @default(cuid())
+  category             VehicleCategory
+  tripType             TripType
+  fuelType             FuelType
+  baseRatePerKm        Decimal         @db.Decimal(10, 2)
+  extraKmRate          Decimal         @db.Decimal(10, 2)
+  driverAllowance      Decimal         @db.Decimal(10, 2)
+  nightCharge          Decimal         @db.Decimal(10, 2)
+  gstRatePercent       Decimal         @default(5.0) @db.Decimal(5, 2)
+  nightWindowStartHour Int             @default(22)
+  nightWindowEndHour   Int             @default(6)
+  inclusions           String[]
+  exclusions           String[]
+  isActive             Boolean         @default(true)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@unique([category, tripType, fuelType])
+  @@index([isActive])
+}
+
+
