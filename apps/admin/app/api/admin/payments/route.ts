@@ -14,19 +14,21 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // 1. Calculate Revenue & Driver Payout Summary
+    // 1. Calculate Revenue & Driver Payout Summary via database aggregates
     const [
-      allPayments,
+      revenueAggregate,
       allBookingsCount,
       paidBookingsCount,
       partialBookingsCount,
       pendingBookingsCount,
-      driverPaidBookings,
-      driverPendingBookings,
+      driverPaidAggregate,
+      driverPaidCount,
+      driverPendingAggregate,
+      driverPendingCount,
     ] = await Promise.all([
-      prisma.payment.findMany({
+      prisma.payment.aggregate({
         where: { status: PaymentStatus.PAID },
-        select: { amount: true },
+        _sum: { amount: true },
       }),
       prisma.booking.count(),
       prisma.booking.count({
@@ -46,41 +48,47 @@ export async function GET(req: NextRequest) {
           advancePaymentStatus: PaymentStatus.PENDING,
         },
       }),
-      prisma.booking.findMany({
+      prisma.booking.aggregate({
         where: {
           driverPaymentStatus: PaymentStatus.PAID,
           assignedDriverId: { not: null },
         },
-        select: {
+        _sum: {
           driverAllowance: true,
           driverPayeeAmount: true,
         },
       }),
-      prisma.booking.findMany({
+      prisma.booking.count({
+        where: {
+          driverPaymentStatus: PaymentStatus.PAID,
+          assignedDriverId: { not: null },
+        },
+      }),
+      prisma.booking.aggregate({
         where: {
           driverPaymentStatus: PaymentStatus.PENDING,
           assignedDriverId: { not: null },
         },
-        select: {
+        _sum: {
           driverAllowance: true,
           driverPayeeAmount: true,
         },
       }),
+      prisma.booking.count({
+        where: {
+          driverPaymentStatus: PaymentStatus.PENDING,
+          assignedDriverId: { not: null },
+        },
+      }),
     ]);
 
-    const totalRevenue = allPayments.reduce((acc, p) => acc + Number(p.amount), 0);
-
-    const driverPaidCount = driverPaidBookings.length;
-    const totalDriverPaidAmount = driverPaidBookings.reduce(
-      (acc, b) => acc + Number(b.driverAllowance || 0) + Number(b.driverPayeeAmount || 0),
-      0
-    );
-
-    const driverPendingCount = driverPendingBookings.length;
-    const totalDriverPendingAmount = driverPendingBookings.reduce(
-      (acc, b) => acc + Number(b.driverAllowance || 0) + Number(b.driverPayeeAmount || 0),
-      0
-    );
+    const totalRevenue = Number(revenueAggregate._sum?.amount || 0);
+    const totalDriverPaidAmount =
+      Number(driverPaidAggregate._sum?.driverAllowance || 0) +
+      Number(driverPaidAggregate._sum?.driverPayeeAmount || 0);
+    const totalDriverPendingAmount =
+      Number(driverPendingAggregate._sum?.driverAllowance || 0) +
+      Number(driverPendingAggregate._sum?.driverPayeeAmount || 0);
 
     // 2. Query bookings with payments
     const whereClause: any = {};

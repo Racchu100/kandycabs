@@ -15,77 +15,41 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Parallel fetch of all high-level operational statistics
+    // Parallel fetch using groupBy aggregations and lean select projections
     const [
-      totalBookings,
-      pendingAdminBookings,
-      dispatchedBookings,
-      activeRidesCount,
-      completedBookings,
-      cancelledBookings,
-      totalDrivers,
+      bookingStatusGroups,
+      driverStatusGroups,
       onlineDrivers,
-      pendingKycDrivers,
-      approvedDrivers,
       totalFleets,
       pricingRulesCount,
       paymentsSummary,
       recentBookings,
       recentAuditLogs,
     ] = await Promise.all([
-      // 1. Total bookings
-      prisma.booking.count({ where: { deletedAt: null } }),
-
-      // 2. Pending admin action (needs dispatch)
-      prisma.booking.count({ where: { status: BookingStatus.PENDING_ADMIN, deletedAt: null } }),
-
-      // 3. Dispatched (waiting driver acceptance)
-      prisma.booking.count({ where: { status: BookingStatus.DISPATCHED, deletedAt: null } }),
-
-      // 4. Active rides on road
-      prisma.booking.count({
-        where: {
-          status: {
-            in: [
-              BookingStatus.DISPATCHED,
-              BookingStatus.DRIVER_ACCEPTED,
-              BookingStatus.DRIVER_EN_ROUTE,
-              BookingStatus.TRIP_STARTED,
-            ],
-          },
-          deletedAt: null,
-        },
+      // 1. Grouped booking status counts
+      prisma.booking.groupBy({
+        by: ['status'],
+        where: { deletedAt: null },
+        _count: { _all: true },
       }),
 
-      // 5. Completed bookings
-      prisma.booking.count({ where: { status: BookingStatus.TRIP_COMPLETED, deletedAt: null } }),
+      // 2. Grouped driver verification status counts
+      prisma.driver.groupBy({
+        by: ['verificationStatus'],
+        where: { deletedAt: null },
+        _count: { _all: true },
+      }),
 
-      // 6. Cancelled bookings
-      prisma.booking.count({ where: { status: BookingStatus.CANCELLED, deletedAt: null } }),
-
-      // 7. Total Drivers
-      prisma.driver.count({ where: { deletedAt: null } }),
-
-      // 8. Online Drivers
+      // 3. Online Drivers count
       prisma.driver.count({ where: { onlineStatus: true, deletedAt: null } }),
 
-      // 9. Pending KYC Drivers
-      prisma.driver.count({
-        where: { verificationStatus: DriverVerificationStatus.PENDING, deletedAt: null },
-      }),
-
-      // 10. Approved Drivers
-      prisma.driver.count({
-        where: { verificationStatus: DriverVerificationStatus.APPROVED, deletedAt: null },
-      }),
-
-      // 11. Total Fleet Categories
+      // 4. Total Fleet Categories
       prisma.fleetCategory.count(),
 
-      // 12. Active Pricing Rules
+      // 5. Active Pricing Rules
       prisma.pricingRule.count(),
 
-      // 13. Financial aggregations
+      // 6. Financial aggregations
       prisma.booking.aggregate({
         where: { deletedAt: null },
         _sum: {
@@ -94,37 +58,77 @@ export async function GET(req: NextRequest) {
         },
       }),
 
-      // 14. Latest 6 bookings
+      // 7. Latest 6 bookings (lean select)
       prisma.booking.findMany({
         where: { deletedAt: null },
         orderBy: { createdAt: 'desc' },
         take: 6,
-        include: {
+        select: {
+          id: true,
+          humanReadableRef: true,
+          tripType: true,
+          pickupAddress: true,
+          dropAddress: true,
+          status: true,
+          estimatedFare: true,
+          createdAt: true,
           customer: {
-            include: {
+            select: {
               user: { select: { fullName: true, phone: true } },
             },
           },
           assignedDriver: {
-            include: {
+            select: {
               user: { select: { fullName: true, phone: true } },
             },
           },
-          vehicle: true,
         },
       }),
 
-      // 15. Latest 6 audit logs
+      // 8. Latest 6 audit logs
       prisma.auditLog.findMany({
         orderBy: { createdAt: 'desc' },
         take: 6,
-        include: {
+        select: {
+          id: true,
+          action: true,
+          entityType: true,
+          createdAt: true,
           actorUser: {
             select: { fullName: true, phone: true, roles: true },
           },
         },
       }),
     ]);
+
+    // Aggregate booking counts
+    const bookingCountsMap: Record<string, number> = {};
+    let totalBookings = 0;
+    for (const g of bookingStatusGroups) {
+      bookingCountsMap[g.status] = g._count._all;
+      totalBookings += g._count._all;
+    }
+
+    const pendingAdminBookings = bookingCountsMap[BookingStatus.PENDING_ADMIN] || 0;
+    const dispatchedBookings = bookingCountsMap[BookingStatus.DISPATCHED] || 0;
+    const activeRidesCount =
+      (bookingCountsMap[BookingStatus.DISPATCHED] || 0) +
+      (bookingCountsMap[BookingStatus.DRIVER_ACCEPTED] || 0) +
+      (bookingCountsMap[BookingStatus.DRIVER_EN_ROUTE] || 0) +
+      (bookingCountsMap[BookingStatus.TRIP_STARTED] || 0);
+    const completedBookings = bookingCountsMap[BookingStatus.TRIP_COMPLETED] || 0;
+    const cancelledBookings = bookingCountsMap[BookingStatus.CANCELLED] || 0;
+
+    // Aggregate driver counts
+    const driverCountsMap: Record<string, number> = {};
+    let totalDrivers = 0;
+    for (const g of driverStatusGroups) {
+      driverCountsMap[g.verificationStatus] = g._count._all;
+      totalDrivers += g._count._all;
+    }
+
+    const pendingKycDrivers = driverCountsMap[DriverVerificationStatus.PENDING] || 0;
+    const approvedDrivers = driverCountsMap[DriverVerificationStatus.APPROVED] || 0;
 
     const grossRevenue = Number(paymentsSummary._sum?.estimatedFare || 0);
     const advanceCollected = Number(paymentsSummary._sum?.advanceAmount || 0);

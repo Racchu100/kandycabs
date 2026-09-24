@@ -177,6 +177,28 @@ export default function AdminBookingsPage() {
     };
   }, [fetchBookings]);
 
+  // Instant client-side filtering for 0ms UI response while server query syncs
+  const displayedBookings = React.useMemo(() => {
+    if (!bookings || bookings.length === 0) return [];
+    return bookings.filter((b) => {
+      if (statusFilter !== 'ALL' && b.status !== statusFilter) {
+        return false;
+      }
+      if (search.trim()) {
+        const q = search.toLowerCase().trim();
+        const refMatch = b.humanReadableRef?.toLowerCase().includes(q);
+        const custMatch =
+          b.customer?.user?.fullName?.toLowerCase().includes(q) ||
+          b.customer?.user?.phone?.includes(q);
+        const addrMatch =
+          b.pickupAddress?.toLowerCase().includes(q) ||
+          b.dropAddress?.toLowerCase().includes(q);
+        return refMatch || custMatch || addrMatch;
+      }
+      return true;
+    });
+  }, [bookings, statusFilter, search]);
+
   const handleOpenDrawer = (id: string) => {
     setSelectedBookingId(id);
     setDrawerOpen(true);
@@ -224,7 +246,7 @@ export default function AdminBookingsPage() {
               {isReconnecting ? (
                 <span className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 animate-pulse">
                   <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span>Reconnecting... (5s polling active)</span>
+                  <span>Reconnecting... (20s polling active)</span>
                 </span>
               ) : realtimeActive ? (
                 <span className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
@@ -241,6 +263,7 @@ export default function AdminBookingsPage() {
           <div className="flex items-center space-x-3">
             <Link
               href="/live-map"
+              prefetch={true}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center space-x-1.5"
             >
               <span>🗺️ Open Live Fleet Map (Flow A)</span>
@@ -249,7 +272,7 @@ export default function AdminBookingsPage() {
         </div>
 
         {/* Pending Driver Override Alert Banner */}
-        {bookings.some(
+        {displayedBookings.some(
           (b) =>
             b.tripEvents?.some((e: any) => e.type === 'OVERRIDE_REQUESTED') &&
             (b.status === BookingStatus.DRIVER_ACCEPTED || b.status === BookingStatus.DRIVER_EN_ROUTE)
@@ -267,7 +290,7 @@ export default function AdminBookingsPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {bookings
+              {displayedBookings
                 .filter(
                   (b) =>
                     b.tripEvents?.some((e: any) => e.type === 'OVERRIDE_REQUESTED') &&
@@ -299,7 +322,7 @@ export default function AdminBookingsPage() {
                   setStatusFilter(s);
                   setPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 ${
                   statusFilter === s
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -326,9 +349,14 @@ export default function AdminBookingsPage() {
         </div>
 
         {/* Bookings Table */}
-        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden relative">
+          {loading && (
+            <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-100 overflow-hidden z-10">
+              <div className="h-full bg-indigo-600 animate-pulse w-full" />
+            </div>
+          )}
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+            <table className={`min-w-full divide-y divide-slate-200 text-left text-xs transition-opacity duration-200 ${loading && bookings.length > 0 ? 'opacity-80' : 'opacity-100'}`}>
               <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
                 <tr>
                   <th className="px-5 py-3.5">Ref & Date</th>
@@ -344,17 +372,20 @@ export default function AdminBookingsPage() {
                 {loading && bookings.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
-                      Loading bookings...
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                        <span>Loading bookings...</span>
+                      </div>
                     </td>
                   </tr>
-                ) : bookings.length === 0 ? (
+                ) : displayedBookings.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
                       No matching bookings found for the selected filter.
                     </td>
                   </tr>
                 ) : (
-                  bookings.map((b) => {
+                  displayedBookings.map((b) => {
                     const hasOverrideRequest =
                       b.tripEvents?.some((e: any) => e.type === 'OVERRIDE_REQUESTED') &&
                       (b.status === BookingStatus.DRIVER_ACCEPTED || b.status === BookingStatus.DRIVER_EN_ROUTE);

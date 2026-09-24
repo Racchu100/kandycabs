@@ -47,6 +47,7 @@ export function AdminNavbar() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={true}
                   className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                     isActive
                       ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -96,6 +97,7 @@ export function AdminNavbar() {
             <Link
               key={link.href}
               href={link.href}
+              prefetch={true}
               className={`flex-shrink-0 px-2.5 py-1 rounded font-medium flex items-center space-x-1 ${
                 isActive ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
               }`}
