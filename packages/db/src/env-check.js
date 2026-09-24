@@ -12,6 +12,10 @@ function validateDatabaseUrl() {
 
   if (isProd) {
     if (!dbUrl) {
+      if (process.env.VERCEL || process.env.CI) {
+        console.warn('\x1b[33m%s\x1b[0m', '⚠️ WARNING: DATABASE_URL not detected in build environment. Ensure it is configured in Vercel Environment Variables.');
+        return;
+      }
       console.error('\x1b[31m%s\x1b[0m', '❌ BUILD ERROR: DATABASE_URL is required in production environment.');
       process.exit(1);
     }
