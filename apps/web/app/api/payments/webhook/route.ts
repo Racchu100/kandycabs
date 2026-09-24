@@ -136,6 +136,9 @@ export async function POST(req: NextRequest) {
             reason: `Webhook ${event} verified payment for booking ${paymentRecord.booking.humanReadableRef}. Razorpay Payment ID: ${paymentId}`,
           },
         });
+      }, {
+        maxWait: 10000,
+        timeout: 25000,
       });
 
       console.log(`✅ Payment ${paymentRecord.id} verified and marked as PAID via webhook`);

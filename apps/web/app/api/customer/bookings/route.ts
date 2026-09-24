@@ -236,6 +236,9 @@ export async function POST(req: NextRequest) {
       });
 
       return booking;
+    }, {
+      maxWait: 10000,
+      timeout: 25000,
     });
 
     const response = NextResponse.json(

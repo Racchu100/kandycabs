@@ -145,6 +145,9 @@ export async function POST(req: NextRequest) {
       });
 
       return updated;
+    }, {
+      maxWait: 10000,
+      timeout: 25000,
     });
 
     // Realtime SSE: Notify assigned driver if any
