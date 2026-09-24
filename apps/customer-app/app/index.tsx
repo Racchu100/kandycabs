@@ -188,6 +188,11 @@ export default function HomeScreen() {
   const [timeModalVisible, setTimeModalVisible] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
 
+  const handleSelectTripType = (type: TripType) => {
+    setTripType(type);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
   // Load User Session
   useEffect(() => {
     async function fetchUser() {
@@ -680,7 +685,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* 4. Floating Bottom Dock (Memoized) */}
-      <CustomerBottomDock activeType={tripType} onSelectType={setTripType} />
+      <CustomerBottomDock activeType={tripType} onSelectType={handleSelectTripType} />
 
       {/* Location Picker Modal */}
       <LocationPickerModal
