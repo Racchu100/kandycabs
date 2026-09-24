@@ -9,6 +9,7 @@ import {
   Platform,
   StatusBar,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -311,9 +312,7 @@ export default function SelectCabScreen() {
                   <Image
                     source={item.image}
                     style={styles.carImage}
-                    contentFit="contain"
-                    cachePolicy="memory-disk"
-                    transition={200}
+                    resizeMode="contain"
                   />
                 </View>
 

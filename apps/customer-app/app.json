@@ -3,7 +3,7 @@
     "name": "Kandy Cabs Customer",
     "slug": "kandy-cabs-customer",
     "version": "1.0.0",
-    "jsEngine": "jsc",
+    "jsEngine": "hermes",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

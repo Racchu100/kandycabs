@@ -13,6 +13,7 @@ import {
   Alert,
   Dimensions,
   KeyboardAvoidingView,
+  Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -704,9 +705,7 @@ export default function BookingFunnelScreen() {
                 <Image
                   source={vehicleInfo.image}
                   style={styles.vehiclePillImage}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
-                  transition={200}
+                  resizeMode="contain"
                 />
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.vehiclePillName}>{vehicleInfo.name}</Text>

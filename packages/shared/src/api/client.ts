@@ -56,6 +56,10 @@ export class KandyApiClient {
     this.baseUrl = url;
   }
 
+  public getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   public async fetch<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = endpoint.startsWith('http')
       ? endpoint

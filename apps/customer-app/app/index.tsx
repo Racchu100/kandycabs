@@ -367,9 +367,7 @@ export default function HomeScreen() {
         <Image
           source={require('../assets/images/logo.png')}
           style={styles.navLogo}
-          contentFit="contain"
-          cachePolicy="memory-disk"
-          transition={200}
+          resizeMode="contain"
         />
 
         <View style={styles.navRight}>
@@ -626,9 +624,7 @@ export default function HomeScreen() {
                 <Image
                   source={item.image}
                   style={styles.gridCarImage}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
-                  transition={200}
+                  resizeMode="contain"
                 />
               </View>
 

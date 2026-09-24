@@ -14,6 +14,7 @@ import {
   TextInput,
   RefreshControl,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -933,9 +934,7 @@ export default function CustomerDashboardScreen() {
           <Image
             source={require('../assets/images/logo-white.png')}
             style={styles.headerLogoImage}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-            transition={200}
+            resizeMode="contain"
           />
         </View>
 

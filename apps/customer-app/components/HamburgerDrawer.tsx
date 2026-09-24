@@ -9,6 +9,7 @@ import {
   Linking,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,8 +63,7 @@ export function HamburgerDrawer({
                 <Image
                   source={require('../assets/images/logo.png')}
                   style={styles.drawerLogo}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
+                  resizeMode="contain"
                 />
               )}
             </View>

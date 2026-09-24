@@ -81,6 +81,9 @@ export async function POST(req: NextRequest) {
     await sendOtpSms(normalizedPhone, otp);
 
     const isDev = process.env.NODE_ENV !== 'production';
+    const isPlaceholderSms = !process.env.SMS_PROVIDER_API_KEY || process.env.SMS_PROVIDER_API_KEY.includes('placeholder');
+    const enableDemoOtp = process.env.ENABLE_DEMO_OTP !== 'false';
+
     const responsePayload: any = {
       success: true,
       message: 'OTP sent successfully',
@@ -91,7 +94,7 @@ export async function POST(req: NextRequest) {
       driverStatus: existingUser?.driver?.verificationStatus || null,
     };
 
-    if (isDev) {
+    if (isDev || isPlaceholderSms || enableDemoOtp) {
       responsePayload.debugOtp = otp;
     }
 

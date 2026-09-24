@@ -39,13 +39,8 @@ function getDynamicBaseUrl(): string {
     }
   }
 
-  // 2. Android Emulator standard loopback
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3000';
-  }
-
-  // 3. iOS Simulator / Web localhost
-  return 'http://localhost:3000';
+  // 2. Physical phone / LAN default fallback
+  return 'http://192.168.43.207:3000';
 }
 
 export const customerApiClient = new KandyApiClient({

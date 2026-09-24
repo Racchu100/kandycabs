@@ -15,4 +15,15 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
+config.resolver.blockList = [
+  /.*\/dist\/.*/,
+  /.*\/android\/app\/build\/.*/,
+  /.*\/android\/\.gradle\/.*/,
+];
+
+config.resolver.extraNodeModules = {
+  ...(config.resolver.extraNodeModules || {}),
+  '@kandy-cabs/shared': path.resolve(monorepoRoot, 'packages/shared'),
+};
+
 module.exports = config;

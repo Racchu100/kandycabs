@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { customerApiClient, customerTokenStorage } from '../lib/api';
@@ -91,9 +92,7 @@ export default function CustomerLoginScreen() {
           <Image
             source={require('../assets/images/logo-white.png')}
             style={styles.logoImage}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-            transition={200}
+            resizeMode="contain"
           />
           <Text style={styles.tagline}>Book Reliable Intercity & Local Cabs</Text>
         </View>
