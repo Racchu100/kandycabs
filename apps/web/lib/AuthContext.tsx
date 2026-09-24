@@ -109,10 +109,21 @@ export function AuthProvider({
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  isLoading: false,
+  isAuthenticated: false,
+  sendOtp: async () => ({ success: false, message: 'Auth not initialized' }),
+  verifyOtp: async () => ({ success: false, message: 'Auth not initialized' }),
+  logout: async () => {},
+  refreshUser: async () => null,
+  client: apiClient,
+};
+
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    return defaultAuthContext;
   }
   return context;
 }

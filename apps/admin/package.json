@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3001",
-    "build": "next build",
-    "vercel-build": "prisma generate --schema=../../packages/db/prisma/schema.prisma && next build",
+    "build": "node ../../packages/db/src/generate.js && next build",
+    "vercel-build": "node ../../packages/db/src/generate.js && next build",
     "start": "next start -p 3001",
     "lint": "next lint",
     "check-types": "tsc --noEmit"
