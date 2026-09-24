@@ -118,6 +118,38 @@ export default function AdminVehicleEvidencePage() {
     }
   };
 
+  const [search, setSearch] = useState('');
+
+  // Instant client-side filtering for 0ms response
+  const displayedDrivers = React.useMemo(() => {
+    if (!drivers || drivers.length === 0) return [];
+    return drivers.filter((d) => {
+      if (statusFilter !== 'ALL' && d.verificationStatus !== statusFilter) {
+        return false;
+      }
+      if (search.trim()) {
+        const q = search.toLowerCase().trim();
+        const nameMatch = d.fullName?.toLowerCase().includes(q);
+        const phoneMatch = d.phone?.includes(q);
+        const licenseMatch = d.licenseNumber?.toLowerCase().includes(q);
+        const plateMatch = d.vehicle?.plateNumber?.toLowerCase().includes(q);
+        const catMatch = d.vehicle?.category?.toLowerCase().includes(q);
+        return nameMatch || phoneMatch || licenseMatch || plateMatch || catMatch;
+      }
+      return true;
+    });
+  }, [drivers, statusFilter, search]);
+
+  // Keep selected driver synced with filtered list
+  useEffect(() => {
+    if (displayedDrivers.length > 0) {
+      const exists = displayedDrivers.some((d) => d.driverId === selectedDriver?.driverId);
+      if (!exists) {
+        setSelectedDriver(displayedDrivers[0]);
+      }
+    }
+  }, [displayedDrivers, selectedDriver]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <AdminNavbar />
@@ -149,55 +181,73 @@ export default function AdminVehicleEvidencePage() {
           </div>
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex gap-2">
-          {[
-            { id: 'ALL', label: 'All Drivers', count: counts.all },
-            { id: 'PENDING', label: 'Pending Review', count: counts.pending, badgeColor: 'bg-amber-500/20 text-amber-300' },
-            { id: 'APPROVED', label: 'Approved', count: counts.approved, badgeColor: 'bg-emerald-500/20 text-emerald-300' },
-            { id: 'REJECTED', label: 'Rejected', count: counts.rejected, badgeColor: 'bg-rose-500/20 text-rose-300' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
-                statusFilter === tab.id
-                  ? 'bg-amber-500 text-slate-950 shadow-sm'
-                  : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                  statusFilter === tab.id ? 'bg-slate-950/30 text-slate-950' : tab.badgeColor || 'bg-slate-800 text-slate-400'
+        {/* Status Filter Tabs & Search Bar */}
+        <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'ALL', label: 'All Drivers', count: counts.all },
+              { id: 'PENDING', label: 'Pending Review', count: counts.pending, badgeColor: 'bg-amber-500/20 text-amber-300' },
+              { id: 'APPROVED', label: 'Approved', count: counts.approved, badgeColor: 'bg-emerald-500/20 text-emerald-300' },
+              { id: 'REJECTED', label: 'Rejected', count: counts.rejected, badgeColor: 'bg-rose-500/20 text-rose-300' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setStatusFilter(tab.id)}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition active:scale-95 ${
+                  statusFilter === tab.id
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                {tab.count}
-              </span>
-            </button>
-          ))}
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    statusFilter === tab.id ? 'bg-slate-950/30 text-slate-950' : tab.badgeColor || 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="relative md:w-72">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search driver, phone, vehicle plate, license..."
+              className="w-full pl-8 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
+            />
+            <span className="absolute left-2.5 top-2.5 text-xs text-slate-500">🔍</span>
+          </div>
         </div>
 
         {/* Master-Detail Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Drivers List */}
-          <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col h-[750px]">
-            <div className="p-3 bg-slate-950 border-b border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Registered Drivers ({drivers.length})
+          <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col h-[750px] relative">
+            {loading && (
+              <div className="absolute top-0 left-0 right-0 h-1 bg-slate-800 overflow-hidden z-10">
+                <div className="h-full bg-amber-500 animate-pulse w-full" />
+              </div>
+            )}
+            <div className="p-3 bg-slate-950 border-b border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+              <span>Registered Drivers ({displayedDrivers.length})</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-800">
-              {loading ? (
+            <div className={`flex-1 overflow-y-auto divide-y divide-slate-800 transition-opacity ${loading && drivers.length > 0 ? 'opacity-80' : 'opacity-100'}`}>
+              {loading && drivers.length === 0 ? (
                 <div className="py-20 text-center text-slate-400 text-sm">
                   <div className="inline-block animate-spin text-2xl mb-2">🔄</div>
                   <div>Loading drivers...</div>
                 </div>
-              ) : drivers.length === 0 ? (
+              ) : displayedDrivers.length === 0 ? (
                 <div className="py-16 text-center text-slate-400 text-xs">
-                  No drivers found for this filter.
+                  No drivers match the selected filter or search.
                 </div>
               ) : (
-                drivers.map((d) => {
+                displayedDrivers.map((d) => {
                   const isSelected = selectedDriver?.driverId === d.driverId;
                   return (
                     <div

@@ -58,12 +58,26 @@ export default function AdminFleetsPage() {
     }
   };
 
+  const [search, setSearch] = useState('');
+
+  const displayedFleets = React.useMemo(() => {
+    if (!fleets || fleets.length === 0) return [];
+    if (!search.trim()) return fleets;
+    const q = search.toLowerCase().trim();
+    return fleets.filter((f) => {
+      const catMatch = f.category?.toLowerCase().includes(q);
+      const nameMatch = f.name?.toLowerCase().includes(q);
+      const descMatch = f.description?.toLowerCase().includes(q);
+      return catMatch || nameMatch || descMatch;
+    });
+  }, [fleets, search]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <AdminNavbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
+        {/* Header & Controls */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
@@ -73,23 +87,39 @@ export default function AdminFleetsPage() {
               Configure vehicle classes, seat capacities, base rates across fuel types, and driver allowances
             </p>
           </div>
-          <button
-            onClick={() => fetchFleets()}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 text-slate-200 transition"
-          >
-            <span>🔄</span> Refresh
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Quick search fleet categories..."
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
+              />
+              <span className="absolute left-2.5 top-2 text-xs text-slate-500">🔍</span>
+            </div>
+            <button
+              onClick={() => fetchFleets()}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 text-slate-200 transition"
+            >
+              <span>🔄</span> Refresh
+            </button>
+          </div>
         </div>
 
         {/* Fleet Categories Grid */}
-        {loading ? (
+        {loading && fleets.length === 0 ? (
           <div className="py-20 text-center text-slate-400 text-sm">
             <div className="inline-block animate-spin text-2xl mb-2">🔄</div>
             <div>Loading fleet configuration...</div>
           </div>
+        ) : displayedFleets.length === 0 ? (
+          <div className="py-20 text-center text-slate-500 text-xs bg-slate-900/50 rounded-2xl border border-slate-800/80">
+            No fleet categories match "{search}".
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {fleets.map((fleet) => (
+            {displayedFleets.map((fleet) => (
               <div
                 key={fleet.category}
                 className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 transition shadow-sm"
