@@ -41,18 +41,48 @@ export default function AdminBookingsPage() {
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [otpBooking, setOtpBooking] = useState<{ id: string; ref: string } | null>(null);
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const inFlightRef = useRef(false);
+
+  // Debounce search input by 350ms
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   const fetchBookings = useCallback(
     async (isBackground: boolean = false) => {
-      if (!isBackground) setLoading(true);
+      // If a background fetch is requested while a fetch is already in flight, skip to prevent queuing
+      if (isBackground && inFlightRef.current) return;
+
+      // Abort previous in-flight user request if starting a new foreground request
+      if (!isBackground && abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      if (!isBackground) {
+        abortControllerRef.current = controller;
+        setLoading(true);
+      }
+      inFlightRef.current = true;
+
       try {
         const queryParams = new URLSearchParams({
           page: String(page),
           limit: '25',
           status: statusFilter,
-          ...(search ? { search } : {}),
+          ...(debouncedSearch ? { search: debouncedSearch } : {}),
         });
 
-        const res = await fetch(`/api/admin/bookings?${queryParams}`);
+        const res = await fetch(`/api/admin/bookings?${queryParams}`, {
+          signal: controller.signal,
+        });
+
         if (res.ok) {
           const data = await res.json();
           setBookings(data.bookings || []);
@@ -61,16 +91,19 @@ export default function AdminBookingsPage() {
           }
           setIsReconnecting(false);
         } else {
-          setIsReconnecting(true);
+          if (!isBackground) setIsReconnecting(true);
         }
-      } catch (err) {
-        console.error('Fetch bookings error:', err);
-        setIsReconnecting(true);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Fetch bookings error:', err);
+          if (!isBackground) setIsReconnecting(true);
+        }
       } finally {
+        inFlightRef.current = false;
         if (!isBackground) setLoading(false);
       }
     },
-    [page, statusFilter, search]
+    [page, statusFilter, debouncedSearch]
   );
 
   // Initial fetch and on filter/page change
@@ -78,7 +111,7 @@ export default function AdminBookingsPage() {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Realtime subscription with Supabase + 5-second polling fallback
+  // Realtime subscription with Supabase + 20-second polling fallback
   useEffect(() => {
     const supabase = getSupabaseClient();
     let channel: any = null;
@@ -126,10 +159,10 @@ export default function AdminBookingsPage() {
       setIsReconnecting(false);
     }
 
-    // Fallback 5-second polling for guaranteed fresh updates
+    // Fallback 20-second polling for guaranteed background sync
     pollInterval = setInterval(() => {
       fetchBookings(true);
-    }, 5000);
+    }, 20000);
 
     return () => {
       if (channel) {
@@ -137,6 +170,9 @@ export default function AdminBookingsPage() {
       }
       if (pollInterval) {
         clearInterval(pollInterval);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, [fetchBookings]);

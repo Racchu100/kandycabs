@@ -47,35 +47,39 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
-        include: {
+        select: {
+          id: true,
+          humanReadableRef: true,
+          tripType: true,
+          pickupAddress: true,
+          dropAddress: true,
+          distanceKm: true,
+          estimatedFare: true,
+          advanceAmount: true,
+          status: true,
+          customerPhoneReleased: true,
+          driverPaymentStatus: true,
+          createdAt: true,
           customer: {
-            include: {
+            select: {
               user: {
                 select: { id: true, fullName: true, phone: true },
               },
             },
           },
           assignedDriver: {
-            include: {
+            select: {
               user: {
                 select: { id: true, fullName: true, phone: true },
               },
-              vehicles: true,
             },
           },
-          payments: true,
           tripEvents: {
-            orderBy: { createdAt: 'desc' },
+            where: { type: 'OVERRIDE_REQUESTED' },
+            select: { id: true, type: true },
           },
           dispatches: {
-            orderBy: { broadcastAt: 'desc' },
-            include: {
-              driver: {
-                include: {
-                  user: { select: { fullName: true, phone: true } },
-                },
-              },
-            },
+            select: { id: true },
           },
         },
       }),
