@@ -9,8 +9,8 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { driverApiClient } from '../lib/api';
 import { DriverVerificationStatus } from '@kandy-cabs/shared';
@@ -92,9 +92,7 @@ export default function DriverLoginScreen() {
           <Image
             source={require('../assets/images/logo-white.png')}
             style={styles.logoImage}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-            transition={200}
+            resizeMode="contain"
           />
           <Text style={styles.badge}>DRIVER PARTNER</Text>
           <Text style={styles.subtitle}>Sign in to accept rides and manage your trips</Text>

@@ -11,8 +11,8 @@ import {
   Platform,
   SafeAreaView,
   StatusBar,
+  Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -309,9 +309,7 @@ export default function DriverDocumentsUploadScreen() {
                 <Image
                   source={{ uri: profilePhotoUrl }}
                   style={styles.profileCircleImage}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                  transition={200}
+                  resizeMode="cover"
                 />
               </View>
               <View style={styles.profileCircleInfo}>
@@ -373,9 +371,7 @@ export default function DriverDocumentsUploadScreen() {
               <Image
                 source={{ uri: licenseDocUrl }}
                 style={styles.docPreviewImage}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={200}
+                resizeMode="cover"
               />
               <TouchableOpacity
                 style={styles.changePhotoOverlay}
@@ -417,9 +413,7 @@ export default function DriverDocumentsUploadScreen() {
               <Image
                 source={{ uri: rcDocUrl }}
                 style={styles.docPreviewImage}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={200}
+                resizeMode="cover"
               />
               <TouchableOpacity
                 style={styles.changePhotoOverlay}
@@ -461,9 +455,7 @@ export default function DriverDocumentsUploadScreen() {
               <Image
                 source={{ uri: insuranceDocUrl }}
                 style={styles.docPreviewImage}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={200}
+                resizeMode="cover"
               />
               <TouchableOpacity
                 style={styles.changePhotoOverlay}
@@ -514,9 +506,7 @@ export default function DriverDocumentsUploadScreen() {
                     <Image
                       source={{ uri: photoUrl }}
                       style={styles.angleImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={200}
+                      resizeMode="cover"
                     />
                     <TouchableOpacity
                       style={styles.angleChangeBtn}

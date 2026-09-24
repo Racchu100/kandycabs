@@ -12,8 +12,8 @@ import {
   Linking,
   ImageBackground,
   StatusBar,
+  Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -341,9 +341,7 @@ export default function DriverDashboardScreen() {
                 <Image
                   source={require('../assets/images/logo-white.png')}
                   style={styles.kandyCabsLogo}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
-                  transition={200}
+                  resizeMode="contain"
                 />
                 <View style={styles.chauffeurBadge}>
                   <Text style={styles.chauffeurBadgeText}>CHAUFFEUR</Text>
@@ -360,9 +358,7 @@ export default function DriverDashboardScreen() {
                     <Image
                       source={{ uri: driver.profilePhotoUrl }}
                       style={styles.avatarImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={200}
+                      resizeMode="cover"
                     />
                   </View>
                 ) : (
@@ -442,9 +438,7 @@ export default function DriverDashboardScreen() {
               <Image
                 source={require('../assets/images/logo.png')}
                 style={styles.kandyCabsLogo}
-                contentFit="contain"
-                cachePolicy="memory-disk"
-                transition={200}
+                resizeMode="contain"
               />
               <View style={styles.chauffeurBadge}>
                 <Text style={styles.chauffeurBadgeText}>CHAUFFEUR</Text>
@@ -482,9 +476,7 @@ export default function DriverDashboardScreen() {
                     <Image
                       source={{ uri: driver.profilePhotoUrl }}
                       style={styles.avatarImageCompact}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={200}
+                      resizeMode="cover"
                     />
                   </View>
                 ) : (
@@ -1256,9 +1248,7 @@ export default function DriverDashboardScreen() {
                   <Image
                     source={{ uri: driver.profilePhotoUrl }}
                     style={styles.profileAvatarPhotoLarge}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                    transition={200}
+                    resizeMode="cover"
                   />
                 ) : (
                   <Text style={{ fontSize: 36 }}>👨🏽‍✈️</Text>

@@ -39,7 +39,7 @@ class MobileTokenStorage implements TokenStorage {
   }
 }
 
-const tokenStorage = new MobileTokenStorage();
+export const driverTokenStorage = new MobileTokenStorage();
 
 import Constants from 'expo-constants';
 
@@ -57,17 +57,12 @@ function getDynamicBaseUrl(): string {
     }
   }
 
-  // 2. Android Emulator standard loopback
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3000';
-  }
-
-  // 3. iOS Simulator / Web localhost
-  return 'http://localhost:3000';
+  // 2. Production cloud fallback
+  return 'https://web-rgwp.vercel.app';
 }
 
 export const driverApiClient = new KandyApiClient({
   baseUrl: getDynamicBaseUrl(),
-  tokenStorage,
+  tokenStorage: driverTokenStorage,
 });
 

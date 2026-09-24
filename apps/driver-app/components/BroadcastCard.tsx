@@ -85,11 +85,11 @@ export const BroadcastCard = memo(function BroadcastCard({
       {/* Slide To Accept or Decline */}
       <View style={styles.actionContainer}>
         <SlideToAccept
-          onSwipeComplete={() => onAccept(dispatch.id)}
+          onAccept={() => onAccept(dispatch.id)}
           disabled={isAccepting}
-          trackColor="#065f46"
-          thumbColor="#10b981"
-          text={isAccepting ? 'Accepting...' : 'Slide to Accept Ride →'}
+          isAccepting={isAccepting}
+          title="Slide to Accept Ride →"
+          acceptingTitle="Accepting..."
         />
         <TouchableOpacity
           style={styles.declineBtn}

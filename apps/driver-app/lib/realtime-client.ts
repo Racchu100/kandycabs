@@ -1,4 +1,4 @@
-import { driverApiClient } from './api';
+import { driverApiClient, driverTokenStorage } from './api';
 
 export type DriverEventType = 'DISPATCH_NEW' | 'DISPATCH_REVOKED' | 'TRIP_STATUS' | 'PROFILE_UPDATED' | 'connected';
 
@@ -60,7 +60,7 @@ class DriverRealtimeClient {
   private connect() {
     if (this.isStopped) return;
 
-    const token = driverApiClient.getToken();
+    const token = driverTokenStorage.getToken();
     if (!token) {
       // Retry in 3 seconds if not authenticated yet
       this.scheduleReconnect(3000);

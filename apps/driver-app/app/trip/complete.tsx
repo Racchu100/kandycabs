@@ -11,8 +11,8 @@ import {
   Alert,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -235,9 +235,7 @@ export default function DriverTripCompleteScreen() {
                 <Image
                   source={{ uri: odometerImageUri }}
                   style={styles.odometerPreviewImage}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                  transition={200}
+                  resizeMode="cover"
                 />
                 
                 {/* GPS Location Stamp Overlay at Bottom of Captured Photo */}

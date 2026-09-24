@@ -1,7 +1,6 @@
 import 'fast-text-encoding';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
+import { StyleSheet, Text, View, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { driverApiClient } from '../lib/api';
 import { DriverVerificationStatus } from '@kandy-cabs/shared';
@@ -36,9 +35,7 @@ export default function DriverAppIndex() {
       <Image
         source={require('../assets/images/logo-white.png')}
         style={styles.logoImage}
-        contentFit="contain"
-        cachePolicy="memory-disk"
-        transition={200}
+        resizeMode="contain"
       />
       <View style={styles.badge}>
         <Text style={styles.badgeText}>Driver Partner Network</Text>
