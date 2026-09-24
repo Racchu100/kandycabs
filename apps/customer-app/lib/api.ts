@@ -39,8 +39,8 @@ function getDynamicBaseUrl(): string {
     }
   }
 
-  // 2. Physical phone / LAN default fallback
-  return 'http://192.168.43.207:3000';
+  // 2. Production cloud fallback
+  return 'https://web-rgwp.vercel.app';
 }
 
 export const customerApiClient = new KandyApiClient({
