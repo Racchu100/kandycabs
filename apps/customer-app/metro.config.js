@@ -19,6 +19,8 @@ config.resolver.blockList = [
   /.*\/dist\/.*/,
   /.*\/android\/app\/build\/.*/,
   /.*\/android\/\.gradle\/.*/,
+  /.*\/apps\/web\/\.next\/.*/,
+  /.*\/apps\/admin\/\.next\/.*/,
 ];
 
 config.resolver.extraNodeModules = {

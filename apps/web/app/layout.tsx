@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
-import { AuthProvider } from '@kandy-cabs/shared';
+import { Providers } from '@/components/Providers';
 import './globals.css';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={plusJakartaSans.variable}>
       <body className={plusJakartaSans.className}>
-        <AuthProvider>{children}</AuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
