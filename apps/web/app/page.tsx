@@ -9,9 +9,9 @@ import {
   TripType,
   VehicleCategory,
   QuoteResponse,
-  useAuth,
   UserRole,
 } from '@kandy-cabs/shared';
+import { useAuth } from '@/lib/AuthContext';
 import { ALL_LOCATIONS, PlaceLocation } from '@/lib/locations';
 
 const DriverAppModal = dynamic(

@@ -10,9 +10,9 @@ import {
   FuelType,
   QuoteResponse,
   PricingBreakdown,
-  useAuth,
   UserRole,
 } from '@kandy-cabs/shared';
+import { useAuth } from '@/lib/AuthContext';
 import { ALL_LOCATIONS, PlaceLocation } from '@/lib/locations';
 
 const DriverAppModal = nextDynamic(

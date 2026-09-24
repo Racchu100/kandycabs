@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAuth, UserRole } from '@kandy-cabs/shared';
+import { UserRole } from '@kandy-cabs/shared';
+import { useAuth } from '@/lib/AuthContext';
 
 function AdminLoginForm() {
   const router = useRouter();

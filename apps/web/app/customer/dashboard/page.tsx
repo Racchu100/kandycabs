@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import nextDynamic from 'next/dynamic';
-import { BookingStatus, useAuth, getSupabaseClient, UserRole } from '@kandy-cabs/shared';
+import { BookingStatus, getSupabaseClient, UserRole } from '@kandy-cabs/shared';
+import { useAuth } from '@/lib/AuthContext';
 
 const TaxInvoiceModal = nextDynamic(
   () => import('@/components/TaxInvoiceModal').then((mod) => mod.TaxInvoiceModal),

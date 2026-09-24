@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@kandy-cabs/shared';
+import { useAuth } from '@/lib/AuthContext';
 
 export function AdminNavbar() {
   const pathname = usePathname();

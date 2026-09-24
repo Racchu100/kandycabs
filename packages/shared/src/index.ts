@@ -6,7 +6,6 @@ export * from './auth/jwt';
 export * from './auth/hash';
 export * from './auth/sms';
 export * from './auth/guards';
-export * from './auth/AuthContext';
 export * from './api/client';
 export * from './pricing/types';
 export * from './pricing/pricingEngine';
