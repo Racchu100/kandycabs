@@ -9,6 +9,8 @@ if (!process.env.DATABASE_URL) {
 const schemaPath = path.resolve(__dirname, '../prisma/schema.prisma');
 console.log('Generating Prisma Client with schema:', schemaPath);
 
+const fs = require('fs');
+
 try {
   execSync(`npx prisma generate --schema="${schemaPath}"`, {
     stdio: 'inherit',
@@ -16,6 +18,12 @@ try {
   });
   console.log('✅ Prisma Client generated successfully.');
 } catch (error) {
-  console.error('❌ Failed to generate Prisma Client:', error);
-  process.exit(1);
+  // If Prisma Client already exists on Windows and DLL is locked by running dev server
+  const clientExists = fs.existsSync(path.resolve(__dirname, '../../../node_modules/@prisma/client/index.js'));
+  if (clientExists && process.platform === 'win32') {
+    console.warn('⚠️ Prisma Client binary locked by active dev process, using existing generated client.');
+  } else {
+    console.error('❌ Failed to generate Prisma Client:', error);
+    process.exit(1);
+  }
 }

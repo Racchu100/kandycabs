@@ -809,15 +809,15 @@ export default function BookingFunnelPage() {
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                setConfirmedBooking(null);
-                setStep(1);
-              }}
-              className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 transition"
+            <Link
+              href="/customer/dashboard"
+              className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-900/20 text-sm gap-2"
             >
-              Book Another Ride
-            </button>
+              <span>View Booking</span>
+              <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </Link>
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
