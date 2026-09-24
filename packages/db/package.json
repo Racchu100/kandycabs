@@ -5,8 +5,9 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "postinstall": "prisma generate",
-    "db:generate": "prisma generate",
+    "build": "node src/generate.js",
+    "postinstall": "node src/generate.js",
+    "db:generate": "node src/generate.js",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
