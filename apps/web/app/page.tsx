@@ -371,13 +371,13 @@ export default function HomePage() {
   // Booking Widget State
   const [tripType, setTripType] = useState<TripType>(TripType.ONEWAY);
   const [airportTransferType, setAirportTransferType] = useState<'PICKUP' | 'DROP'>('PICKUP');
-  const [pickupAddress, setPickupAddress] = useState(POPULAR_LOCATIONS[2]?.name || 'Indiranagar 100 Feet Rd, Bangalore');
-  const [pickupLat, setPickupLat] = useState(POPULAR_LOCATIONS[2]?.lat || 12.9784);
-  const [pickupLng, setPickupLng] = useState(POPULAR_LOCATIONS[2]?.lng || 77.6408);
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [pickupLat, setPickupLat] = useState(0);
+  const [pickupLng, setPickupLng] = useState(0);
 
-  const [dropAddress, setDropAddress] = useState(POPULAR_LOCATIONS[5]?.name || 'Mysore Palace, Mysore');
-  const [dropLat, setDropLat] = useState(POPULAR_LOCATIONS[5]?.lat || 12.3051);
-  const [dropLng, setDropLng] = useState(POPULAR_LOCATIONS[5]?.lng || 76.6551);
+  const [dropAddress, setDropAddress] = useState('');
+  const [dropLat, setDropLat] = useState(0);
+  const [dropLng, setDropLng] = useState(0);
 
   const handleAirportTransferSelect = (type: 'PICKUP' | 'DROP') => {
     setAirportTransferType(type);
@@ -1234,9 +1234,9 @@ export default function HomePage() {
                   className="w-full bg-slate-50 hover:bg-slate-100/90 border border-slate-300 rounded-xl px-3.5 py-2.5 sm:py-3 text-sm font-medium text-slate-900 text-left flex items-center justify-between transition focus:ring-2 focus:ring-orange-500 shadow-2xs group"
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    <span className="text-base flex-shrink-0">🟢</span>
-                    <span className="truncate font-semibold text-slate-900 group-hover:text-orange-600">
-                      {pickupAddress}
+                    <span className="text-base flex-shrink-0">{pickupAddress ? '🟢' : '⚪'}</span>
+                    <span className={`truncate ${pickupAddress ? 'font-semibold text-slate-900 group-hover:text-orange-600' : 'text-slate-400 font-medium'}`}>
+                      {pickupAddress || 'Select pickup location'}
                     </span>
                   </div>
                   <span className="text-slate-400 text-xs font-bold pl-2 flex-shrink-0">▾</span>
@@ -1288,9 +1288,9 @@ export default function HomePage() {
                   className="w-full bg-slate-50 hover:bg-slate-100/90 border border-slate-300 rounded-xl px-3.5 py-2.5 sm:py-3 text-sm font-medium text-slate-900 text-left flex items-center justify-between transition focus:ring-2 focus:ring-orange-500 shadow-2xs group"
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    <span className="text-base flex-shrink-0">🔴</span>
-                    <span className="truncate font-semibold text-slate-900 group-hover:text-orange-600">
-                      {dropAddress}
+                    <span className="text-base flex-shrink-0">{dropAddress ? '🔴' : '⚪'}</span>
+                    <span className={`truncate ${dropAddress ? 'font-semibold text-slate-900 group-hover:text-orange-600' : 'text-slate-400 font-medium'}`}>
+                      {dropAddress || 'Select drop destination'}
                     </span>
                   </div>
                   <span className="text-slate-400 text-xs font-bold pl-2 flex-shrink-0">▾</span>
@@ -1496,10 +1496,16 @@ export default function HomePage() {
 
             {/* Action CTA Button */}
             <div className="pt-2">
+              {(!pickupAddress || !dropAddress) && (
+                <p className="text-center text-[11px] text-slate-400 mb-1.5">
+                  Please select both pickup and drop locations to continue
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => handleStartBooking()}
-                className="w-full py-3.5 px-4 bg-orange-600 hover:bg-orange-700 text-white font-black text-sm sm:text-base rounded-xl transition shadow-lg shadow-orange-600/25 flex items-center justify-center gap-2"
+                disabled={!pickupAddress || !dropAddress}
+                className="w-full py-3.5 px-4 bg-orange-600 hover:bg-orange-700 text-white font-black text-sm sm:text-base rounded-xl transition shadow-lg shadow-orange-600/25 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>⚡ Explore Cabs</span>
               </button>
