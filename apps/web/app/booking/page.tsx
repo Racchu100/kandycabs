@@ -1705,78 +1705,87 @@ export default function BookingFunnelPage() {
                 {/* Quotation Main Card */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col justify-between shrink-0">
                   {/* Vehicle Header Banner */}
-                  <div className="p-2.5 sm:p-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-14 h-9 sm:w-16 sm:h-10 flex items-center justify-center flex-shrink-0">
+                  <div className="p-3 sm:p-3.5 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-10 sm:w-20 sm:h-12 flex items-center justify-center flex-shrink-0">
                         <Image
                           src={VEHICLE_META[selectedCategory]?.image || '/images/fleet-sedan.webp'}
                           alt={selectedCategory}
-                          width={70}
-                          height={45}
+                          width={80}
+                          height={50}
                           className="w-full h-full object-contain filter drop-shadow-sm select-none"
                         />
                       </div>
                       <div>
-                        <h4 className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight leading-tight">
+                        <h4 className="font-black text-slate-900 text-sm sm:text-base tracking-tight leading-tight">
                           {quotesData?.quotes.find((q) => q.category === selectedCategory)?.name || selectedCategory}
                         </h4>
-                        <span className="text-[10px] text-slate-500 font-medium block">
-                          {selectedFuelType} • {quotesData?.quotes.find((q) => q.category === selectedCategory)?.seats || 4} Seater | A/C
+                        <span className="text-[11px] sm:text-xs text-slate-500 font-medium block mt-0.5">
+                          {selectedFuelType} Option • {quotesData?.quotes.find((q) => q.category === selectedCategory)?.seats || 4} Seater | A/C
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Key-Value Details List */}
-                  <div className="p-3 space-y-1.5 sm:space-y-2 text-xs flex-1 flex flex-col justify-center">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Trip Type</span>
-                      <span className="font-bold text-slate-900 text-right text-[11px] sm:text-xs">
+                  {/* Key-Value Details List with dividers filling the space evenly */}
+                  <div className="px-3.5 sm:px-4 py-1 divide-y divide-slate-100 flex-1 flex flex-col justify-around">
+                    <div className="flex items-center justify-between py-2 sm:py-2.5">
+                      <span className="text-slate-500 font-medium text-xs sm:text-sm">Trip Type</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm">
                         {tripType === TripType.ONEWAY ? 'One-Way Drop' : tripType === TripType.ROUND ? 'Round Trip' : tripType}
                       </span>
                     </div>
 
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Pickup Location</span>
-                      <span className="font-semibold text-slate-800 text-right text-[11px] sm:text-xs truncate max-w-[65%]">
+                    <div className="flex items-center justify-between py-2 sm:py-2.5 gap-2">
+                      <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                        Pickup Location
+                      </span>
+                      <span className="font-semibold text-slate-800 text-right text-xs sm:text-sm truncate max-w-[65%]">
                         {pickupAddress}
                       </span>
                     </div>
 
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Drop Location</span>
-                      <span className="font-semibold text-slate-800 text-right text-[11px] sm:text-xs truncate max-w-[65%]">
+                    <div className="flex items-center justify-between py-2 sm:py-2.5 gap-2">
+                      <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                        Drop Location
+                      </span>
+                      <span className="font-semibold text-slate-800 text-right text-xs sm:text-sm truncate max-w-[65%]">
                         {dropAddress}
                       </span>
                     </div>
 
                     {tripType === TripType.ROUND && stops.length > 0 && (
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Stops</span>
-                        <span className="font-medium text-slate-700 text-right text-[11px] sm:text-xs truncate max-w-[65%]">
+                      <div className="flex items-center justify-between py-2 sm:py-2.5 gap-2">
+                        <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0">Stops</span>
+                        <span className="font-medium text-slate-700 text-right text-xs sm:text-sm truncate max-w-[65%]">
                           {stops.map((s) => s.address).join(' → ')}
                         </span>
                       </div>
                     )}
 
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Date &amp; Time</span>
-                      <span className="font-semibold text-slate-900 text-right text-[11px] sm:text-xs">
+                    <div className="flex items-center justify-between py-2 sm:py-2.5">
+                      <span className="text-slate-500 font-medium text-xs sm:text-sm">Date &amp; Time</span>
+                      <span className="font-semibold text-slate-900 text-xs sm:text-sm">
                         {scheduledDate} at {scheduledTime}
                       </span>
                     </div>
 
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Passenger</span>
-                      <span className="font-bold text-slate-900 text-right text-[11px] sm:text-xs">
-                        {fullName || user?.fullName || 'Passenger'} <span className="font-normal text-slate-500 font-mono text-[10px]">(+91 {phone || user?.phone?.replace(/^\+91/, '') || ''})</span>
+                    <div className="flex items-center justify-between py-2 sm:py-2.5">
+                      <span className="text-slate-500 font-medium text-xs sm:text-sm">Passenger</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                        {fullName || user?.fullName || 'Passenger'}{' '}
+                        <span className="font-semibold text-slate-500 font-mono text-[11px]">
+                          (+91 {phone || user?.phone?.replace(/^\+91/, '') || ''})
+                        </span>
                       </span>
                     </div>
 
                     {quotesData?.distanceKm ? (
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Total Distance</span>
-                        <span className="font-semibold text-slate-900 text-right text-[11px] sm:text-xs">
+                      <div className="flex items-center justify-between py-2 sm:py-2.5">
+                        <span className="text-slate-500 font-medium text-xs sm:text-sm">Total Distance</span>
+                        <span className="font-bold text-slate-900 text-xs sm:text-sm">
                           Est. {quotesData.distanceKm} Kms
                         </span>
                       </div>
@@ -1784,29 +1793,29 @@ export default function BookingFunnelPage() {
                   </div>
 
                   {/* Estimated Amount Highlight Box */}
-                  <div className="m-2 sm:m-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-amber-50/70 to-orange-50/50 border border-amber-200/80">
+                  <div className="m-2.5 sm:m-3 p-3 sm:p-3.5 rounded-xl bg-gradient-to-br from-amber-50/80 to-orange-50/60 border border-amber-200">
                     <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-slate-700">
+                      <div className="flex items-center gap-1 text-xs sm:text-sm font-bold text-slate-800">
                         <span>Total Estimated Fare</span>
-                        <span className="text-slate-400 text-[10px]" title="Inclusive of all taxes and toll allowances">ⓘ</span>
+                        <span className="text-slate-400 text-xs" title="Inclusive of all taxes and toll allowances">ⓘ</span>
                       </div>
-                      <div className="text-sm sm:text-base font-black text-amber-900 font-mono">
+                      <div className="text-base sm:text-lg font-black text-amber-950 font-mono">
                         ₹{activePricing.totalFare.toLocaleString('en-IN')}
                       </div>
                     </div>
-                    <p className="text-[9.5px] sm:text-[10px] text-slate-500 font-medium mb-2">
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mb-2.5">
                       Inclusive of GST &amp; applicable route allowances
                     </p>
 
-                    <div className="pt-1.5 border-t border-amber-200/60 flex items-center justify-between text-[11px] sm:text-xs">
+                    <div className="pt-2 border-t border-amber-200/80 flex items-center justify-between text-xs sm:text-sm">
                       <div>
-                        <span className="text-emerald-800 font-bold">Online Advance (25%): </span>
-                        <span className="font-black text-emerald-950 font-mono text-xs sm:text-sm">
+                        <span className="text-emerald-900 font-bold">Online Advance (25%): </span>
+                        <span className="font-black text-emerald-950 font-mono text-sm sm:text-base">
                           ₹{activePricing.advanceAmount.toLocaleString('en-IN')}
                         </span>
                       </div>
-                      <div className="text-[10px] text-slate-600">
-                        Balance at Trip: <span className="font-bold font-mono text-slate-800">₹{activePricing.balanceAmount.toLocaleString('en-IN')}</span>
+                      <div className="text-xs text-slate-600">
+                        Balance at Trip: <span className="font-bold font-mono text-slate-900">₹{activePricing.balanceAmount.toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                   </div>
