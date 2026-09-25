@@ -905,12 +905,12 @@ export default function BookingFunnelPage() {
 
                   {/* Trip Duration / Package / Airport mode (Contextual) */}
                   {tripType === TripType.ROUND ? (
-                    <div className="p-2.5 sm:p-3 bg-orange-50/60 border border-orange-200 rounded-2xl flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-[11px] font-bold uppercase tracking-wider text-orange-950">
+                    <div className="p-2.5 sm:p-3 bg-orange-50/60 border border-orange-200 rounded-2xl flex items-center justify-between gap-2 sm:gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-orange-950 whitespace-nowrap">
                           Trip Duration (Days)
                         </div>
-                        <div className="text-xs font-semibold text-orange-700 mt-0.5">
+                        <div className="text-[11px] sm:text-xs font-medium text-orange-800 mt-0.5 whitespace-nowrap">
                           {(() => {
                             try {
                               const parts = scheduledDate.split('-');
@@ -918,7 +918,7 @@ export default function BookingFunnelPage() {
                                 const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
                                 d.setDate(d.getDate() + (durationDays - 1));
                                 return (
-                                  <>Return on: <strong className="text-slate-900">{d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></>
+                                  <>Return: <strong className="text-slate-900 font-bold">{d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></>
                                 );
                               }
                               return null;
@@ -928,7 +928,7 @@ export default function BookingFunnelPage() {
                           })()}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => setDurationDays((d) => Math.max(1, d - 1))}
@@ -936,7 +936,7 @@ export default function BookingFunnelPage() {
                         >
                           −
                         </button>
-                        <span className="w-14 text-center font-black text-xs sm:text-sm text-slate-900">
+                        <span className="w-12 text-center font-black text-xs sm:text-sm text-slate-900 shrink-0">
                           {durationDays} {durationDays === 1 ? 'Day' : 'Days'}
                         </span>
                         <button
