@@ -373,8 +373,13 @@ export default function BookingFunnelPage() {
     }
   }, [selectedCategory, selectedFuelType, quotesData]);
 
-  // Update active pricing when user clicks a category or fuel option
-  const handleSelectCategory = (cat: VehicleCategory) => {
+  const carouselTrackRef = useRef<HTMLDivElement>(null);
+  const isScrollingProgrammatically = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Update active pricing when user clicks or scrolls to a category
+  const handleSelectCategory = useCallback((cat: VehicleCategory) => {
     setSelectedCategory(cat);
     const matchCat = quotesData?.quotes.find((q) => q.category === cat);
     if (matchCat) {
@@ -388,9 +393,9 @@ export default function BookingFunnelPage() {
         setActivePricing(matchCat.pricing);
       }
     }
-  };
+  }, [quotesData, selectedFuelType]);
 
-  const handleSelectCategoryAndFuel = (cat: VehicleCategory, fuel: FuelType) => {
+  const handleSelectCategoryAndFuel = useCallback((cat: VehicleCategory, fuel: FuelType) => {
     setSelectedCategory(cat);
     setSelectedFuelType(fuel);
     const matchCat = quotesData?.quotes.find((q) => q.category === cat);
@@ -400,6 +405,69 @@ export default function BookingFunnelPage() {
         setActivePricing(matchFuel.pricing);
       }
     }
+  }, [quotesData]);
+
+  // Smoothly scroll to a specific vehicle card by index
+  const scrollToVehicleIndex = (index: number, select = true) => {
+    if (!quotesData?.quotes?.length) return;
+    const targetIndex = Math.max(0, Math.min(index, quotesData.quotes.length - 1));
+    const track = carouselTrackRef.current;
+    if (!track) return;
+
+    const cards = Array.from(track.children) as HTMLElement[];
+    const targetCard = cards[targetIndex];
+
+    isScrollingProgrammatically.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      isScrollingProgrammatically.current = false;
+    }, 600);
+
+    if (targetCard) {
+      const cardLeft = targetCard.offsetLeft;
+      const cardWidth = targetCard.offsetWidth;
+      const trackWidth = track.clientWidth;
+      const scrollPos = cardLeft - (trackWidth - cardWidth) / 2;
+      track.scrollTo({ left: Math.max(0, scrollPos), behavior: 'smooth' });
+    }
+
+    if (select) {
+      handleSelectCategory(quotesData.quotes[targetIndex].category);
+    }
+  };
+
+  // Auto-detect and select the vehicle in view while scrolling/swiping
+  const handleCarouselScroll = () => {
+    if (isScrollingProgrammatically.current) return;
+    if (scrollDebounceRef.current) clearTimeout(scrollDebounceRef.current);
+    scrollDebounceRef.current = setTimeout(() => {
+      const track = carouselTrackRef.current;
+      if (!track || !quotesData?.quotes?.length) return;
+
+      const cards = Array.from(track.children) as HTMLElement[];
+      if (!cards.length) return;
+
+      const trackRect = track.getBoundingClientRect();
+      const trackCenter = trackRect.left + trackRect.width / 2;
+
+      let closestIndex = 0;
+      let minDiff = Infinity;
+
+      cards.forEach((card, idx) => {
+        const cardRect = card.getBoundingClientRect();
+        const cardCenter = cardRect.left + cardRect.width / 2;
+        const diff = Math.abs(cardCenter - trackCenter);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIndex = idx;
+        }
+      });
+
+      const targetQuote = quotesData.quotes[closestIndex];
+      if (targetQuote && targetQuote.category !== selectedCategory) {
+        handleSelectCategory(targetQuote.category);
+      }
+    }, 50);
   };
 
   // Step 3: Handle Send OTP
@@ -1067,11 +1135,8 @@ export default function BookingFunnelPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        const track = document.getElementById('vehicle-carousel-track');
-                        if (track) {
-                          const scrollDistance = track.clientWidth >= 640 ? track.clientWidth * 0.5 : 300;
-                          track.scrollBy({ left: -scrollDistance, behavior: 'smooth' });
-                        }
+                        const currentIdx = quotesData?.quotes.findIndex((q) => q.category === selectedCategory) ?? 0;
+                        scrollToVehicleIndex(currentIdx - 1, true);
                       }}
                       className="absolute left-1 sm:-left-3.5 top-16 sm:top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 text-slate-700 hover:text-amber-600 hover:border-amber-400 hover:bg-white hover:scale-110 active:scale-95 transition-all flex items-center justify-center focus:outline-none"
                       title="Previous Vehicle"
@@ -1086,11 +1151,8 @@ export default function BookingFunnelPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        const track = document.getElementById('vehicle-carousel-track');
-                        if (track) {
-                          const scrollDistance = track.clientWidth >= 640 ? track.clientWidth * 0.5 : 300;
-                          track.scrollBy({ left: scrollDistance, behavior: 'smooth' });
-                        }
+                        const currentIdx = quotesData?.quotes.findIndex((q) => q.category === selectedCategory) ?? 0;
+                        scrollToVehicleIndex(currentIdx + 1, true);
                       }}
                       className="absolute right-1 sm:-right-3.5 top-16 sm:top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 text-slate-700 hover:text-amber-600 hover:border-amber-400 hover:bg-white hover:scale-110 active:scale-95 transition-all flex items-center justify-center focus:outline-none"
                       title="Next Vehicle"
@@ -1103,10 +1165,12 @@ export default function BookingFunnelPage() {
 
                     {/* Horizontal Scrollable Track */}
                     <div
+                      ref={carouselTrackRef}
                       id="vehicle-carousel-track"
+                      onScroll={handleCarouselScroll}
                       className="flex gap-2 sm:gap-3 lg:gap-3.5 overflow-x-auto pb-1.5 sm:pb-2 pt-0.5 px-3 sm:px-2 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-amber-300 scrollbar-track-slate-100"
                     >
-                      {quotesData?.quotes.map((q) => {
+                      {quotesData?.quotes.map((q, idx) => {
                         const isCatSelected = selectedCategory === q.category;
                         const meta = VEHICLE_META[q.category] || {
                           image: '/images/fleet-sedan.png',
@@ -1125,7 +1189,7 @@ export default function BookingFunnelPage() {
                         return (
                           <div
                             key={q.category}
-                            onClick={() => handleSelectCategory(q.category)}
+                            onClick={() => scrollToVehicleIndex(idx, true)}
                             className={`snap-start shrink-0 w-[84vw] sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-10px)] xl:w-[360px] cursor-pointer rounded-2xl sm:rounded-[24px] border-[2px] sm:border-[2.5px] transition-all duration-300 relative flex flex-col justify-between overflow-hidden bg-white ${
                               isCatSelected
                                 ? 'border-amber-500 ring-2 ring-amber-400/60 shadow-[0_6px_20px_rgba(245,158,11,0.2)] bg-gradient-to-b from-amber-50/50 via-white to-white'
@@ -1256,11 +1320,11 @@ export default function BookingFunnelPage() {
                     {/* Pagination Dots & Indicator */}
                     <div className="flex items-center justify-center gap-2.5 pt-0.5">
                       <div className="flex items-center gap-1">
-                        {quotesData?.quotes.map((q) => (
+                        {quotesData?.quotes.map((q, idx) => (
                           <button
                             key={q.category}
                             type="button"
-                            onClick={() => handleSelectCategory(q.category)}
+                            onClick={() => scrollToVehicleIndex(idx, true)}
                             className={`h-1.5 rounded-full transition-all ${
                               selectedCategory === q.category
                                 ? 'w-4 sm:w-5 bg-amber-500'
