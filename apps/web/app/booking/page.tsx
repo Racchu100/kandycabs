@@ -905,12 +905,12 @@ export default function BookingFunnelPage() {
 
                   {/* Trip Duration / Package / Airport mode (Contextual) */}
                   {tripType === TripType.ROUND ? (
-                    <div className="p-2.5 sm:p-3 bg-orange-50/60 border border-orange-200 rounded-2xl flex items-center justify-between gap-2 sm:gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-orange-950 whitespace-nowrap">
-                          Trip Duration (Days)
+                    <div className="p-2 sm:p-2.5 bg-orange-50/60 border border-orange-200 rounded-2xl flex items-center justify-between gap-1.5 sm:gap-2">
+                      <div className="flex-1 min-w-0 pr-1">
+                        <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-orange-950 truncate">
+                          Trip Duration
                         </div>
-                        <div className="text-[11px] sm:text-xs font-medium text-orange-800 mt-0.5 whitespace-nowrap">
+                        <div className="text-[10px] sm:text-xs font-medium text-orange-800 mt-0.5 truncate">
                           {(() => {
                             try {
                               const parts = scheduledDate.split('-');
@@ -928,21 +928,23 @@ export default function BookingFunnelPage() {
                           })()}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => setDurationDays((d) => Math.max(1, d - 1))}
-                          className="w-8 h-8 rounded-xl bg-white border border-orange-300 text-slate-900 font-black text-base hover:bg-orange-100 active:scale-95 transition flex items-center justify-center shadow-xs"
+                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white border border-orange-300 text-slate-900 font-black text-xs sm:text-sm hover:bg-orange-100 active:scale-90 transition flex items-center justify-center shadow-2xs"
+                          aria-label="Decrease duration"
                         >
                           −
                         </button>
-                        <span className="w-12 text-center font-black text-xs sm:text-sm text-slate-900 shrink-0">
+                        <span className="w-10 sm:w-11 text-center font-black text-[11px] sm:text-xs text-slate-900 shrink-0">
                           {durationDays} {durationDays === 1 ? 'Day' : 'Days'}
                         </span>
                         <button
                           type="button"
                           onClick={() => setDurationDays((d) => Math.min(30, d + 1))}
-                          className="w-8 h-8 rounded-xl bg-white border border-orange-300 text-slate-900 font-black text-base hover:bg-orange-100 active:scale-95 transition flex items-center justify-center shadow-xs"
+                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-white border border-orange-300 text-slate-900 font-black text-xs sm:text-sm hover:bg-orange-100 active:scale-90 transition flex items-center justify-center shadow-2xs"
+                          aria-label="Increase duration"
                         >
                           +
                         </button>
