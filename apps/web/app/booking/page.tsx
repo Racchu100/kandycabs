@@ -1678,36 +1678,36 @@ export default function BookingFunnelPage() {
               </div>
             )}
 
-            {/* STEP 4: REVIEW & PAY ADVANCE */}
+            {/* STEP 4: REVIEW & PAY ADVANCE (QUOTATION DESIGN) */}
             {step === 4 && activePricing && (
-              <div className="p-2.5 sm:p-4 lg:p-5 flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
-                <div className="flex items-center justify-between shrink-0">
+              <div className="p-3 sm:p-4 lg:p-5 flex-1 min-h-0 flex flex-col justify-between overflow-y-auto">
+                <div className="flex items-center justify-between shrink-0 mb-2">
                   <div>
-                    <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
-                      Review Ride &amp; Pay Advance
+                    <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                      <span>Your Quotation</span>
                     </h2>
                     <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                      Verify your trip details before booking
+                      Review trip summary and pay advance to confirm
                     </p>
                   </div>
                   <span className="text-[10px] sm:text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Guaranteed Quote</span>
+                    <span>Guaranteed Price</span>
                   </span>
                 </div>
 
                 {errorMessage && (
-                  <div className="rounded-xl bg-red-50 border border-red-200 p-2 text-xs text-red-700 font-medium leading-relaxed shrink-0">
+                  <div className="rounded-xl bg-red-50 border border-red-200 p-2 text-xs text-red-700 font-medium leading-relaxed shrink-0 mb-2">
                     ⚠️ {errorMessage}
                   </div>
                 )}
 
-                {/* Ride Summary Card (Fills space perfectly without overflowing) */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col justify-between my-auto shrink-0">
-                  {/* Vehicle Banner */}
-                  <div className="p-2 sm:p-2.5 bg-gradient-to-r from-slate-50 via-slate-50/80 to-amber-50/40 border-b border-slate-200 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-14 h-9 sm:w-16 sm:h-11 flex items-center justify-center flex-shrink-0">
+                {/* Quotation Main Card */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col justify-between shrink-0">
+                  {/* Vehicle Header Banner */}
+                  <div className="p-2.5 sm:p-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-14 h-9 sm:w-16 sm:h-10 flex items-center justify-center flex-shrink-0">
                         <Image
                           src={VEHICLE_META[selectedCategory]?.image || '/images/fleet-sedan.webp'}
                           alt={selectedCategory}
@@ -1717,99 +1717,110 @@ export default function BookingFunnelPage() {
                         />
                       </div>
                       <div>
-                        <h4 className="font-black text-slate-900 text-xs sm:text-sm tracking-tight leading-tight">
+                        <h4 className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight leading-tight">
                           {quotesData?.quotes.find((q) => q.category === selectedCategory)?.name || selectedCategory}
                         </h4>
-                        <span className="text-[10px] font-semibold text-slate-600 block">
-                          {selectedFuelType} Fuel Option • {quotesData?.quotes.find((q) => q.category === selectedCategory)?.seats || 4} Seats
+                        <span className="text-[10px] text-slate-500 font-medium block">
+                          {selectedFuelType} • {quotesData?.quotes.find((q) => q.category === selectedCategory)?.seats || 4} Seater | A/C
                         </span>
                       </div>
                     </div>
-                    <span className="text-[10px] sm:text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
-                      {tripType === TripType.ONEWAY ? 'One Way' : tripType === TripType.ROUND ? 'Round Trip' : tripType}
+                    <span className="text-[10px] bg-slate-200/80 text-slate-700 font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      {tripType === TripType.ONEWAY ? 'One-Way' : tripType === TripType.ROUND ? 'Round Trip' : tripType}
                     </span>
                   </div>
 
-                  <div className="p-2.5 sm:p-3 space-y-2 flex-1 flex flex-col justify-between">
-                    {/* Passenger & Schedule Cards (2-Column on all screens to save height) */}
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <div className="flex items-center gap-1.5 p-1.5 sm:p-2 bg-slate-50 rounded-xl border border-slate-200/80 min-w-0">
-                        <span className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] shrink-0">👤</span>
-                        <div className="min-w-0 truncate">
-                          <div className="text-[11px] sm:text-xs font-bold text-slate-900 truncate">{fullName || user?.fullName || 'Passenger'}</div>
-                          <div className="text-[9.5px] sm:text-[10px] text-slate-500 font-mono truncate">+91 {phone || user?.phone?.replace(/^\+91/, '') || '9854632158'}</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 p-1.5 sm:p-2 bg-slate-50 rounded-xl border border-slate-200/80 min-w-0">
-                        <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] shrink-0">📅</span>
-                        <div className="min-w-0 truncate">
-                          <div className="text-[11px] sm:text-xs font-bold text-slate-900 truncate">Pickup Time</div>
-                          <div className="text-[9.5px] sm:text-[10px] text-slate-700 font-semibold truncate">{scheduledDate} {scheduledTime}</div>
-                        </div>
-                      </div>
+                  {/* Key-Value Details List */}
+                  <div className="p-3 space-y-1.5 sm:space-y-2 text-xs flex-1 flex flex-col justify-center">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Trip Type</span>
+                      <span className="font-bold text-slate-900 text-right text-[11px] sm:text-xs">
+                        {tripType === TripType.ONEWAY ? 'One-Way Drop' : tripType === TripType.ROUND ? 'Round Trip' : tripType}
+                      </span>
                     </div>
 
-                    {/* Route Locations */}
-                    <div className="p-2 sm:p-2.5 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1 text-[11px] sm:text-xs text-slate-800">
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 ring-2 ring-emerald-200" />
-                        <span className="font-bold text-slate-900 shrink-0">Pickup:</span>
-                        <span className="text-slate-700 truncate font-medium">{pickupAddress}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 ring-2 ring-rose-200" />
-                        <span className="font-bold text-slate-900 shrink-0">Drop:</span>
-                        <span className="text-slate-700 truncate font-medium">{dropAddress}</span>
-                      </div>
-
-                      {tripType === TripType.ROUND && stops.length > 0 && (
-                        <div className="flex items-center gap-1.5 pl-4 text-[10px] sm:text-[11px] text-slate-600 truncate">
-                          <span className="font-semibold text-amber-800 shrink-0">Via:</span>
-                          <span className="truncate font-medium">{stops.map((s) => s.address).join(' → ')}</span>
-                        </div>
-                      )}
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Pickup Location</span>
+                      <span className="font-semibold text-slate-800 text-right text-[11px] sm:text-xs truncate max-w-[65%]">
+                        {pickupAddress}
+                      </span>
                     </div>
 
-                    {/* Fare Breakdown Section */}
-                    <div className="pt-1.5 border-t border-slate-200 space-y-1">
-                      <div className="flex justify-between items-center text-xs text-slate-700">
-                        <span>Total Estimated Fare (incl. GST):</span>
-                        <span className="font-black text-slate-900 font-mono text-xs sm:text-sm">
-                          ₹{activePricing.totalFare.toLocaleString('en-IN')}
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Drop Location</span>
+                      <span className="font-semibold text-slate-800 text-right text-[11px] sm:text-xs truncate max-w-[65%]">
+                        {dropAddress}
+                      </span>
+                    </div>
+
+                    {tripType === TripType.ROUND && stops.length > 0 && (
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Stops</span>
+                        <span className="font-medium text-slate-700 text-right text-[11px] sm:text-xs truncate max-w-[65%]">
+                          {stops.map((s) => s.address).join(' → ')}
                         </span>
                       </div>
+                    )}
 
-                      {/* Online Advance (25%) Pill Highlight */}
-                      <div className="p-2 sm:p-2.5 bg-emerald-100/90 border border-emerald-300 rounded-xl flex items-center justify-between shadow-xs">
-                        <div className="flex items-center gap-1">
-                          <span className="text-emerald-950 font-black text-xs sm:text-sm">
-                            Online Advance (25%):
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 font-mono font-black text-emerald-950 text-sm sm:text-base">
-                          <span>₹{activePricing.advanceAmount.toLocaleString('en-IN')}</span>
-                          <span className="text-emerald-700 text-xs" title="Secure Payment">🛡️</span>
-                        </div>
-                      </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Date &amp; Time</span>
+                      <span className="font-semibold text-slate-900 text-right text-[11px] sm:text-xs">
+                        {scheduledDate} at {scheduledTime}
+                      </span>
+                    </div>
 
-                      <div className="flex justify-between items-center text-[10px] sm:text-xs text-slate-500">
-                        <span>Balance Due to Driver on Trip (75%):</span>
-                        <span className="font-bold font-mono text-slate-800 text-[11px] sm:text-xs">
-                          ₹{activePricing.balanceAmount.toLocaleString('en-IN')}
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Passenger</span>
+                      <span className="font-bold text-slate-900 text-right text-[11px] sm:text-xs">
+                        {fullName || user?.fullName || 'Passenger'} <span className="font-normal text-slate-500 font-mono text-[10px]">(+91 {phone || user?.phone?.replace(/^\+91/, '') || ''})</span>
+                      </span>
+                    </div>
+
+                    {quotesData?.distanceKm ? (
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-slate-500 font-medium text-[11px] sm:text-xs shrink-0">Total Distance</span>
+                        <span className="font-semibold text-slate-900 text-right text-[11px] sm:text-xs">
+                          Est. {quotesData.distanceKm} Kms
                         </span>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Estimated Amount Highlight Box */}
+                  <div className="m-2 sm:m-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-amber-50/70 to-orange-50/50 border border-amber-200/80">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-slate-700">
+                        <span>Total Estimated Fare</span>
+                        <span className="text-slate-400 text-[10px]" title="Inclusive of all taxes and toll allowances">ⓘ</span>
+                      </div>
+                      <div className="text-sm sm:text-base font-black text-amber-900 font-mono">
+                        ₹{activePricing.totalFare.toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <p className="text-[9.5px] sm:text-[10px] text-slate-500 font-medium mb-2">
+                      Inclusive of GST &amp; applicable route allowances
+                    </p>
+
+                    <div className="pt-1.5 border-t border-amber-200/60 flex items-center justify-between text-[11px] sm:text-xs">
+                      <div>
+                        <span className="text-emerald-800 font-bold">Online Advance (25%): </span>
+                        <span className="font-black text-emerald-950 font-mono text-xs sm:text-sm">
+                          ₹{activePricing.advanceAmount.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-600">
+                        Balance at Trip: <span className="font-bold font-mono text-slate-800">₹{activePricing.balanceAmount.toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Footer Action Buttons */}
-                <div className="flex justify-between items-center pt-1.5 pb-1 sm:pb-1.5 border-t border-slate-100 shrink-0 bg-white">
+                {/* Footer Actions */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 shrink-0">
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1 active:scale-95"
+                    className="px-3 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition flex items-center gap-1 active:scale-95"
                   >
                     ← Back
                   </button>
@@ -1818,15 +1829,15 @@ export default function BookingFunnelPage() {
                     type="button"
                     disabled={isSubmitting}
                     onClick={handleConfirmAndPay}
-                    className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black transition-all shadow-lg shadow-emerald-600/25 active:scale-95 disabled:opacity-50 flex items-center gap-1.5 text-xs sm:text-sm"
+                    className="flex-1 max-w-xs sm:max-w-none px-4 sm:px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black transition-all shadow-md shadow-amber-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 text-xs sm:text-sm"
                   >
-                    <svg className="w-4 h-4 text-emerald-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
                     <span>
                       {isSubmitting
                         ? 'Processing...'
-                        : `Pay Advance ₹${activePricing.advanceAmount.toLocaleString('en-IN')} & Book`}
+                        : `Confirm & Pay ₹${activePricing.advanceAmount.toLocaleString('en-IN')}`}
                     </span>
                   </button>
                 </div>
