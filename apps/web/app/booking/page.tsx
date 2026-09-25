@@ -1083,19 +1083,20 @@ export default function BookingFunnelPage() {
 
             {/* STEP 2: VEHICLE CATEGORIES & LIVE QUOTE */}
             {step === 2 && (
-              <div className="p-3 sm:p-4 lg:p-5 flex-1 min-h-0 flex flex-col justify-start gap-2 sm:gap-2.5 overflow-y-auto">
+              <div className="p-2.5 sm:p-3.5 lg:p-4 flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+                {/* Step Top Header */}
                 <div className="flex items-center justify-between gap-2 shrink-0">
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm sm:text-base font-bold text-slate-900">Select Vehicle Category</h2>
                     {isQuoting && (
                       <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full font-semibold">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-                        Calculating rates...
+                        Calculating...
                       </span>
                     )}
                   </div>
                   {quotesData && (
-                    <span className="text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                    <span className="text-[11px] sm:text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
                       Est. {quotesData.distanceKm} km (~{quotesData.estimatedDurationMins} mins)
                     </span>
                   )}
@@ -1103,34 +1104,34 @@ export default function BookingFunnelPage() {
 
                 {/* Slidable Vehicle Category Carousel Cards */}
                 {!quotesData ? (
-                  <div className="relative group shrink-0">
-                    <div className="flex gap-2 sm:gap-3 lg:gap-3.5 overflow-x-auto pb-1.5 sm:pb-2 pt-0.5 px-3 sm:px-2 snap-x snap-mandatory">
+                  <div className="relative group my-auto shrink-0">
+                    <div className="flex gap-2 sm:gap-3 lg:gap-3.5 overflow-x-auto pb-1.5 pt-0.5 px-2 snap-x snap-mandatory">
                       {[1, 2, 3, 4].map((i) => (
                         <div
                           key={i}
-                          className="min-w-[260px] sm:min-w-[280px] max-w-[280px] rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 flex flex-col justify-between shadow-xs animate-pulse space-y-3 shrink-0"
+                          className="min-w-[260px] sm:min-w-[280px] max-w-[280px] rounded-2xl border border-slate-200/80 bg-white p-3.5 flex flex-col justify-between shadow-xs animate-pulse space-y-2 shrink-0"
                         >
                           <div className="flex items-center justify-between">
                             <div className="h-4 w-24 bg-slate-200 rounded-md" />
                             <div className="h-4 w-16 bg-amber-100 rounded-full" />
                           </div>
-                          <div className="h-24 sm:h-28 bg-slate-100 rounded-xl flex items-center justify-center">
+                          <div className="h-20 sm:h-24 bg-slate-100 rounded-xl flex items-center justify-center">
                             <div className="w-12 h-6 bg-slate-200 rounded-lg" />
                           </div>
-                          <div className="space-y-2">
-                            <div className="h-3.5 w-3/4 bg-slate-200 rounded" />
-                            <div className="h-3 w-1/2 bg-slate-100 rounded" />
+                          <div className="space-y-1.5">
+                            <div className="h-3 w-3/4 bg-slate-200 rounded" />
+                            <div className="h-2.5 w-1/2 bg-slate-100 rounded" />
                           </div>
-                          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                            <div className="h-6 w-20 bg-slate-200 rounded-md" />
-                            <div className="h-8 w-24 bg-amber-200 rounded-xl" />
+                          <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between">
+                            <div className="h-5 w-20 bg-slate-200 rounded-md" />
+                            <div className="h-7 w-24 bg-amber-200 rounded-xl" />
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="relative group shrink-0">
+                  <div className="relative group my-auto shrink-0">
                     {/* Left Navigation Button */}
                     <button
                       type="button"
@@ -1168,7 +1169,7 @@ export default function BookingFunnelPage() {
                       ref={carouselTrackRef}
                       id="vehicle-carousel-track"
                       onScroll={handleCarouselScroll}
-                      className="flex gap-2.5 sm:gap-3.5 overflow-x-auto pb-1.5 sm:pb-2 pt-0.5 px-3 sm:px-2 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-amber-300 scrollbar-track-slate-100"
+                      className="flex gap-2.5 sm:gap-3.5 overflow-x-auto pb-1.5 pt-0.5 px-2 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-amber-300 scrollbar-track-slate-100"
                     >
                       {quotesData?.quotes.map((q, idx) => {
                         const isCatSelected = selectedCategory === q.category;
@@ -1197,9 +1198,9 @@ export default function BookingFunnelPage() {
                             }`}
                           >
                             {/* Card Top Header with Vehicle Illustration & Badge */}
-                            <div className="p-3 sm:p-3.5 pb-0.5">
-                              <div className="flex justify-between items-center gap-2 mb-1">
-                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full transition ${
+                            <div className="p-3 pb-0.5">
+                              <div className="flex justify-between items-center gap-2 mb-0.5">
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full transition ${
                                   isCatSelected ? 'bg-amber-500 text-slate-950 shadow-xs' : 'bg-slate-100 text-slate-700'
                                 }`}>
                                   {meta.badge}
@@ -1215,7 +1216,7 @@ export default function BookingFunnelPage() {
                               </div>
 
                               {/* Vehicle Image with Pedestal Soft Gradient */}
-                              <div className="relative w-full h-22 sm:h-26 lg:h-30 my-0.5 flex items-center justify-center">
+                              <div className="relative w-full h-20 sm:h-24 lg:h-28 my-0.5 flex items-center justify-center">
                                 <div className="absolute inset-x-6 bottom-0 h-2.5 bg-slate-200/40 rounded-full blur-xs -z-0"></div>
                                 <Image
                                   src={meta.image}
@@ -1231,22 +1232,22 @@ export default function BookingFunnelPage() {
                                 <h3 className="font-extrabold text-slate-900 text-sm sm:text-base tracking-tight">
                                   {q.name}
                                 </h3>
-                                <p className="text-xs text-slate-500 font-medium truncate">
+                                <p className="text-[11px] text-slate-500 font-medium truncate">
                                   {meta.tagline}
                                 </p>
                               </div>
                             </div>
 
                             {/* Price Section */}
-                            <div className="px-3 py-1 sm:py-1.5 bg-slate-50/80 border-y border-slate-100 flex items-center justify-between">
+                            <div className="px-3 py-1 bg-slate-50/80 border-y border-slate-100 flex items-center justify-between">
                               <div>
                                 <div className="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Total Calculated Fare</div>
-                                <div className="text-base sm:text-lg lg:text-xl font-black text-slate-950 tracking-tight">
+                                <div className="text-base sm:text-lg font-black text-slate-950 tracking-tight">
                                   ₹{cardFare.toLocaleString('en-IN')}
                                 </div>
                               </div>
                               <div className="text-right">
-                                <span className="text-[10px] sm:text-xs text-amber-900 font-bold bg-amber-100/90 border border-amber-200/90 px-2 py-0.5 rounded-md inline-block shadow-2xs">
+                                <span className="text-[10px] sm:text-[11px] text-amber-900 font-bold bg-amber-100/90 border border-amber-200/90 px-2 py-0.5 rounded-md inline-block shadow-2xs">
                                   Advance (25%): ₹{cardAdvance.toLocaleString('en-IN')}
                                 </span>
                               </div>
@@ -1264,29 +1265,25 @@ export default function BookingFunnelPage() {
                                 </span>
                               </div>
 
-                              {/* Fuel Options Selection */}
+                              {/* Fuel Options Selection (3-Column Horizontal Grid for 100vh Fit) */}
                               {q.fuelOptions && q.fuelOptions.length > 0 && (
-                                <div className="space-y-1 pt-0.5">
-                                  <div className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                                <div className="space-y-0.5 pt-0.5">
+                                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
                                     <span>FUEL OPTIONS:</span>
-                                    {isCatSelected ? (
-                                      <span className="text-amber-700 font-black text-[9px] sm:text-[10px] uppercase tracking-wide">
+                                    {isCatSelected && (
+                                      <span className="text-amber-700 font-black text-[9px] uppercase tracking-wide">
                                         {selectedFuelType} Selected
-                                      </span>
-                                    ) : (
-                                      <span className="text-indigo-600 font-semibold text-[9px] flex items-center gap-0.5">
-                                        <span>ⓘ</span> Confirm Booking
                                       </span>
                                     )}
                                   </div>
-                                  <div className="flex flex-col gap-1">
+                                  <div className="grid grid-cols-3 gap-1">
                                     {q.fuelOptions.map((fo) => {
                                       const isFuelActive = isCatSelected && selectedFuelType === fo.fuelType;
-                                      let badgeStyle = 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 shadow-2xs';
+                                      let badgeStyle = 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200 shadow-2xs';
                                       if (isFuelActive) {
-                                        if (fo.fuelType === FuelType.CNG) badgeStyle = 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-sm font-black';
-                                        else if (fo.fuelType === FuelType.PETROL) badgeStyle = 'bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-500 shadow-sm font-black';
-                                        else badgeStyle = 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-sm font-black';
+                                        if (fo.fuelType === FuelType.CNG) badgeStyle = 'bg-emerald-600 text-white border-emerald-600 shadow-xs font-black';
+                                        else if (fo.fuelType === FuelType.PETROL) badgeStyle = 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs font-black';
+                                        else badgeStyle = 'bg-blue-600 text-white border-blue-600 shadow-xs font-black';
                                       }
 
                                       return (
@@ -1297,13 +1294,13 @@ export default function BookingFunnelPage() {
                                             e.stopPropagation();
                                             handleSelectCategoryAndFuel(q.category, fo.fuelType);
                                           }}
-                                          className={`w-full px-2.5 py-1 rounded-lg text-[10px] sm:text-xs border transition-all flex items-center justify-between ${badgeStyle}`}
+                                          className={`px-1.5 py-1 rounded-xl text-center border transition-all flex flex-col items-center justify-center gap-0.5 ${badgeStyle}`}
                                         >
-                                          <span className="flex items-center gap-1 font-bold">
+                                          <span className="font-extrabold text-[11px] leading-tight truncate">
                                             {fo.fuelType === FuelType.CNG ? '🟢 CNG' : fo.fuelType === FuelType.PETROL ? '🟡 Petrol' : '🔵 Diesel'}
                                           </span>
-                                          <span className="text-[10px] sm:text-xs font-mono">
-                                            ₹{fo.ratePerKm}/km • ₹{fo.pricing.totalFare.toLocaleString('en-IN')}
+                                          <span className="text-[10px] font-bold font-mono opacity-90">
+                                            ₹{fo.pricing.totalFare.toLocaleString('en-IN')}
                                           </span>
                                         </button>
                                       );
@@ -1342,53 +1339,33 @@ export default function BookingFunnelPage() {
                   </div>
                 )}
 
-                {/* Live Fare Breakdown */}
+                {/* Live Fare Breakdown (Compact Banner for 100vh Mobile) */}
                 {activePricing && (
-                  <div className="bg-slate-50/90 rounded-2xl p-2.5 sm:p-3 border border-slate-200/90 space-y-1 shrink-0">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-700">
-                        Authoritative Price Breakdown
-                      </h4>
-                      <span className="text-[10px] sm:text-xs text-slate-400 font-medium">All inclusive</span>
+                  <div className="bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs shrink-0 shadow-2xs">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5 text-slate-700 font-semibold text-[11px] sm:text-xs truncate">
+                      <span className="text-slate-900 font-bold">Base: ₹{activePricing.baseFare}</span>
+                      {activePricing.driverAllowance > 0 && <span>• DA: ₹{activePricing.driverAllowance}</span>}
+                      <span>• GST: ₹{activePricing.gstAmount}</span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
-                      <div>
-                        <span className="text-slate-500 block text-[10px]">Base Fare:</span>
-                        <span className="font-semibold text-slate-800">₹{activePricing.baseFare}</span>
-                      </div>
-                      {activePricing.driverAllowance > 0 && (
-                        <div>
-                          <span className="text-slate-500 block text-[10px]">Driver Allowance:</span>
-                          <span className="font-semibold text-slate-800">₹{activePricing.driverAllowance}</span>
-                        </div>
-                      )}
-                      {activePricing.nightCharge > 0 && (
-                        <div>
-                          <span className="text-slate-500 block text-[10px]">Night Charge:</span>
-                          <span className="font-semibold text-amber-700">₹{activePricing.nightCharge}</span>
-                        </div>
-                      )}
-                      <div>
-                        <span className="text-slate-500 block text-[10px]">GST (5%):</span>
-                        <span className="font-semibold text-slate-800">₹{activePricing.gstAmount}</span>
-                      </div>
-                    </div>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full shrink-0">
+                      All Inclusive
+                    </span>
                   </div>
                 )}
 
-                {/* Action Buttons */}
-                <div className="flex justify-between items-center pt-2 pb-1 sm:pb-2 border-t border-slate-100 shrink-0 bg-white mt-auto">
+                {/* Bottom Action Buttons */}
+                <div className="flex justify-between items-center pt-1.5 pb-1 sm:pb-1.5 border-t border-slate-100 shrink-0 bg-white">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="px-4 py-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 active:scale-95 transition"
+                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 active:scale-95 transition"
                   >
                     ← Back
                   </button>
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="px-6 py-3 rounded-2xl bg-[#F05323] hover:bg-orange-600 text-white text-xs sm:text-sm font-bold transition shadow-md shadow-orange-500/20 active:scale-95 flex items-center gap-1.5"
+                    className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-[#F05323] hover:bg-orange-600 text-white text-xs sm:text-sm font-bold transition shadow-md shadow-orange-500/20 active:scale-95 flex items-center gap-1.5"
                   >
                     <span>Next: Contact Details →</span>
                   </button>
