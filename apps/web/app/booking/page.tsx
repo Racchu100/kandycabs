@@ -1286,117 +1286,106 @@ export default function BookingFunnelPage() {
                                 : 'border-slate-200/90 hover:border-amber-300 hover:shadow-md opacity-95 hover:opacity-100 shadow-2xs'
                             }`}
                           >
-                            {/* Card Top Header with Vehicle Illustration & Badge */}
-                            <div className="p-3 pb-0.5">
-                              <div className="flex justify-between items-center gap-2 mb-0.5">
-                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full transition ${
-                                  isCatSelected ? 'bg-amber-500 text-slate-950 shadow-xs' : 'bg-slate-100 text-slate-700'
-                                }`}>
-                                  {meta.badge}
-                                </span>
-                                {isCatSelected ? (
-                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300/80 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    <span>Selected</span>
+                            {/* Card Top: Header, Vehicle Image, Name, Specs & Fuel Dropdown */}
+                            <div className="p-3.5 pb-2 flex-1 flex flex-col justify-between">
+                              <div>
+                                <div className="flex justify-between items-center gap-2 mb-1">
+                                  <span
+                                    className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full transition ${
+                                      isCatSelected
+                                        ? 'bg-amber-500 text-slate-950 shadow-xs'
+                                        : 'bg-slate-100 text-slate-700'
+                                    }`}
+                                  >
+                                    {meta.badge}
                                   </span>
-                                ) : (
-                                  <span className="text-[10px] text-slate-400 font-medium">Click to select</span>
-                                )}
+                                  {isCatSelected ? (
+                                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300/80 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                      <span>Selected</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400 font-medium">Click to select</span>
+                                  )}
+                                </div>
+
+                                {/* Vehicle Image */}
+                                <div className="relative w-full h-24 sm:h-28 lg:h-32 my-1 flex items-center justify-center">
+                                  <div className="absolute inset-x-6 bottom-0 h-3 bg-slate-200/40 rounded-full blur-xs -z-0"></div>
+                                  <Image
+                                    src={meta.image}
+                                    alt={q.name}
+                                    width={220}
+                                    height={110}
+                                    className="w-full h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)] transition-transform duration-300 hover:scale-105 select-none relative z-10"
+                                  />
+                                </div>
+
+                                {/* Vehicle Name & Tagline */}
+                                <div className="mt-1">
+                                  <h3 className="font-black text-slate-900 text-sm sm:text-base tracking-tight">
+                                    {q.name}
+                                  </h3>
+                                  <p className="text-[11px] text-slate-500 font-medium truncate">
+                                    {meta.tagline}
+                                  </p>
+                                </div>
+
+                                {/* Capacity Badges */}
+                                <div className="flex items-center gap-2 mt-2 text-[10px] sm:text-xs font-semibold text-slate-700">
+                                  <span className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md shadow-2xs">
+                                    👥 {q.seats} Seats
+                                  </span>
+                                  <span className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md shadow-2xs">
+                                    🧳 {q.luggage} Bags
+                                  </span>
+                                </div>
                               </div>
 
-                              {/* Vehicle Image with Pedestal Soft Gradient */}
-                              <div className="relative w-full h-20 sm:h-24 lg:h-28 my-0.5 flex items-center justify-center">
-                                <div className="absolute inset-x-6 bottom-0 h-2.5 bg-slate-200/40 rounded-full blur-xs -z-0"></div>
-                                <Image
-                                  src={meta.image}
-                                  alt={q.name}
-                                  width={220}
-                                  height={100}
-                                  className="w-full h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)] transition-transform duration-300 hover:scale-105 select-none relative z-10"
-                                />
-                              </div>
-
-                              {/* Vehicle Name & Models */}
-                              <div className="mt-0.5">
-                                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base tracking-tight">
-                                  {q.name}
-                                </h3>
-                                <p className="text-[11px] text-slate-500 font-medium truncate">
-                                  {meta.tagline}
-                                </p>
-                              </div>
+                              {/* Fuel Selection Dropdown */}
+                              {q.fuelOptions && q.fuelOptions.length > 0 && (
+                                <div className="mt-2.5 pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                    Fuel Type Option:
+                                  </label>
+                                  <div className="relative">
+                                    <select
+                                      value={isCatSelected ? selectedFuelType : (q.fuelOptions[0]?.fuelType || selectedFuelType)}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        handleSelectCategoryAndFuel(q.category, e.target.value as FuelType);
+                                      }}
+                                      className="w-full py-2 px-3 pr-8 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-300 font-bold text-xs text-slate-800 focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none appearance-none cursor-pointer transition shadow-2xs"
+                                    >
+                                      {q.fuelOptions.map((fo) => (
+                                        <option key={fo.fuelType} value={fo.fuelType}>
+                                          {fo.fuelType === FuelType.CNG ? '🟢 CNG' : fo.fuelType === FuelType.PETROL ? '🟡 Petrol' : '🔵 Diesel'} (₹{fo.pricing.totalFare.toLocaleString('en-IN')})
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500 text-xs">
+                                      ▼
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
-                            {/* Price Section */}
-                            <div className="px-3 py-1 bg-slate-50/80 border-y border-slate-100 flex items-center justify-between">
+                            {/* Card Bottom: Calculated Price Section */}
+                            <div className="p-3 bg-slate-50/90 border-t border-slate-100 flex items-center justify-between shrink-0">
                               <div>
-                                <div className="text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Total Calculated Fare</div>
+                                <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">
+                                  Total Calculated Fare
+                                </div>
                                 <div className="text-base sm:text-lg font-black text-slate-950 tracking-tight">
                                   ₹{cardFare.toLocaleString('en-IN')}
                                 </div>
                               </div>
                               <div className="text-right">
-                                <span className="text-[10px] sm:text-[11px] text-amber-900 font-bold bg-amber-100/90 border border-amber-200/90 px-2 py-0.5 rounded-md inline-block shadow-2xs">
+                                <span className="text-[11px] text-amber-950 font-black bg-amber-200/80 border border-amber-300 px-2.5 py-1 rounded-lg inline-block shadow-2xs">
                                   Advance (25%): ₹{cardAdvance.toLocaleString('en-IN')}
                                 </span>
                               </div>
-                            </div>
-
-                            {/* Specs & Fuel Selector */}
-                            <div className="p-3 pt-1.5 space-y-1.5">
-                              {/* Capacity Specs */}
-                              <div className="flex items-center gap-2 text-[10px] sm:text-xs font-semibold text-slate-700">
-                                <span className="flex items-center gap-1 bg-slate-100/80 px-2 py-0.5 rounded-md shadow-2xs">
-                                  👥 {q.seats} Seats
-                                </span>
-                                <span className="flex items-center gap-1 bg-slate-100/80 px-2 py-0.5 rounded-md shadow-2xs">
-                                  🧳 {q.luggage} Bags
-                                </span>
-                              </div>
-
-                              {/* Fuel Options Selection (3-Column Horizontal Grid for 100vh Fit) */}
-                              {q.fuelOptions && q.fuelOptions.length > 0 && (
-                                <div className="space-y-0.5 pt-0.5">
-                                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                                    <span>FUEL OPTIONS:</span>
-                                    {isCatSelected && (
-                                      <span className="text-amber-700 font-black text-[9px] uppercase tracking-wide">
-                                        {selectedFuelType} Selected
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-1">
-                                    {q.fuelOptions.map((fo) => {
-                                      const isFuelActive = isCatSelected && selectedFuelType === fo.fuelType;
-                                      let badgeStyle = 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200 shadow-2xs';
-                                      if (isFuelActive) {
-                                        if (fo.fuelType === FuelType.CNG) badgeStyle = 'bg-emerald-600 text-white border-emerald-600 shadow-xs font-black';
-                                        else if (fo.fuelType === FuelType.PETROL) badgeStyle = 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs font-black';
-                                        else badgeStyle = 'bg-blue-600 text-white border-blue-600 shadow-xs font-black';
-                                      }
-
-                                      return (
-                                        <button
-                                          key={fo.fuelType}
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSelectCategoryAndFuel(q.category, fo.fuelType);
-                                          }}
-                                          className={`px-1.5 py-1 rounded-xl text-center border transition-all flex flex-col items-center justify-center gap-0.5 ${badgeStyle}`}
-                                        >
-                                          <span className="font-extrabold text-[11px] leading-tight truncate">
-                                            {fo.fuelType === FuelType.CNG ? '🟢 CNG' : fo.fuelType === FuelType.PETROL ? '🟡 Petrol' : '🔵 Diesel'}
-                                          </span>
-                                          <span className="text-[10px] font-bold font-mono opacity-90">
-                                            ₹{fo.pricing.totalFare.toLocaleString('en-IN')}
-                                          </span>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           </div>
                         );
