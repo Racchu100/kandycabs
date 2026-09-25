@@ -541,9 +541,9 @@ export default function BookingFunnelPage() {
   };
 
   return (
-    <div className="min-h-screen md:h-screen md:max-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans pt-16 pb-2 sm:pb-2.5 px-2 sm:px-4 lg:px-8 md:overflow-hidden">
-      {/* Top Navigation Bar - Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs transition-all duration-300">
+    <div className="min-h-[100dvh] h-[100dvh] max-h-[100dvh] lg:min-h-screen lg:h-screen lg:max-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans p-2 sm:p-3 lg:pt-16 lg:pb-2.5 lg:px-8 overflow-hidden">
+      {/* Top Navigation Bar - Desktop Fixed Header (Hidden on Mobile while booking) */}
+      <header className="hidden lg:block fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs transition-all duration-300">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-15 flex items-center justify-between">
           <Link href="/" className="flex items-center group py-1.5">
             <Image
@@ -624,138 +624,58 @@ export default function BookingFunnelPage() {
                 <span>Sign In</span>
               </button>
             )}
-
-            {/* Hamburger Button for Mobile and Tablet (<lg) */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
-              aria-label="Toggle Navigation Menu"
-              className="lg:hidden p-1.5 sm:p-2 rounded-lg sm:rounded-xl border border-slate-300 bg-slate-50 text-slate-800 hover:text-orange-600 hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-xs"
-            >
-              {mobileMenuOpen ? (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
           </div>
         </div>
-
-        {/* Mobile & Tablet Dropdown Navigation Menu */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden mx-3 sm:mx-6 rounded-2xl border border-slate-200 bg-white/98 backdrop-blur-2xl px-4 sm:px-6 py-5 shadow-2xl animate-in slide-in-from-top-2 duration-200 mb-3">
-            <nav className="flex flex-col space-y-3 font-semibold text-slate-800 text-base">
-              <Link
-                href="/#booking-engine"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between px-4 py-3 bg-orange-600 text-white rounded-xl shadow-xs font-bold hover:bg-orange-700 transition"
-              >
-                <div className="flex items-center gap-3">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span>Book Cab Online</span>
-                </div>
-                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium">Instant</span>
-              </Link>
-
-              <Link
-                href="/#fleet"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-orange-600 transition"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="text-lg">🚗</span> Fleet & Rates
-                </span>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-
-              <Link
-                href="/#why-kandy"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-orange-600 transition"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="text-lg">⭐</span> Why Choose Us
-                </span>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-
-              <Link
-                href="/#how-it-works"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-slate-100 text-slate-800 hover:text-orange-600 transition"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="text-lg">📋</span> How It Works
-                </span>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-
-              <div className="pt-2 border-t border-slate-200 flex flex-col gap-2">
-                {user?.roles?.includes(UserRole.ADMIN) && (
-                  <a
-                    href="http://localhost:3001"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl hover:bg-slate-50 transition font-bold text-sm text-left shadow-xs"
-                  >
-                    <span>Admin Dashboard</span>
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setDriverAppModalOpen(true);
-                  }}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-orange-50 border border-orange-200 text-orange-950 rounded-xl hover:bg-orange-100 transition font-bold text-sm text-left"
-                >
-                  <span>Download KandyCabs App</span>
-                  <span className="text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded font-black">Download</span>
-                </button>
-
-                <a
-                  href="tel:+918045689000"
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100 font-bold text-sm transition"
-                >
-                  <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  <span>24/7 Support: +91 80456 89000</span>
-                </a>
-
-                {isAuthenticated && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      logout();
-                    }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-sm transition mt-1"
-                  >
-                    <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span>Sign Out</span>
-                  </button>
-                )}
-              </div>
-            </nav>
-          </div>
-        )}
       </header>
+
+      {/* Mobile-Only Minimal Compact Top Bar (Header removed while booking) */}
+      <div className="lg:hidden flex items-center justify-between px-2 py-1.5 mb-1 shrink-0">
+        <button
+          type="button"
+          onClick={() => {
+            if (step > 1) {
+              setStep((s) => (s - 1) as 1 | 2 | 3 | 4);
+            } else {
+              window.location.href = '/';
+            }
+          }}
+          aria-label="Back"
+          className="w-9 h-9 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-100 transition active:scale-95 shadow-xs"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <Link href="/" className="flex items-center py-1">
+          <Image
+            src="/images/logo.webp"
+            alt="Kandy Cabs"
+            width={120}
+            height={36}
+            priority
+            className="h-7 w-auto object-contain"
+          />
+        </Link>
+
+        {isAuthenticated ? (
+          <Link
+            href="/customer/dashboard"
+            className="w-8 h-8 rounded-full bg-orange-600 text-white text-xs flex items-center justify-center font-black shadow-xs"
+            title="My Dashboard"
+          >
+            {user?.fullName ? user.fullName[0].toUpperCase() : 'U'}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setStep(3)}
+            className="text-[11px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-full"
+          >
+            Sign In
+          </button>
+        )}
+      </div>
 
       <div className="max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full transition-all duration-300">
         {/* Booking Confirmation Screen */}
@@ -814,232 +734,281 @@ export default function BookingFunnelPage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden h-full flex flex-col justify-between">
             {/* STEP 1: ROUTE & SCHEDULE */}
             {step === 1 && (
-              <div className="p-6 sm:p-8 space-y-6">
-                <h2 className="text-lg font-bold text-slate-900">Step 1: Choose Your Route & Date</h2>
+              <div className="h-full flex flex-col justify-between p-4 sm:p-6 lg:p-8 space-y-3 sm:space-y-4 overflow-y-auto">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Step Heading */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
+                        Step 1: Choose Your Route &amp; Date
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Select your trip type, locations, and travel date
+                      </p>
+                    </div>
+                    <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-900 border border-orange-200">
+                      Step 1/4
+                    </span>
+                  </div>
 
-                {/* Trip Type Selector */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                    Trip Type
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {[
-                      { id: TripType.ONEWAY, label: 'One Way' },
-                      { id: TripType.ROUND, label: 'Round Trip' },
-                      { id: TripType.AIRPORT, label: 'Airport' },
-                      { id: TripType.LOCAL, label: 'Local Hourly' },
-                    ].map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => {
-                          setTripType(t.id);
-                          if (t.id !== TripType.ROUND) {
+                  {/* Trip Type Dropdown */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Trip Type
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-base">
+                        {tripType === TripType.ONEWAY
+                          ? '🚖'
+                          : tripType === TripType.ROUND
+                          ? '🔄'
+                          : tripType === TripType.AIRPORT
+                          ? '✈️'
+                          : '⏱️'}
+                      </div>
+                      <select
+                        value={tripType}
+                        onChange={(e) => {
+                          const newType = e.target.value as TripType;
+                          setTripType(newType);
+                          if (newType !== TripType.ROUND) {
                             setStops([]);
                           }
                         }}
-                        className={`py-2.5 px-3 rounded-lg text-sm font-medium border transition ${
-                          tripType === t.id
-                            ? 'bg-amber-500 text-white border-amber-500 shadow-sm font-bold'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
+                        className="w-full pl-11 pr-10 py-3 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-300 rounded-2xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-[#F05323] focus:border-[#F05323] focus:outline-none transition appearance-none cursor-pointer shadow-2xs"
                       >
-                        {t.label}
-                      </button>
-                    ))}
+                        <option value={TripType.ONEWAY}>One Way Outstation Drop</option>
+                        <option value={TripType.ROUND}>Round Trip (Multi-Day / Same Day)</option>
+                        <option value={TripType.AIRPORT}>Airport Transfer (Pickup / Drop)</option>
+                        <option value={TripType.LOCAL}>Local Hourly Rental (City Tour)</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-500 text-xs font-bold">
+                        ▼
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Locations */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Pickup Location Trigger */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        Pickup Location
-                      </label>
+                  {/* Locations */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
+                    {/* Pickup Location Trigger */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                          Pickup Location
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLocationModalTarget('PICKUP');
+                            setLocationModalOpen(true);
+                          }}
+                          className="text-[11px] font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition"
+                        >
+                          <span>⚡ Live GPS</span>
+                        </button>
+                      </div>
                       <button
                         type="button"
                         onClick={() => {
                           setLocationModalTarget('PICKUP');
                           setLocationModalOpen(true);
                         }}
-                        className="text-[11px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 transition"
+                        className="w-full rounded-2xl border border-slate-300 p-3 text-sm text-slate-800 bg-slate-50 hover:bg-slate-100/80 focus:bg-white flex items-center justify-between text-left transition focus:ring-2 focus:ring-orange-500 shadow-2xs group"
                       >
-                        <span>⚡ Live GPS</span>
+                        <div className="flex items-center gap-2.5 truncate">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-xs ring-2 ring-emerald-200" />
+                          <span className="truncate font-bold text-slate-900 group-hover:text-orange-600 text-xs sm:text-sm">
+                            {pickupAddress}
+                          </span>
+                        </div>
+                        <span className="text-slate-400 text-xs font-bold pl-2 flex-shrink-0">▾</span>
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLocationModalTarget('PICKUP');
-                        setLocationModalOpen(true);
-                      }}
-                      className="w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-800 bg-slate-50 hover:bg-slate-100 flex items-center justify-between text-left transition focus:ring-2 focus:ring-amber-500 shadow-2xs group"
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="text-base flex-shrink-0">🟢</span>
-                        <span className="truncate font-semibold text-slate-900 group-hover:text-amber-600">
-                          {pickupAddress}
-                        </span>
-                      </div>
-                      <span className="text-slate-400 text-xs font-bold pl-2 flex-shrink-0">▾</span>
-                    </button>
-                  </div>
 
-                  {/* Drop Destination Trigger */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        Drop Location
-                      </label>
-                      {tripType === TripType.ROUND && (
-                        <button
-                          type="button"
-                          onClick={handleAddStop}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-slate-950 bg-amber-100 hover:bg-amber-300 border border-amber-300 px-2 py-0.5 rounded-md transition"
-                        >
-                          <span className="text-xs font-black leading-none">+</span>
-                          <span>Add Stop</span>
-                        </button>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLocationModalTarget('DROP');
-                        setLocationModalOpen(true);
-                      }}
-                      className="w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-800 bg-slate-50 hover:bg-slate-100 flex items-center justify-between text-left transition focus:ring-2 focus:ring-amber-500 shadow-2xs group"
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="text-base flex-shrink-0">🔴</span>
-                        <span className="truncate font-semibold text-slate-900 group-hover:text-amber-600">
-                          {dropAddress}
-                        </span>
-                      </div>
-                      <span className="text-slate-400 text-xs font-bold pl-2 flex-shrink-0">▾</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Multiple Intermediate Stops List (ONLY for Round Trip) */}
-                {tripType === TripType.ROUND && stops.length > 0 && (
-                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
-                    <div className="flex justify-between items-center text-xs font-bold text-amber-900">
-                      <span>Intermediate Route Stops ({stops.length})</span>
-                      <span className="text-[11px] font-normal text-slate-500">
-                        Chauffeur visits each stop before final return
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {stops.map((stop, index) => (
-                        <div
-                          key={stop.id}
-                          className="p-2 bg-white border border-amber-200 rounded-lg flex items-center gap-2"
-                        >
-                          <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
-                            {index + 1}
-                          </span>
-                          <span className="text-xs font-medium text-slate-700 whitespace-nowrap">
-                            Stop {index + 1}:
-                          </span>
-                          <div className="flex-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setLocationModalTarget(stop.id);
-                                setLocationModalOpen(true);
-                              }}
-                              className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded px-2 py-1 text-xs font-medium text-slate-800 flex items-center justify-between text-left transition"
-                            >
-                              <span className="truncate">{stop.address}</span>
-                              <span className="text-slate-400 text-[10px] font-bold pl-1">▾</span>
-                            </button>
-                          </div>
+                    {/* Drop Destination Trigger */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                          Drop Location
+                        </label>
+                        {tripType === TripType.ROUND && (
                           <button
                             type="button"
-                            onClick={() => handleRemoveStop(stop.id)}
-                            className="text-red-500 hover:text-red-700 p-1 rounded transition"
-                            title="Remove Stop"
+                            onClick={handleAddStop}
+                            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-orange-800 hover:text-slate-950 bg-orange-100 hover:bg-orange-200 border border-orange-300 px-2 py-0.5 rounded-md transition"
                           >
-                            ✕
+                            <span className="text-xs font-black leading-none">+</span>
+                            <span>Add Stop</span>
                           </button>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLocationModalTarget('DROP');
+                          setLocationModalOpen(true);
+                        }}
+                        className="w-full rounded-2xl border border-slate-300 p-3 text-sm text-slate-800 bg-slate-50 hover:bg-slate-100/80 focus:bg-white flex items-center justify-between text-left transition focus:ring-2 focus:ring-orange-500 shadow-2xs group"
+                      >
+                        <div className="flex items-center gap-2.5 truncate">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 shadow-xs ring-2 ring-rose-200" />
+                          <span className="truncate font-bold text-slate-900 group-hover:text-orange-600 text-xs sm:text-sm">
+                            {dropAddress}
+                          </span>
                         </div>
-                      ))}
+                        <span className="text-slate-400 text-xs font-bold pl-2 flex-shrink-0">▾</span>
+                      </button>
                     </div>
                   </div>
-                )}
 
-                {/* Schedule Picker */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                      Pickup Date
-                    </label>
-                    <input
-                      type="date"
-                      value={scheduledDate}
-                      min={new Date().toISOString().split('T')[0]}
-                      onChange={(e) => setScheduledDate(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                    />
-                  </div>
+                  {/* Multiple Intermediate Stops List (ONLY for Round Trip) */}
+                  {tripType === TripType.ROUND && stops.length > 0 && (
+                    <div className="p-2.5 bg-orange-50/60 border border-orange-200 rounded-2xl space-y-1.5 max-h-24 overflow-y-auto">
+                      <div className="flex justify-between items-center text-xs font-bold text-orange-950">
+                        <span>Intermediate Stops ({stops.length})</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {stops.map((stop, index) => (
+                          <div
+                            key={stop.id}
+                            className="p-1.5 bg-white border border-orange-200 rounded-xl flex items-center gap-2"
+                          >
+                            <span className="w-4 h-4 rounded-full bg-orange-500 text-white font-bold text-[9px] flex items-center justify-center flex-shrink-0">
+                              {index + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLocationModalTarget(stop.id);
+                                  setLocationModalOpen(true);
+                                }}
+                                className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium text-slate-800 flex items-center justify-between text-left transition truncate"
+                              >
+                                <span className="truncate">{stop.address}</span>
+                                <span className="text-slate-400 text-[10px] font-bold pl-1">▾</span>
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveStop(stop.id)}
+                              className="text-red-500 hover:text-red-700 p-1 text-xs rounded transition"
+                              title="Remove Stop"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                      Pickup Time
-                    </label>
-                    <input
-                      type="time"
-                      value={scheduledTime}
-                      onChange={(e) => setScheduledTime(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                    />
-                  </div>
-
+                  {/* Trip Duration / Package / Airport mode (Contextual) */}
                   {tripType === TripType.ROUND ? (
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                        Trip Duration (Days)
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={30}
-                        value={durationDays}
-                        onChange={(e) => setDurationDays(Number(e.target.value))}
-                        className="w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                      />
+                    <div className="p-2.5 sm:p-3 bg-orange-50/60 border border-orange-200 rounded-2xl flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-orange-950">
+                          Trip Duration (Days)
+                        </div>
+                        <div className="text-xs font-semibold text-orange-700 mt-0.5">
+                          {(() => {
+                            try {
+                              const parts = scheduledDate.split('-');
+                              if (parts.length === 3) {
+                                const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                                d.setDate(d.getDate() + (durationDays - 1));
+                                return (
+                                  <>Return on: <strong className="text-slate-900">{d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></>
+                                );
+                              }
+                              return null;
+                            } catch (e) {
+                              return null;
+                            }
+                          })()}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDurationDays((d) => Math.max(1, d - 1))}
+                          className="w-8 h-8 rounded-xl bg-white border border-orange-300 text-slate-900 font-black text-base hover:bg-orange-100 active:scale-95 transition flex items-center justify-center shadow-xs"
+                        >
+                          −
+                        </button>
+                        <span className="w-14 text-center font-black text-xs sm:text-sm text-slate-900">
+                          {durationDays} {durationDays === 1 ? 'Day' : 'Days'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setDurationDays((d) => Math.min(30, d + 1))}
+                          className="w-8 h-8 rounded-xl bg-white border border-orange-300 text-slate-900 font-black text-base hover:bg-orange-100 active:scale-95 transition flex items-center justify-center shadow-xs"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                   ) : tripType === TripType.LOCAL ? (
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                        Package Hours
+                    <div className="p-2.5 sm:p-3 bg-amber-50/60 border border-amber-200 rounded-2xl space-y-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-amber-950">
+                        Rental Package Duration
                       </label>
                       <select
                         value={packageHours}
                         onChange={(e) => setPackageHours(Number(e.target.value))}
-                        className="w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                        className="w-full py-2 px-3 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                       >
-                        <option value={4}>4 Hours / 40 KM</option>
-                        <option value={8}>8 Hours / 80 KM</option>
+                        <option value={4}>4 Hours / 40 KM Package (Local Sightseeing)</option>
+                        <option value={8}>8 Hours / 80 KM Package (Full Day City)</option>
+                        <option value={12}>12 Hours / 120 KM Package (Extended Day)</option>
                       </select>
                     </div>
                   ) : null}
+
+                  {/* Schedule Picker: Date & Time */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        Pickup Date
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={scheduledDate}
+                          min={new Date().toISOString().split('T')[0]}
+                          onChange={(e) => setScheduledDate(e.target.value)}
+                          className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-800 focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition shadow-2xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        Pickup Time
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="time"
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-800 focus:ring-2 focus:ring-orange-500 focus:bg-white focus:outline-none transition shadow-2xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-slate-100">
+                {/* Bottom Action CTA Button */}
+                <div className="pt-2">
                   <button
                     type="button"
                     onClick={() => setStep(2)}
-                    className="px-6 py-2.5 rounded-xl bg-amber-500 text-white font-medium hover:bg-amber-600 transition"
+                    className="w-full py-3.5 sm:py-4 rounded-2xl bg-[#F05323] hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-base shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition"
                   >
-                    Next: Choose Cab →
+                    <span>Next: Choose Cab →</span>
                   </button>
                 </div>
               </div>
