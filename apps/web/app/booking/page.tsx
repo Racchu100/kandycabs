@@ -1680,134 +1680,112 @@ export default function BookingFunnelPage() {
 
             {/* STEP 4: REVIEW & PAY ADVANCE */}
             {step === 4 && activePricing && (
-              <div className="p-4 sm:p-8 space-y-5">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900">
+              <div className="p-2.5 sm:p-4 lg:p-6 flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+                <div className="flex items-center justify-between shrink-0">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900">
                     Review Ride &amp; Pay Advance
                   </h2>
-                  <span className="text-[10px] sm:text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                  <span className="text-[10px] sm:text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>Authoritative Quote</span>
                   </span>
                 </div>
 
                 {errorMessage && (
-                  <div className="rounded-xl bg-red-50 border border-red-200 p-3.5 text-xs text-red-700 font-medium leading-relaxed">
+                  <div className="rounded-xl bg-red-50 border border-red-200 p-2.5 text-xs text-red-700 font-medium leading-relaxed shrink-0">
                     ⚠️ {errorMessage}
                   </div>
                 )}
 
                 {/* Ride Summary Card */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden my-auto shrink-0">
                   {/* Vehicle Banner */}
-                  <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-50 via-slate-50/80 to-amber-50/30 border-b border-slate-200 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-16 h-12 sm:w-20 sm:h-14 flex items-center justify-center flex-shrink-0">
+                  <div className="p-2 sm:p-2.5 bg-gradient-to-r from-slate-50 via-slate-50/80 to-amber-50/30 border-b border-slate-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-14 h-10 sm:w-16 sm:h-12 flex items-center justify-center flex-shrink-0">
                         <Image
                           src={VEHICLE_META[selectedCategory]?.image || '/images/fleet-sedan.webp'}
                           alt={selectedCategory}
-                          width={80}
-                          height={56}
+                          width={70}
+                          height={48}
                           className="w-full h-full object-contain filter drop-shadow-sm select-none"
                         />
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                          Selected Vehicle
-                        </span>
-                        <h4 className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">
+                        <h4 className="font-black text-slate-900 text-xs sm:text-sm tracking-tight leading-tight">
                           {quotesData?.quotes.find((q) => q.category === selectedCategory)?.name || selectedCategory}
                         </h4>
-                        <span className="text-[11px] font-semibold text-slate-600">
+                        <span className="text-[10px] font-semibold text-slate-600 block">
                           {selectedFuelType} Fuel Option
                         </span>
                       </div>
                     </div>
-                    <span className="text-xs bg-emerald-100/90 text-emerald-800 font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-2xs">
+                    <span className="text-[10px] sm:text-xs bg-emerald-100/90 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
                       {tripType === TripType.ONEWAY ? 'One Way' : tripType === TripType.ROUND ? 'Round Trip' : tripType}
                     </span>
                   </div>
 
-                  <div className="p-4 sm:p-5 space-y-3.5">
-                    {/* Passenger Row */}
-                    <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-200/80">
-                      <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center flex-shrink-0 text-sm font-bold shadow-xs">
-                        👤
+                  <div className="p-2.5 sm:p-3 space-y-2">
+                    {/* Passenger & Pickup Time */}
+                    <div className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-xl border border-slate-200/80 gap-2">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-xs shrink-0">👤</span>
+                        <span className="font-bold text-slate-900 truncate">{fullName || user?.fullName || 'Passenger'}</span>
+                        <span className="text-slate-500 font-mono text-[10px] sm:text-[11px] shrink-0">(+91 {phone || user?.phone?.replace(/^\+91/, '') || '9854632158'})</span>
                       </div>
-                      <div className="flex-1 flex flex-wrap items-center justify-between gap-1">
-                        <div className="text-xs sm:text-sm font-bold text-slate-900">
-                          {fullName || user?.fullName || 'Passenger'}
-                        </div>
-                        <div className="text-xs text-slate-600 font-mono flex items-center gap-1">
-                          <span>(+91 {phone || user?.phone?.replace(/^\+91/, '') || '9854632158'})</span>
-                          <span className="text-slate-400">📞</span>
-                        </div>
+                      <div className="flex items-center gap-1 text-slate-700 text-[10px] sm:text-[11px] font-semibold shrink-0">
+                        <span>📅</span>
+                        <span>{scheduledDate} {scheduledTime}</span>
                       </div>
                     </div>
 
                     {/* Route Locations */}
-                    <div className="space-y-2 text-xs sm:text-sm text-slate-800">
-                      <div className="flex items-start gap-2.5">
-                        <span className="text-base leading-none flex-shrink-0">🟢</span>
-                        <div>
-                          <span className="font-bold text-slate-900">Pickup:</span>{' '}
-                          <span className="text-slate-700">{pickupAddress}</span>
-                        </div>
+                    <div className="space-y-1 text-xs text-slate-800 px-0.5">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                        <span className="font-bold text-slate-900 shrink-0">Pickup:</span>
+                        <span className="text-slate-700 truncate">{pickupAddress}</span>
                       </div>
 
-                      <div className="flex items-start gap-2.5">
-                        <span className="text-base leading-none flex-shrink-0">🔴</span>
-                        <div>
-                          <span className="font-bold text-slate-900">Drop:</span>{' '}
-                          <span className="text-slate-700">{dropAddress}</span>
-                        </div>
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                        <span className="font-bold text-slate-900 shrink-0">Drop:</span>
+                        <span className="text-slate-700 truncate">{dropAddress}</span>
                       </div>
 
                       {tripType === TripType.ROUND && stops.length > 0 && (
-                        <div className="flex items-start gap-2.5 pl-6 text-xs text-slate-600">
-                          <span className="font-semibold text-amber-800">Via Stops:</span>{' '}
-                          <span>{stops.map((s) => s.address).join(' → ')}</span>
+                        <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-600 pl-4 truncate">
+                          <span className="font-semibold text-amber-800 shrink-0">Via:</span>
+                          <span className="truncate">{stops.map((s) => s.address).join(' → ')}</span>
                         </div>
                       )}
-
-                      <div className="flex items-center gap-2.5 pt-1 text-slate-700">
-                        <span className="text-base leading-none flex-shrink-0">📅</span>
-                        <div>
-                          <span className="font-bold text-slate-900">Pickup Time:</span>{' '}
-                          <span className="font-medium text-slate-700">{scheduledDate} at {scheduledTime}</span>
-                        </div>
-                      </div>
                     </div>
 
                     {/* Fare Breakdown Section */}
-                    <div className="pt-3.5 border-t border-slate-200 space-y-2.5">
-                      <div className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                        Fare Breakdown
-                      </div>
-
-                      <div className="flex justify-between items-center text-xs sm:text-sm text-slate-700">
+                    <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                      <div className="flex justify-between items-center text-xs text-slate-700">
                         <span>Total Authoritative Fare (incl. GST):</span>
-                        <span className="font-bold text-slate-900 font-mono text-sm sm:text-base">
+                        <span className="font-bold text-slate-900 font-mono text-xs sm:text-sm">
                           ₹{activePricing.totalFare.toLocaleString('en-IN')}
                         </span>
                       </div>
 
                       {/* Online Advance (25%) Pill Highlight */}
-                      <div className="p-3 bg-emerald-100/80 border border-emerald-300/80 rounded-xl flex items-center justify-between shadow-xs">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-emerald-950 font-black text-sm sm:text-base">
+                      <div className="p-2 sm:p-2.5 bg-emerald-100/80 border border-emerald-300/80 rounded-xl flex items-center justify-between shadow-xs">
+                        <div className="flex items-center gap-1">
+                          <span className="text-emerald-950 font-black text-xs sm:text-sm">
                             Online Advance (25%):
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 font-mono font-black text-emerald-950 text-base sm:text-lg">
+                        <div className="flex items-center gap-1 font-mono font-black text-emerald-950 text-sm sm:text-base">
                           <span>₹{activePricing.advanceAmount.toLocaleString('en-IN')}</span>
-                          <span className="text-emerald-700 text-sm" title="Secure Payment">🛡️</span>
+                          <span className="text-emerald-700 text-xs" title="Secure Payment">🛡️</span>
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center text-xs text-slate-500 pt-0.5">
+                      <div className="flex justify-between items-center text-[10px] sm:text-xs text-slate-500">
                         <span>Balance Due on Trip (75%):</span>
-                        <span className="font-semibold font-mono text-slate-700 text-xs sm:text-sm">
+                        <span className="font-semibold font-mono text-slate-700 text-xs">
                           ₹{activePricing.balanceAmount.toLocaleString('en-IN')}
                         </span>
                       </div>
@@ -1816,22 +1794,22 @@ export default function BookingFunnelPage() {
                 </div>
 
                 {/* Footer Action Buttons */}
-                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                <div className="flex justify-between items-center pt-1.5 pb-1 sm:pb-1.5 border-t border-slate-100 shrink-0 bg-white">
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1"
+                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1 active:scale-95"
                   >
-                    ← Back to Contact
+                    ← Back
                   </button>
 
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={handleConfirmAndPay}
-                    className="px-5 sm:px-7 py-3 sm:py-3.5 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 active:scale-98 disabled:opacity-50 flex items-center gap-2.5 text-xs sm:text-sm group relative"
+                    className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/25 active:scale-95 disabled:opacity-50 flex items-center gap-2 text-xs sm:text-sm group relative"
                   >
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-emerald-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
                     <span>
@@ -1839,7 +1817,7 @@ export default function BookingFunnelPage() {
                         ? 'Processing Payment...'
                         : `Pay Advance ₹${activePricing.advanceAmount.toLocaleString('en-IN')} & Book`}
                     </span>
-                    <svg className="w-3.5 h-3.5 text-emerald-200 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3.5 h-3.5 text-emerald-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </button>
