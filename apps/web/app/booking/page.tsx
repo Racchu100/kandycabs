@@ -1373,13 +1373,13 @@ export default function BookingFunnelPage() {
 
                             {/* Card Bottom: Base & GST Breakdown */}
                             <div className="px-3 py-2 bg-slate-50/90 border-t border-slate-100 flex items-center justify-center text-xs shrink-0">
-                              <div className="text-[11px] sm:text-xs text-slate-700 font-semibold truncate flex items-center gap-1.5">
-                                <span className="font-bold text-slate-900">
-                                  Base: ₹{isCatSelected && activePricing ? activePricing.baseFare : (activeFuelOption?.pricing.baseFare ?? q.pricing.baseFare)}
-                                </span>
-                                <span>•</span>
+                              <div className="text-xs sm:text-sm text-slate-800 truncate flex items-center gap-2">
                                 <span>
-                                  GST (5%): ₹{isCatSelected && activePricing ? activePricing.gstAmount : (activeFuelOption?.pricing.gstAmount ?? q.pricing.gstAmount)}
+                                  <strong className="font-extrabold text-slate-950">Base:</strong> ₹{isCatSelected && activePricing ? activePricing.baseFare : (activeFuelOption?.pricing.baseFare ?? q.pricing.baseFare)}
+                                </span>
+                                <span className="text-slate-400 font-bold">•</span>
+                                <span>
+                                  <span className="font-semibold text-slate-700">GST (5%):</span> ₹{isCatSelected && activePricing ? activePricing.gstAmount : (activeFuelOption?.pricing.gstAmount ?? q.pricing.gstAmount)}
                                 </span>
                               </div>
                             </div>
@@ -1415,19 +1415,24 @@ export default function BookingFunnelPage() {
 
                 {/* Total Calculated Fare & Advance Highlight Banner at Bottom */}
                 {activePricing && (
-                  <div className="bg-slate-50 border border-slate-200/90 rounded-2xl px-3.5 py-2 sm:py-2.5 flex items-center justify-between shrink-0 shadow-2xs">
+                  <div className="bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2 sm:py-2.5 flex items-center justify-between shrink-0 shadow-2xs">
                     <div>
-                      <div className="text-[9.5px] uppercase font-bold text-slate-500 tracking-wider">
-                        Total Calculated Fare
+                      <div className="text-[9.5px] sm:text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                        TOTAL CALCULATED FARE
                       </div>
-                      <div className="text-base sm:text-lg font-black text-slate-950 tracking-tight font-mono">
+                      <div className="text-lg sm:text-xl font-black text-slate-950 tracking-tight font-mono">
                         ₹{activePricing.totalFare.toLocaleString('en-IN')}
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs sm:text-sm text-amber-950 font-black bg-amber-200/90 border border-amber-300 px-3 py-1.5 rounded-xl inline-block shadow-2xs">
-                        Advance (25%): ₹{activePricing.advanceAmount.toLocaleString('en-IN')}
-                      </span>
+                      <div className="bg-amber-200/90 border border-amber-300/90 px-3.5 py-1.5 rounded-2xl text-right shadow-2xs">
+                        <div className="text-xs sm:text-sm text-amber-950 font-bold leading-tight">
+                          Advance (25%):
+                        </div>
+                        <div className="text-sm sm:text-base font-black text-amber-950 font-mono leading-tight">
+                          ₹{activePricing.advanceAmount.toLocaleString('en-IN')}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
