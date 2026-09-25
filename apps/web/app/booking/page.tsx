@@ -541,7 +541,7 @@ export default function BookingFunnelPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] h-[100dvh] max-h-[100dvh] lg:min-h-screen lg:h-screen lg:max-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans p-2 sm:p-3 lg:pt-16 lg:pb-2.5 lg:px-8 overflow-hidden">
+    <div className="min-h-[100dvh] h-[100dvh] max-h-[100dvh] lg:min-h-screen lg:h-screen lg:max-h-screen bg-slate-50 text-slate-900 flex flex-col justify-start gap-1.5 sm:gap-2 font-sans p-2 sm:p-3 lg:pt-16 lg:pb-2.5 lg:px-8 overflow-hidden">
       {/* Top Navigation Bar - Desktop Fixed Header (Hidden on Mobile while booking) */}
       <header className="hidden lg:block fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs transition-all duration-300">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-15 flex items-center justify-between">
@@ -629,7 +629,7 @@ export default function BookingFunnelPage() {
       </header>
 
       {/* Mobile-Only Minimal Compact Top Bar (Header removed while booking) */}
-      <div className="lg:hidden flex items-center justify-between px-2 py-1.5 mb-1 shrink-0">
+      <div className="lg:hidden flex items-center justify-between px-1.5 py-1 shrink-0">
         <button
           type="button"
           onClick={() => {
@@ -647,7 +647,7 @@ export default function BookingFunnelPage() {
           </svg>
         </button>
 
-        <Link href="/" className="flex items-center py-1">
+        <Link href="/" className="flex items-center py-0.5">
           <Image
             src="/images/logo.webp"
             alt="Kandy Cabs"
@@ -677,7 +677,7 @@ export default function BookingFunnelPage() {
         )}
       </div>
 
-      <div className="max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full transition-all duration-300">
+      <div className="flex-1 min-h-0 max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full transition-all duration-300 flex flex-col">
         {/* Booking Confirmation Screen */}
         {confirmedBooking ? (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center animate-fade-in">
