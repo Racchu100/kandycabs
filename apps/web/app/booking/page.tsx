@@ -743,15 +743,12 @@ export default function BookingFunnelPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
-                        Step 1: Choose Your Route &amp; Date
+                        Choose Your Route &amp; Date
                       </h2>
                       <p className="text-xs text-slate-500 font-medium">
                         Select your trip type, locations, and travel date
                       </p>
                     </div>
-                    <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-900 border border-orange-200">
-                      Step 1/4
-                    </span>
                   </div>
 
                   {/* Trip Type Dropdown */}
@@ -1019,7 +1016,7 @@ export default function BookingFunnelPage() {
               <div className="p-2 sm:p-3 lg:p-3.5 space-y-1.5 sm:space-y-2 flex-1 flex flex-col justify-between">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-bold text-slate-900">Step 2: Select Vehicle Category</h2>
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900">Select Vehicle Category</h2>
                     {isQuoting && (
                       <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-full font-semibold">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
@@ -1343,7 +1340,7 @@ export default function BookingFunnelPage() {
                     </svg>
                   </div>
                   <h2 className="text-xl font-bold text-slate-900">
-                    Step 3: Passenger & Contact Details
+                    Passenger &amp; Contact Details
                   </h2>
                   <p className="text-xs text-slate-500">
                     {isAuthenticated && user
@@ -1645,7 +1642,7 @@ export default function BookingFunnelPage() {
               <div className="p-4 sm:p-8 space-y-5">
                 <div className="flex items-center justify-between">
                   <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                    Step 4: Review Ride & Pay Advance
+                    Review Ride &amp; Pay Advance
                   </h2>
                   <span className="text-[10px] sm:text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
