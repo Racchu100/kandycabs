@@ -1725,9 +1725,6 @@ export default function BookingFunnelPage() {
                         </span>
                       </div>
                     </div>
-                    <span className="text-[10px] bg-slate-200/80 text-slate-700 font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                      {tripType === TripType.ONEWAY ? 'One-Way' : tripType === TripType.ROUND ? 'Round Trip' : tripType}
-                    </span>
                   </div>
 
                   {/* Key-Value Details List */}
