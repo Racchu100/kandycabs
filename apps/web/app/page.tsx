@@ -1591,10 +1591,7 @@ export default function HomePage() {
                     <span className={`${car.checkColor} font-black text-xs sm:text-sm`}>✓</span>
                     <span>Air Conditioned & Clean Interiors</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`${car.checkColor} font-black text-xs sm:text-sm`}>✓</span>
-                    <span>Real-time GPS Tracking + OTP Gate</span>
-                  </div>
+
                 </div>
               </div>
 
