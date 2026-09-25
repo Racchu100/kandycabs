@@ -8,9 +8,15 @@ const dbUrl =
   process.env.DIRECT_URL;
 
 const prismaClientSingleton = () => {
+  // Append connection_limit to avoid exhausting Supabase pooler connections
+  let url = dbUrl;
+  if (url && !url.includes('connection_limit')) {
+    const separator = url.includes('?') ? '&' : '?';
+    url = `${url}${separator}connection_limit=5&pool_timeout=20`;
+  }
   return new PrismaClient({
-    datasources: dbUrl ? { db: { url: dbUrl } } : undefined,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    datasources: url ? { db: { url } } : undefined,
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 };
 

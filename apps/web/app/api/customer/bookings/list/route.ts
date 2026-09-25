@@ -95,6 +95,10 @@ export async function GET(req: NextRequest) {
           payments: {
             orderBy: { verifiedAt: 'desc' },
           },
+          tripEvents: {
+            where: { type: 'BOOKING_CREATED' },
+            take: 1,
+          },
         },
       }),
     ]);

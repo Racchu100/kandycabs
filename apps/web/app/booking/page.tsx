@@ -1170,275 +1170,175 @@ export default function BookingFunnelPage() {
               </div>
             )}
 
-            {/* STEP 2: VEHICLE CATEGORIES & LIVE QUOTE */}
+            {/* STEP 2: VEHICLE CATEGORIES & LIVE QUOTE (VERTICAL NON-SCROLLABLE LIST) */}
             {step === 2 && (
-              <div className="p-2.5 sm:p-3.5 lg:p-4 flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+              <div className="p-3 sm:p-4 lg:p-5 flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
                 {/* Step Top Header */}
-                <div className="flex items-center justify-between gap-2 shrink-0">
+                <div className="flex items-center justify-between gap-2 shrink-0 pb-1">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-bold text-slate-900">Select Vehicle Category</h2>
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="text-slate-600 hover:text-slate-900 font-bold text-base p-1 -ml-1 transition"
+                      title="Back to Route"
+                    >
+                      ←
+                    </button>
+                    <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                      Select Vehicle
+                    </h2>
                     {isQuoting && (
-                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full font-semibold">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full font-semibold">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
                         Calculating...
                       </span>
                     )}
                   </div>
                   {quotesData && (
-                    <span className="text-[11px] sm:text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                    <span className="text-[10.5px] sm:text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap">
                       Est. {quotesData.distanceKm} km (~{quotesData.estimatedDurationMins} mins)
                     </span>
                   )}
                 </div>
 
-                {/* Slidable Vehicle Category Carousel Cards */}
+                {/* Vertical Vehicle List (All in one page without scrolling) */}
                 {!quotesData ? (
-                  <div className="relative group my-auto shrink-0">
-                    <div className="flex gap-2 sm:gap-3 lg:gap-3.5 overflow-x-auto pb-1.5 pt-0.5 px-2 snap-x snap-mandatory">
-                      {[1, 2, 3, 4].map((i) => (
-                        <div
-                          key={i}
-                          className="min-w-[260px] sm:min-w-[280px] max-w-[280px] rounded-2xl border border-slate-200/80 bg-white p-3.5 flex flex-col justify-between shadow-xs animate-pulse space-y-2 shrink-0"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="h-4 w-24 bg-slate-200 rounded-md" />
-                            <div className="h-4 w-16 bg-amber-100 rounded-full" />
-                          </div>
-                          <div className="h-20 sm:h-24 bg-slate-100 rounded-xl flex items-center justify-center">
-                            <div className="w-12 h-6 bg-slate-200 rounded-lg" />
-                          </div>
+                  <div className="space-y-2 my-auto shrink-0 flex-1 flex flex-col justify-around">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className="rounded-2xl border border-slate-200 bg-white p-2.5 flex items-center justify-between shadow-2xs animate-pulse"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-14 h-9 bg-slate-200 rounded-lg" />
                           <div className="space-y-1.5">
-                            <div className="h-3 w-3/4 bg-slate-200 rounded" />
-                            <div className="h-2.5 w-1/2 bg-slate-100 rounded" />
-                          </div>
-                          <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between">
-                            <div className="h-5 w-20 bg-slate-200 rounded-md" />
-                            <div className="h-7 w-24 bg-amber-200 rounded-xl" />
+                            <div className="h-3.5 w-32 bg-slate-200 rounded" />
+                            <div className="h-2.5 w-20 bg-slate-100 rounded" />
                           </div>
                         </div>
-                      ))}
-                    </div>
+                        <div className="w-5 h-5 rounded-full bg-slate-200" />
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <div className="relative group my-auto shrink-0">
-                    {/* Left Navigation Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const currentIdx = quotesData?.quotes.findIndex((q) => q.category === selectedCategory) ?? 0;
-                        scrollToVehicleIndex(currentIdx - 1, true);
-                      }}
-                      className="absolute left-1 sm:-left-3.5 top-16 sm:top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 text-slate-700 hover:text-amber-600 hover:border-amber-400 hover:bg-white hover:scale-110 active:scale-95 transition-all flex items-center justify-center focus:outline-none"
-                      title="Previous Vehicle"
-                      aria-label="Previous Vehicle"
-                    >
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700 hover:text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
+                  <div className="flex-1 flex flex-col justify-around gap-1.5 sm:gap-2 my-auto py-1 shrink-0 overflow-hidden">
+                    {quotesData?.quotes.map((q) => {
+                      const isCatSelected = selectedCategory === q.category;
+                      const meta = VEHICLE_META[q.category] || {
+                        image: '/images/fleet-sedan.png',
+                        tagline: q.description,
+                        badge: 'AVAILABLE',
+                      };
 
-                    {/* Right Navigation Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const currentIdx = quotesData?.quotes.findIndex((q) => q.category === selectedCategory) ?? 0;
-                        scrollToVehicleIndex(currentIdx + 1, true);
-                      }}
-                      className="absolute right-1 sm:-right-3.5 top-16 sm:top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md shadow-lg border border-slate-200 text-slate-700 hover:text-amber-600 hover:border-amber-400 hover:bg-white hover:scale-110 active:scale-95 transition-all flex items-center justify-center focus:outline-none"
-                      title="Next Vehicle"
-                      aria-label="Next Vehicle"
-                    >
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700 hover:text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-
-                    {/* Horizontal Scrollable Track */}
-                    <div
-                      ref={carouselTrackRef}
-                      id="vehicle-carousel-track"
-                      onScroll={handleCarouselScroll}
-                      className="flex gap-2.5 sm:gap-3.5 overflow-x-auto pb-1.5 pt-0.5 px-2 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-amber-300 scrollbar-track-slate-100"
-                    >
-                      {quotesData?.quotes.map((q, idx) => {
-                        const isCatSelected = selectedCategory === q.category;
-                        const meta = VEHICLE_META[q.category] || {
-                          image: '/images/fleet-sedan.png',
-                          tagline: q.description,
-                          badge: 'AVAILABLE',
-                        };
-
-                        // Display pricing for selected fuel or category default
-                        const activeFuelOption = isCatSelected
-                          ? q.fuelOptions?.find((fo) => fo.fuelType === selectedFuelType) || q.fuelOptions?.[0]
-                          : q.fuelOptions?.[0];
-
-                        const cardFare = isCatSelected && activePricing ? activePricing.totalFare : (activeFuelOption?.pricing.totalFare ?? q.pricing.totalFare);
-                        const cardAdvance = isCatSelected && activePricing ? activePricing.advanceAmount : (activeFuelOption?.pricing.advanceAmount ?? q.pricing.advanceAmount);
-
-                        return (
-                          <div
-                            key={q.category}
-                            onClick={() => scrollToVehicleIndex(idx, true)}
-                            className={`snap-start shrink-0 w-[84vw] sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-10px)] xl:w-[360px] cursor-pointer rounded-2xl sm:rounded-[24px] border-[2px] sm:border-[2.5px] transition-all duration-300 relative flex flex-col justify-between overflow-hidden bg-white ${
-                              isCatSelected
-                                ? 'border-amber-500 ring-2 ring-amber-400/60 shadow-[0_6px_20px_rgba(245,158,11,0.2)] bg-gradient-to-b from-amber-50/50 via-white to-white'
-                                : 'border-slate-200/90 hover:border-amber-300 hover:shadow-md opacity-95 hover:opacity-100 shadow-2xs'
-                            }`}
-                          >
-                            {/* Card Top: Header, Vehicle Image, Name, Specs & Fuel Dropdown */}
-                            <div className="p-3.5 pb-2 flex-1 flex flex-col justify-between">
-                              <div>
-                                <div className="flex justify-between items-center gap-2 mb-1">
-                                  <span
-                                    className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full transition ${
-                                      isCatSelected
-                                        ? 'bg-amber-500 text-slate-950 shadow-xs'
-                                        : 'bg-slate-100 text-slate-700'
-                                    }`}
-                                  >
-                                    {meta.badge}
-                                  </span>
-                                  {isCatSelected ? (
-                                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300/80 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                      <span>Selected</span>
-                                    </span>
-                                  ) : (
-                                    <span className="text-[10px] text-slate-400 font-medium">Click to select</span>
-                                  )}
-                                </div>
-
-                                {/* Vehicle Image */}
-                                <div className="relative w-full h-24 sm:h-28 lg:h-32 my-1 flex items-center justify-center">
-                                  <div className="absolute inset-x-6 bottom-0 h-3 bg-slate-200/40 rounded-full blur-xs -z-0"></div>
-                                  <Image
-                                    src={meta.image}
-                                    alt={q.name}
-                                    width={220}
-                                    height={110}
-                                    className="w-full h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)] transition-transform duration-300 hover:scale-105 select-none relative z-10"
-                                  />
-                                </div>
-
-                                {/* Vehicle Name & Tagline */}
-                                <div className="mt-1">
-                                  <h3 className="font-black text-slate-900 text-sm sm:text-base tracking-tight">
-                                    {q.name}
-                                  </h3>
-                                  <p className="text-[11px] text-slate-500 font-medium truncate">
-                                    {meta.tagline}
-                                  </p>
-                                </div>
-
-                                {/* Capacity Badges */}
-                                <div className="flex items-center gap-2 mt-2 text-[10px] sm:text-xs font-semibold text-slate-700">
-                                  <span className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md shadow-2xs">
-                                    👥 {q.seats} Seats
-                                  </span>
-                                  <span className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-md shadow-2xs">
-                                    🧳 {q.luggage} Bags
-                                  </span>
-                                </div>
+                      return (
+                        <div
+                          key={q.category}
+                          onClick={() => handleSelectCategoryAndFuel(q.category, selectedFuelType)}
+                          className={`w-full cursor-pointer rounded-2xl border-[2px] transition-all duration-200 p-2 sm:p-2.5 flex flex-col justify-center bg-white ${
+                            isCatSelected
+                              ? 'border-orange-500 ring-2 ring-orange-400/40 shadow-sm bg-orange-50/20'
+                              : 'border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/60 shadow-2xs'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2.5">
+                            {/* Left: Car Image & Vehicle Info */}
+                            <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+                              <div className={`flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+                                isCatSelected ? 'w-24 h-14 sm:w-28 sm:h-16' : 'w-14 h-9 sm:w-16 sm:h-10'
+                              }`}>
+                                <Image
+                                  src={meta.image}
+                                  alt={q.name}
+                                  width={isCatSelected ? 130 : 75}
+                                  height={isCatSelected ? 75 : 45}
+                                  className={`w-full h-full object-contain filter drop-shadow-sm select-none transition-all duration-300 ${
+                                    isCatSelected ? 'scale-105' : ''
+                                  }`}
+                                />
                               </div>
 
-                              {/* Fuel Selection Dropdown */}
-                              {q.fuelOptions && q.fuelOptions.length > 0 && (
-                                <div className="mt-2.5 pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                    Fuel Type Option:
-                                  </label>
-                                  <div className="relative">
-                                    <select
-                                      value={isCatSelected ? selectedFuelType : (q.fuelOptions[0]?.fuelType || selectedFuelType)}
-                                      onChange={(e) => {
-                                        e.stopPropagation();
-                                        handleSelectCategoryAndFuel(q.category, e.target.value as FuelType);
-                                      }}
-                                      className="w-full py-2 px-3 pr-8 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-300 font-bold text-xs text-slate-800 focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none appearance-none cursor-pointer transition shadow-2xs"
-                                    >
-                                      {q.fuelOptions.map((fo) => (
-                                        <option key={fo.fuelType} value={fo.fuelType}>
-                                          {fo.fuelType === FuelType.CNG ? '🟢 CNG' : fo.fuelType === FuelType.PETROL ? '🟡 Petrol' : '🔵 Diesel'} (₹{fo.pricing.totalFare.toLocaleString('en-IN')})
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500 text-xs">
-                                      ▼
-                                    </div>
-                                  </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm tracking-tight truncate leading-tight">
+                                  {q.name}
+                                </h3>
+                                <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                  {q.seats}+1 Seater | A/C
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Right: Selection Radio / Arrow Button */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isCatSelected ? (
+                                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-2xs">
+                                  <svg className="w-3 h-3 text-white font-bold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                                  </svg>
                                 </div>
+                              ) : (
+                                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-slate-300 bg-white" />
                               )}
                             </div>
+                          </div>
 
-                            {/* Card Bottom: Base & GST Breakdown */}
-                            <div className="px-3 py-2 bg-slate-50/90 border-t border-slate-100 flex items-center justify-center text-xs shrink-0">
-                              <div className="text-xs sm:text-sm text-slate-800 truncate flex items-center gap-2">
-                                <span>
-                                  <strong className="font-extrabold text-slate-950">Base:</strong> ₹{isCatSelected && activePricing ? activePricing.baseFare : (activeFuelOption?.pricing.baseFare ?? q.pricing.baseFare)}
-                                </span>
-                                <span className="text-slate-400 font-bold">•</span>
-                                <span>
-                                  <span className="font-semibold text-slate-700">GST (5%):</span> ₹{isCatSelected && activePricing ? activePricing.gstAmount : (activeFuelOption?.pricing.gstAmount ?? q.pricing.gstAmount)}
-                                </span>
+                          {/* Inline Fuel Dropdown Selector (Shown When Vehicle is Selected) */}
+                          {isCatSelected && q.fuelOptions && q.fuelOptions.length > 0 && (
+                            <div
+                              className="mt-1.5 pt-1.5 border-t border-orange-200/60"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="relative w-full">
+                                <select
+                                  value={selectedFuelType}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectCategoryAndFuel(q.category, e.target.value as FuelType);
+                                  }}
+                                  className="w-full py-1 px-2.5 pr-6 rounded-lg bg-white border border-orange-300 font-bold text-[11px] sm:text-xs text-slate-800 focus:ring-2 focus:ring-orange-500 focus:outline-none appearance-none cursor-pointer shadow-2xs"
+                                >
+                                  {q.fuelOptions.map((fo) => (
+                                    <option key={fo.fuelType} value={fo.fuelType}>
+                                      {fo.fuelType === FuelType.CNG ? '🟢 CNG' : fo.fuelType === FuelType.PETROL ? '🟡 Petrol' : '🔵 Diesel'} (₹{fo.pricing.totalFare.toLocaleString('en-IN')})
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-slate-500 text-[10px]">
+                                  ▼
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Total Calculated Fare & Advance Highlight Banner at Bottom (Compact 1 Line) */}
+                {activePricing && (
+                  <div className="bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-1.5 flex items-center justify-between shrink-0 shadow-2xs mt-1">
+                    <div className="flex items-center gap-1 sm:gap-1.5 truncate">
+                      <span className="text-[9.5px] sm:text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">
+                        Total Fare:
+                      </span>
+                      <span className="text-xs sm:text-sm font-black text-slate-950 font-mono">
+                        ₹{activePricing.totalFare.toLocaleString('en-IN')}
+                      </span>
                     </div>
 
-                    {/* Pagination Dots & Indicator */}
-                    <div className="flex items-center justify-center gap-2.5 pt-1 shrink-0">
-                      <div className="flex items-center gap-1">
-                        {quotesData?.quotes.map((q, idx) => (
-                          <button
-                            key={q.category}
-                            type="button"
-                            onClick={() => scrollToVehicleIndex(idx, true)}
-                            className={`h-1.5 rounded-full transition-all ${
-                              selectedCategory === q.category
-                                ? 'w-4 sm:w-5 bg-amber-500'
-                                : 'w-1.5 bg-slate-300 hover:bg-slate-400'
-                            }`}
-                            aria-label={`Select ${q.name}`}
-                          />
-                        ))}
-                      </div>
-
-                      <span className="text-[10px] sm:text-xs font-semibold text-slate-500">
-                        {quotesData?.quotes.findIndex((q) => q.category === selectedCategory)! + 1} of {quotesData?.quotes.length} Vehicles
+                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                      <span className="text-[9.5px] sm:text-[10.5px] font-bold text-slate-500 uppercase tracking-wider">
+                        Advance (25%):
+                      </span>
+                      <span className="text-xs sm:text-sm font-black text-slate-900 font-mono">
+                        ₹{activePricing.advanceAmount.toLocaleString('en-IN')}
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* Total Calculated Fare & Advance Highlight Banner at Bottom */}
-                {activePricing && (
-                  <div className="bg-slate-50 border border-slate-200/90 rounded-2xl px-4 py-2 sm:py-2.5 flex items-center justify-between shrink-0 shadow-2xs">
-                    <div>
-                      <div className="text-[9.5px] sm:text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                        TOTAL CALCULATED FARE
-                      </div>
-                      <div className="text-lg sm:text-xl font-black text-slate-950 tracking-tight font-mono">
-                        ₹{activePricing.totalFare.toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="bg-amber-200/90 border border-amber-300/90 px-3.5 py-1.5 rounded-2xl text-right shadow-2xs">
-                        <div className="text-xs sm:text-sm text-amber-950 font-bold leading-tight">
-                          Advance (25%):
-                        </div>
-                        <div className="text-sm sm:text-base font-black text-amber-950 font-mono leading-tight">
-                          ₹{activePricing.advanceAmount.toLocaleString('en-IN')}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Bottom Action Buttons */}
-                <div className="flex justify-between items-center pt-1.5 pb-1 sm:pb-1.5 border-t border-slate-100 shrink-0 bg-white">
+                <div className="flex justify-between items-center pt-2 pb-1 border-t border-slate-100 shrink-0 bg-white gap-2 mt-1">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
@@ -1449,7 +1349,7 @@ export default function BookingFunnelPage() {
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-[#F05323] hover:bg-orange-600 text-white text-xs sm:text-sm font-bold transition shadow-md shadow-orange-500/20 active:scale-95 flex items-center gap-1.5"
+                    className="flex-1 max-w-sm sm:max-w-none px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-[#F05323] hover:bg-orange-600 text-white text-xs sm:text-sm font-bold transition shadow-md shadow-orange-500/20 active:scale-95 flex items-center justify-center gap-1.5"
                   >
                     <span>Next: Contact Details →</span>
                   </button>
@@ -1540,9 +1440,9 @@ export default function BookingFunnelPage() {
                     <button
                       type="button"
                       onClick={() => setStep(4)}
-                      className="w-full py-3 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-600 transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-2"
+                      className="w-full py-3 rounded-xl bg-[#F05323] text-white font-semibold text-sm sm:text-base hover:bg-orange-600 transition shadow-md shadow-orange-500/25 flex items-center justify-center gap-2"
                     >
-                      <span>Proceed to Review & Pay →</span>
+                      <span>Proceed to Review &amp; Pay →</span>
                     </button>
 
                     <button
@@ -1583,7 +1483,7 @@ export default function BookingFunnelPage() {
                           onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                           placeholder="9876543210"
                           required
-                          className="w-full rounded-r-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 font-bold focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition tracking-wider"
+                          className="w-full rounded-r-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 font-bold focus:ring-2 focus:ring-[#F05323] focus:border-[#F05323] focus:outline-none transition tracking-wider"
                         />
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1">We will send a 4-digit OTP to verify your booking</p>
@@ -1591,11 +1491,11 @@ export default function BookingFunnelPage() {
                     <button
                       type="submit"
                       disabled={isAuthLoading || phone.length !== 10}
-                      className="w-full py-3 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition shadow-md shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full py-3 rounded-xl bg-[#F05323] text-white font-semibold text-sm sm:text-base hover:bg-orange-600 transition shadow-md shadow-orange-500/25 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {isAuthLoading ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           <span>Sending Code...</span>
                         </>
                       ) : (
@@ -1720,7 +1620,7 @@ export default function BookingFunnelPage() {
                     <button
                       type="submit"
                       disabled={isAuthLoading || otp.length < 4 || (!isRegistered && !fullName.trim())}
-                      className="w-full py-2.5 sm:py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm sm:text-base hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full py-2.5 sm:py-3 rounded-xl bg-[#F05323] text-white font-semibold text-sm sm:text-base hover:bg-orange-600 transition shadow-md shadow-orange-500/25 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {isAuthLoading ? (
                         <>
@@ -1728,7 +1628,7 @@ export default function BookingFunnelPage() {
                           <span>Verifying...</span>
                         </>
                       ) : (
-                        <span>Verify & Proceed to Payment →</span>
+                        <span>Verify &amp; Proceed to Payment →</span>
                       )}
                     </button>
 
@@ -1776,10 +1676,6 @@ export default function BookingFunnelPage() {
                       Review trip summary and pay advance to confirm
                     </p>
                   </div>
-                  <span className="text-[10px] sm:text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Guaranteed Price</span>
-                  </span>
                 </div>
 
                 {errorMessage && (
@@ -1921,9 +1817,9 @@ export default function BookingFunnelPage() {
                     type="button"
                     disabled={isSubmitting}
                     onClick={handleConfirmAndPay}
-                    className="flex-1 max-w-xs sm:max-w-none px-4 sm:px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black transition-all shadow-md shadow-amber-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 text-xs sm:text-sm"
+                    className="flex-1 max-w-xs sm:max-w-none px-4 sm:px-6 py-2.5 rounded-xl bg-[#F05323] hover:bg-orange-600 text-white font-semibold transition-all shadow-md shadow-orange-500/25 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 text-xs sm:text-sm"
                   >
-                    <svg className="w-4 h-4 text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
                     <span>
