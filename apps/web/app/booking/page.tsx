@@ -262,6 +262,7 @@ export default function BookingFunnelPage() {
   // Step 4: Payment & Confirmation
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
+  const [copiedRef, setCopiedRef] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   // In-browser client quote cache & abort controller
@@ -746,60 +747,148 @@ export default function BookingFunnelPage() {
       </div>
 
       <div className="flex-1 min-h-0 max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto w-full transition-all duration-300 flex flex-col">
-        {/* Booking Confirmation Screen */}
+        {/* Booking Confirmation Screen (Styled after reference design) */}
         {confirmedBooking ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center animate-fade-in">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-              ✓
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 sm:p-8 text-center animate-fade-in max-w-md mx-auto w-full my-auto overflow-y-auto">
+            {/* Success Checkmark Icon */}
+            <div className="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-md shadow-emerald-500/20">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-1">Booking Confirmed!</h2>
-            <p className="text-sm text-slate-500 mb-6">
-              Reference ID:{' '}
-              <span className="font-mono font-bold text-slate-800">
-                {confirmedBooking.humanReadableRef}
-              </span>
+
+            <h2 className="text-xl sm:text-2xl font-black text-emerald-800 tracking-tight mb-1">
+              Booking Confirmed!
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mb-4">
+              Thank you for choosing Kandy Cabs.
             </p>
 
-            <div className="bg-slate-50 rounded-xl p-6 text-left max-w-md mx-auto space-y-3 mb-8 border border-slate-200">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Trip Type:</span>
-                <span className="font-semibold text-slate-800">{confirmedBooking.tripType}</span>
+            {/* Booking ID Highlight Card with Copy Feature */}
+            <div className="bg-slate-100/90 rounded-2xl p-3 sm:p-3.5 mb-4 flex items-center justify-between border border-slate-200/80">
+              <div className="text-left">
+                <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Booking ID
+                </span>
+                <span className="text-sm sm:text-base font-black text-blue-950 font-mono tracking-wide">
+                  #{confirmedBooking.humanReadableRef}
+                </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Pickup:</span>
-                <span className="font-semibold text-slate-800 truncate max-w-[200px]" title={confirmedBooking.pickupAddress}>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(confirmedBooking.humanReadableRef);
+                  setCopiedRef(true);
+                  setTimeout(() => setCopiedRef(false), 2000);
+                }}
+                className="p-2 rounded-xl bg-white border border-slate-200/90 text-slate-600 hover:text-slate-900 hover:border-slate-300 transition active:scale-95 shadow-2xs flex items-center gap-1 text-xs font-semibold"
+                title="Copy Booking ID"
+              >
+                {copiedRef ? (
+                  <span className="text-emerald-600 font-bold flex items-center gap-1 text-[11px]">
+                    ✓ Copied
+                  </span>
+                ) : (
+                  <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            {/* Key-Value Trip Details */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-4 text-left space-y-2.5 mb-5 shadow-2xs">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-500 font-medium">Trip Type</span>
+                <span className="font-bold text-slate-900">
+                  {confirmedBooking.tripType === TripType.ONEWAY
+                    ? 'One-Way Drop'
+                    : confirmedBooking.tripType === TripType.ROUND
+                    ? 'Round Trip'
+                    : confirmedBooking.tripType}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Pickup</span>
+                <span className="font-semibold text-slate-800 text-right truncate max-w-[65%]" title={confirmedBooking.pickupAddress}>
                   {confirmedBooking.pickupAddress}
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Drop:</span>
-                <span className="font-semibold text-slate-800 truncate max-w-[200px]" title={confirmedBooking.dropAddress}>
+
+              <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
+                <span className="text-slate-500 font-medium shrink-0">Drop</span>
+                <span className="font-semibold text-slate-800 text-right truncate max-w-[65%]" title={confirmedBooking.dropAddress}>
                   {confirmedBooking.dropAddress}
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Pickup OTP:</span>
-                <span className="font-mono font-bold text-amber-600 text-base">{confirmedBooking.pickupOtp}</span>
+
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-500 font-medium">Date &amp; Time</span>
+                <span className="font-semibold text-slate-900">
+                  {scheduledDate} at {scheduledTime}
+                </span>
               </div>
-              <div className="border-t border-slate-200 pt-3 flex justify-between text-sm">
-                <span className="text-slate-500">Advance Paid:</span>
-                <span className="font-bold text-emerald-600">₹{Number(confirmedBooking.advanceAmount).toFixed(2)}</span>
+
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-500 font-medium">Vehicle</span>
+                <span className="font-semibold text-slate-900">
+                  {quotesData?.quotes.find((q) => q.category === selectedCategory)?.name || selectedCategory}
+                </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Balance Due on Trip:</span>
-                <span className="font-bold text-slate-800">₹{Number(confirmedBooking.balanceAmount).toFixed(2)}</span>
+
+              {confirmedBooking.pickupOtp && (
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-slate-500 font-medium">Pickup OTP</span>
+                  <span className="font-mono font-black text-amber-600 text-sm sm:text-base">
+                    {confirmedBooking.pickupOtp}
+                  </span>
+                </div>
+              )}
+
+              <div className="border-t border-slate-100 pt-2.5 flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-500 font-medium">Advance Paid</span>
+                <span className="font-black text-emerald-700 font-mono text-xs sm:text-sm">
+                  ₹{Number(confirmedBooking.advanceAmount).toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-500 font-medium">Balance Due on Trip</span>
+                <span className="font-bold text-slate-900 font-mono text-xs sm:text-sm">
+                  ₹{Number(confirmedBooking.balanceAmount).toFixed(2)}
+                </span>
+              </div>
+
+              <div className="border-t border-slate-100 pt-2 flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-700 font-bold">Total Amount</span>
+                <span className="font-black text-slate-900 font-mono text-sm sm:text-base">
+                  ₹{Number(confirmedBooking.totalFare || (Number(confirmedBooking.advanceAmount) + Number(confirmedBooking.balanceAmount))).toLocaleString('en-IN')}
+                </span>
               </div>
             </div>
 
-            <Link
-              href="/customer/dashboard"
-              className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-900/20 text-sm gap-2"
-            >
-              <span>View Booking</span>
-              <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </Link>
+            {/* Action Buttons */}
+            <div className="space-y-2.5">
+              <Link
+                href="/customer/dashboard"
+                className="w-full py-3 sm:py-3.5 rounded-2xl bg-[#F05323] hover:bg-orange-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-orange-500/25 transition active:scale-[0.99] flex items-center justify-center gap-2"
+              >
+                <span>View Booking Details</span>
+              </Link>
+
+              <Link
+                href="/"
+                className="w-full py-3 sm:py-3.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-xs sm:text-sm transition active:scale-[0.99] flex items-center justify-center"
+              >
+                <span>Go to Home</span>
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/90 overflow-hidden h-full flex flex-col justify-between">
