@@ -1371,19 +1371,15 @@ export default function BookingFunnelPage() {
                               )}
                             </div>
 
-                            {/* Card Bottom: Calculated Price Section */}
-                            <div className="p-3 bg-slate-50/90 border-t border-slate-100 flex items-center justify-between shrink-0">
-                              <div>
-                                <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">
-                                  Total Calculated Fare
-                                </div>
-                                <div className="text-base sm:text-lg font-black text-slate-950 tracking-tight">
-                                  ₹{cardFare.toLocaleString('en-IN')}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-[11px] text-amber-950 font-black bg-amber-200/80 border border-amber-300 px-2.5 py-1 rounded-lg inline-block shadow-2xs">
-                                  Advance (25%): ₹{cardAdvance.toLocaleString('en-IN')}
+                            {/* Card Bottom: Base & GST Breakdown */}
+                            <div className="px-3 py-2 bg-slate-50/90 border-t border-slate-100 flex items-center justify-center text-xs shrink-0">
+                              <div className="text-[11px] sm:text-xs text-slate-700 font-semibold truncate flex items-center gap-1.5">
+                                <span className="font-bold text-slate-900">
+                                  Base: ₹{isCatSelected && activePricing ? activePricing.baseFare : (activeFuelOption?.pricing.baseFare ?? q.pricing.baseFare)}
+                                </span>
+                                <span>•</span>
+                                <span>
+                                  GST (5%): ₹{isCatSelected && activePricing ? activePricing.gstAmount : (activeFuelOption?.pricing.gstAmount ?? q.pricing.gstAmount)}
                                 </span>
                               </div>
                             </div>
@@ -1417,14 +1413,21 @@ export default function BookingFunnelPage() {
                   </div>
                 )}
 
-                {/* Live Fare Breakdown (Compact Banner for 100vh Mobile) */}
+                {/* Total Calculated Fare & Advance Highlight Banner at Bottom */}
                 {activePricing && (
-                  <div className="bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-1.5 flex items-center justify-center text-xs shrink-0 shadow-2xs">
-                    <div className="flex items-center gap-2 sm:gap-3 text-slate-700 font-semibold text-[11px] sm:text-xs truncate">
-                      <span className="text-slate-900 font-bold">Base: ₹{activePricing.baseFare}</span>
-                      {activePricing.driverAllowance > 0 && <span>• DA: ₹{activePricing.driverAllowance}</span>}
-                      {activePricing.nightCharge > 0 && <span>• Night: ₹{activePricing.nightCharge}</span>}
-                      <span>• GST (5%): ₹{activePricing.gstAmount}</span>
+                  <div className="bg-slate-50 border border-slate-200/90 rounded-2xl px-3.5 py-2 sm:py-2.5 flex items-center justify-between shrink-0 shadow-2xs">
+                    <div>
+                      <div className="text-[9.5px] uppercase font-bold text-slate-500 tracking-wider">
+                        Total Calculated Fare
+                      </div>
+                      <div className="text-base sm:text-lg font-black text-slate-950 tracking-tight font-mono">
+                        ₹{activePricing.totalFare.toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs sm:text-sm text-amber-950 font-black bg-amber-200/90 border border-amber-300 px-3 py-1.5 rounded-xl inline-block shadow-2xs">
+                        Advance (25%): ₹{activePricing.advanceAmount.toLocaleString('en-IN')}
+                      </span>
                     </div>
                   </div>
                 )}
