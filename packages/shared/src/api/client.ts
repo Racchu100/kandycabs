@@ -60,6 +60,18 @@ export class KandyApiClient {
     return this.baseUrl;
   }
 
+  public getToken(): Promise<string | null> | string | null {
+    return this.tokenStorage.getToken();
+  }
+
+  public setToken(token: string): Promise<void> | void {
+    return this.tokenStorage.setToken(token);
+  }
+
+  public removeToken(): Promise<void> | void {
+    return this.tokenStorage.removeToken();
+  }
+
   public async fetch<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = endpoint.startsWith('http')
       ? endpoint

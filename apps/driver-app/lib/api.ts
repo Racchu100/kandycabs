@@ -1,41 +1,20 @@
 import { Platform } from 'react-native';
 import { KandyApiClient, TokenStorage } from '@kandy-cabs/shared';
 
-// Memory/Async token storage for mobile with Web localStorage persistence
+// Memory / Async token storage for driver mobile app
 class MobileTokenStorage implements TokenStorage {
   private token: string | null = null;
 
   getToken(): string | null {
-    if (!this.token && typeof window !== 'undefined' && window.localStorage) {
-      try {
-        this.token = window.localStorage.getItem('kandy_driver_token');
-      } catch (e) {
-        // ignore
-      }
-    }
     return this.token;
   }
 
   setToken(token: string): void {
     this.token = token;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.setItem('kandy_driver_token', token);
-      } catch (e) {
-        // ignore
-      }
-    }
   }
 
   removeToken(): void {
     this.token = null;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.removeItem('kandy_driver_token');
-      } catch (e) {
-        // ignore
-      }
-    }
   }
 }
 

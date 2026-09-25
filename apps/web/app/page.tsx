@@ -14,14 +14,8 @@ import {
 import { useAuth } from '@/lib/AuthContext';
 import { ALL_LOCATIONS, PlaceLocation } from '@/lib/locations';
 
-const DriverAppModal = dynamic(
-  () => import('@/components/DriverAppModal').then((mod) => mod.DriverAppModal),
-  { ssr: false }
-);
-const LocationPickerModal = dynamic(
-  () => import('@/components/LocationPickerModal').then((mod) => mod.LocationPickerModal),
-  { ssr: false }
-);
+import { DriverAppModal } from '@/components/DriverAppModal';
+import { LocationPickerModal } from '@/components/LocationPickerModal';
 
 const POPULAR_LOCATIONS = ALL_LOCATIONS.map((l) => ({ name: l.label, lat: l.lat, lng: l.lng }));
 
@@ -243,6 +237,11 @@ const FLEET_DATA = [
 export default function HomePage() {
   const router = useRouter();
   const { user, isAuthenticated, sendOtp, verifyOtp, logout } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Customer Sign In / Sign Up Modal State
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -291,8 +290,13 @@ export default function HomePage() {
     };
   }, []);
 
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [authPhone, setAuthPhone] = useState('');
   const [authFullName, setAuthFullName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authShowPassword, setAuthShowPassword] = useState(false);
+  const [authAgreeTerms, setAuthAgreeTerms] = useState(true);
   const [authOtp, setAuthOtp] = useState('');
   const [authStep, setAuthStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [authLoading, setAuthLoading] = useState(false);
@@ -469,11 +473,12 @@ export default function HomePage() {
     }
   };
 
-  const [scheduledDate, setScheduledDate] = useState(() => {
+  const [scheduledDate, setScheduledDate] = useState('2026-09-26');
+  useEffect(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
-  });
+    setScheduledDate(d.toISOString().split('T')[0]);
+  }, []);
   const [scheduledTime, setScheduledTime] = useState('09:00');
   const [durationDays, setDurationDays] = useState(1);
   const [packageHours, setPackageHours] = useState(8);
@@ -638,7 +643,7 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
+            {mounted && isAuthenticated ? (
               <div className="flex items-center gap-2">
                 {user?.roles?.includes(UserRole.ADMIN) && (
                   <a
@@ -782,7 +787,7 @@ export default function HomePage() {
               </a>
 
               <div className="pt-1.5 border-t border-slate-200 flex flex-col gap-1.5">
-                {user?.roles?.includes(UserRole.ADMIN) && (
+                {mounted && user?.roles?.includes(UserRole.ADMIN) && (
                   <a
                     href="http://localhost:3001"
                     target="_blank"
@@ -815,7 +820,7 @@ export default function HomePage() {
                   <span>24/7 Support: +91 80456 89000</span>
                 </a>
 
-                {isAuthenticated && (
+                {mounted && isAuthenticated && (
                   <button
                     type="button"
                     onClick={() => {
@@ -853,17 +858,21 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/20 to-slate-950/90 pointer-events-none" />
 
           {/* Top Text Content Inside Image */}
-          <div className="relative z-10 pt-0 text-center flex flex-col items-center space-y-3.5">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-orange-500/40 text-orange-400 text-[11px] sm:text-xs font-bold tracking-wide uppercase shadow-lg">
-              🚖 Safe • Reliable • Hassle Free
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.15] drop-shadow-md">
-              Comfortable Rides. <br />
-              <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300 bg-clip-text text-transparent">
-                Honest Pricing.
+          <div className="relative z-10 pt-0 text-center flex flex-col items-center space-y-2.5 px-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.12] drop-shadow-md text-white">
+              Reliable <br />
+              Outstation Cabs <br />
+              from{' '}
+              <span className="bg-gradient-to-r from-[#F05323] via-orange-500 to-[#FF7A3D] bg-clip-text text-transparent">
+                Mangaluru
               </span>
             </h1>
+
+            <div className="text-sm sm:text-base md:text-lg font-bold text-amber-300 leading-snug space-y-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] tracking-wide">
+              <p>One-Way Drops <span className="text-orange-400 font-extrabold mx-1">|</span> Round Trips</p>
+              <p>Airport Transfers <span className="text-orange-400 font-extrabold mx-1">|</span> Corporate Travel</p>
+              <p className="font-extrabold tracking-wide">Tour & Pilgrimage Trips</p>
+            </div>
           </div>
 
           {/* Animated Fleet Slider on the Scenic Mountain Road */}
@@ -957,19 +966,26 @@ export default function HomePage() {
 
           <div className="max-w-7xl mx-auto grid grid-cols-12 gap-10 items-center relative z-10">
             {/* Left Column: Headline & Value Proposition */}
-            <div className="col-span-6 space-y-6 text-left">
+            <div className="col-span-6 space-y-5 text-left">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-bold tracking-wide uppercase">
                 🚖 Safe • Reliable • Hassle Free
               </div>
 
-              <h1 className="text-5xl lg:text-6xl font-black tracking-tight leading-[1.12]">
-                Comfortable Rides. <br />
-                <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-300 bg-clip-text text-transparent">
-                  Honest Pricing.
+              <h1 className="text-4xl lg:text-5xl xl:text-6xl font-black tracking-tight leading-[1.12] text-white">
+                Reliable Outstation Cabs <br />
+                from{' '}
+                <span className="bg-gradient-to-r from-[#F05323] via-orange-500 to-[#FF7A3D] bg-clip-text text-transparent">
+                  Mangaluru
                 </span>
               </h1>
 
-              <p className="text-slate-300 text-base sm:text-lg leading-relaxed max-w-xl font-normal">
+              <div className="space-y-1.5 text-base sm:text-lg font-bold text-amber-300 border-l-4 border-orange-500 pl-4 py-0.5">
+                <p>One-Way Drops <span className="text-orange-400 font-extrabold mx-1.5">|</span> Round Trips</p>
+                <p>Airport Transfers <span className="text-orange-400 font-extrabold mx-1.5">|</span> Corporate Travel</p>
+                <p className="font-extrabold">Tour & Pilgrimage Trips</p>
+              </div>
+
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl font-normal">
                 Karnataka&apos;s premier intercity chauffeur cab service. Travel smoothly across Mangalore, Bangalore, Mysore, Coorg, Chikmagalur & Western Ghats with verified commercial drivers, zero surge pricing, and 20% advance booking.
               </p>
 
@@ -2152,231 +2168,714 @@ export default function HomePage() {
 
       {/* Customer Sign In / Sign Up Modal */}
       {authModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-7 shadow-2xl space-y-3.5 sm:space-y-5 border border-slate-100 animate-fade-in relative max-h-[92vh] overflow-y-auto">
-            <button
-              type="button"
-              onClick={() => setAuthModalOpen(false)}
-              className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 text-slate-400 hover:text-slate-700 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition text-base sm:text-lg font-bold"
-            >
-              ✕
-            </button>
-
-            <div className="text-center space-y-0.5 sm:space-y-1">
-              <Image
-                src="/images/logo.webp"
-                alt="Kandy Cabs"
-                width={140}
-                height={44}
-                className="h-8 sm:h-11 w-auto object-contain mx-auto mb-1.5 sm:mb-2"
-              />
-              <h3 className="text-lg sm:text-xl font-black text-slate-900">
-                {authStep === 'PHONE' ? 'Sign In / Register' : 'Enter Verification Code'}
-              </h3>
-              <p className="text-[11px] sm:text-xs text-slate-500">
-                {authStep === 'PHONE'
-                  ? 'Access your booking history, live driver tracking and invoices'
-                  : `We sent a 4-digit code to +91 ${authPhone}`}
-              </p>
+        <>
+          {/* MOBILE & TABLET FULL-SCREEN VIEW (<lg) */}
+          <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col justify-between px-6 py-6 sm:px-8 sm:py-8 overflow-y-auto animate-in fade-in duration-200">
+            {/* Top Navigation Bar: Back Arrow */}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  if (authStep === 'OTP') {
+                    setAuthStep('PHONE');
+                    setAuthError('');
+                  } else {
+                    setAuthModalOpen(false);
+                    setAuthError('');
+                  }
+                }}
+                aria-label="Back"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 transition active:scale-95"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
             </div>
 
-            {authError && (
-              <div className="p-2.5 sm:p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
-                ⚠️ {authError}
+            {/* Main Content Area */}
+            <div className="max-w-sm w-full mx-auto my-auto py-4 space-y-5">
+              {/* Centered Logo */}
+              <div className="text-center">
+                <Image
+                  src="/images/logo.webp"
+                  alt="Kandy Cabs"
+                  width={150}
+                  height={48}
+                  priority
+                  className="h-10 sm:h-12 w-auto object-contain mx-auto"
+                />
               </div>
-            )}
 
-            {authStep === 'PHONE' ? (
-              <form onSubmit={handleAuthSendOtp} className="space-y-3 sm:space-y-4">
-                <div>
-                  <label className="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 sm:mb-1.5">
-                    10-Digit Mobile Number *
-                  </label>
-                  <div className="flex">
-                    <span className="inline-flex items-center px-3 sm:px-3.5 rounded-l-xl border border-r-0 border-slate-300 bg-slate-100 text-slate-700 text-sm font-bold">
-                      +91
-                    </span>
-                    <input
-                      type="tel"
-                      maxLength={10}
-                      required
-                      autoFocus
-                      value={authPhone}
-                      onChange={(e) => setAuthPhone(e.target.value.replace(/\D/g, ''))}
-                      placeholder="9876543210"
-                      className="w-full rounded-r-xl border border-slate-300 px-3 sm:px-3.5 py-2 sm:py-2.5 text-sm text-slate-800 font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition tracking-wider"
-                    />
+              {/* Step: Phone / Credentials Input */}
+              {authStep === 'PHONE' ? (
+                <>
+                  {/* Headings */}
+                  <div className="text-center space-y-1">
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      {authMode === 'LOGIN' ? 'Welcome Back' : 'Create Account'}
+                    </h2>
+                    <p className="text-sm text-slate-500 font-medium">
+                      {authMode === 'LOGIN' ? 'Login to book your next journey' : 'Register to book your journey'}
+                    </p>
                   </div>
-                  <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1">We will send a 4-digit OTP to verify your account</p>
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={authLoading || authPhone.length !== 10}
-                  className="w-full py-2.5 sm:py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-md shadow-orange-600/20 disabled:opacity-50 transition flex items-center justify-center gap-2"
-                >
-                  {authLoading ? 'Sending OTP...' : 'Send Verification OTP →'}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleAuthVerifyOtp} className="space-y-3 sm:space-y-4">
-                {isRegistered ? (
-                  existingRoles.includes('DRIVER') ? (
-                    <div className="p-2.5 sm:p-3.5 bg-orange-50 border border-orange-300 rounded-xl sm:rounded-2xl space-y-1.5 sm:space-y-2">
-                      <div className="flex items-center gap-2 sm:gap-2.5">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange-600 text-white font-black flex items-center justify-center text-xs sm:text-sm shadow-xs flex-shrink-0">
-                          🚕
+                  {authError && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+                      ⚠️ {authError}
+                    </div>
+                  )}
+
+                  {/* Form: LOGIN Mode */}
+                  {authMode === 'LOGIN' ? (
+                    <form onSubmit={handleAuthSendOtp} className="space-y-3.5">
+                      {/* Mobile Number Field */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
                         </div>
-                        <div>
-                          <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-orange-900 bg-orange-200/80 px-1.5 sm:px-2 py-0.5 rounded inline-block">
-                            Registered Driver Partner
-                          </div>
-                          <div className="text-xs sm:text-sm font-extrabold text-slate-900 mt-0.5">
-                            Welcome back, {existingName || 'Driver Partner'}!
-                          </div>
-                        </div>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          required
+                          value={authPhone}
+                          onChange={(e) => setAuthPhone(e.target.value.replace(/\D/g, ''))}
+                          placeholder="Mobile Number"
+                          className="w-full pl-12 pr-4 py-3.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                        />
                       </div>
-                      <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
-                        To receive live trip requests & toggle duty status, please use the <strong>Kandy Driver App</strong>. You can also continue below to book cabs as a customer.
-                      </p>
-                      <div className="pt-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
+
+                      {/* Password / Optional Field */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                        <input
+                          type={authShowPassword ? 'text' : 'password'}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="Password"
+                          className="w-full pl-12 pr-11 py-3.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                        />
                         <button
                           type="button"
-                          onClick={() => setDriverAppModalOpen(true)}
-                          className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg transition shadow-xs flex items-center gap-1"
+                          onClick={() => setAuthShowPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
                         >
-                          <span>📲 Get Driver App</span>
+                          {authShowPassword ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
                         </button>
-                        <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">or continue as customer below</span>
                       </div>
-                    </div>
+
+                      {/* Forgot Password */}
+                      <div className="text-right">
+                        <button
+                          type="button"
+                          onClick={handleAuthSendOtp}
+                          className="text-xs font-bold text-slate-700 hover:text-orange-600 transition"
+                        >
+                          Forgot Password?
+                        </button>
+                      </div>
+
+                      {/* Primary Login Button */}
+                      <button
+                        type="submit"
+                        disabled={authLoading || authPhone.length !== 10}
+                        className="w-full py-3.5 rounded-2xl bg-[#F05323] hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-base shadow-lg shadow-orange-500/25 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                      >
+                        {authLoading ? 'Signing In...' : 'Login'}
+                      </button>
+
+                      {/* OR Divider */}
+                      <div className="relative flex py-1.5 items-center">
+                        <div className="flex-grow border-t border-slate-200"></div>
+                        <span className="flex-shrink mx-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                          — OR —
+                        </span>
+                        <div className="flex-grow border-t border-slate-200"></div>
+                      </div>
+
+                      {/* Google Login Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthError('Google sign-in will connect with your registered Google Account.');
+                        }}
+                        className="w-full py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-700 font-bold text-sm shadow-xs flex items-center justify-center gap-3 transition"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24">
+                          <path
+                            fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                          />
+                        </svg>
+                        <span>Continue with Google</span>
+                      </button>
+                    </form>
                   ) : (
-                    <div className="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2.5 sm:gap-3">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">
-                        ✓
-                      </div>
-                      <div>
-                        <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-700">
-                          {existingRoles.includes('ADMIN')
-                            ? 'Kandy Administrator'
-                            : 'Registered Customer'}
+                    /* Form: REGISTER Mode (Create Account) */
+                    <form onSubmit={handleAuthSendOtp} className="space-y-3">
+                      {/* Full Name */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
                         </div>
-                        <div className="text-xs sm:text-sm font-extrabold text-slate-900">
-                          Welcome back, {existingName || 'Customer'}!
-                        </div>
+                        <input
+                          type="text"
+                          required
+                          value={authFullName}
+                          onChange={(e) => setAuthFullName(e.target.value)}
+                          placeholder="Full Name"
+                          className="w-full pl-12 pr-4 py-3 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                        />
                       </div>
+
+                      {/* Mobile Number */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                        </div>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          required
+                          value={authPhone}
+                          onChange={(e) => setAuthPhone(e.target.value.replace(/\D/g, ''))}
+                          placeholder="Mobile Number"
+                          className="w-full pl-12 pr-4 py-3 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                        />
+                      </div>
+
+                      {/* Email Address */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <input
+                          type="email"
+                          value={authEmail}
+                          onChange={(e) => setAuthEmail(e.target.value)}
+                          placeholder="Email Address"
+                          className="w-full pl-12 pr-4 py-3 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                        />
+                      </div>
+
+                      {/* Password */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                        <input
+                          type={authShowPassword ? 'text' : 'password'}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="Password"
+                          className="w-full pl-12 pr-11 py-3 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setAuthShowPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
+                        >
+                          {authShowPassword ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Terms and Conditions Checkbox */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="checkbox"
+                          id="terms-mobile"
+                          checked={authAgreeTerms}
+                          onChange={(e) => setAuthAgreeTerms(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#F05323] focus:ring-orange-500 border-slate-300 accent-[#F05323]"
+                        />
+                        <label htmlFor="terms-mobile" className="text-xs font-semibold text-slate-700 select-none">
+                          I agree to the <span className="text-slate-900 font-bold">Terms &amp; Conditions</span>
+                        </label>
+                      </div>
+
+                      {/* Sign Up Button */}
+                      <button
+                        type="submit"
+                        disabled={authLoading || authPhone.length !== 10 || !authFullName.trim() || !authAgreeTerms}
+                        className="w-full py-3.5 rounded-2xl bg-[#F05323] hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-base shadow-lg shadow-orange-500/25 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                      >
+                        {authLoading ? 'Creating Account...' : 'Sign Up'}
+                      </button>
+                    </form>
+                  )}
+                </>
+              ) : (
+                /* Step: OTP VERIFICATION */
+                <form onSubmit={handleAuthVerifyOtp} className="space-y-4">
+                  <div className="text-center space-y-1">
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      Enter OTP Code
+                    </h2>
+                    <p className="text-sm text-slate-500 font-medium">
+                      We sent a 4-digit code to <strong className="text-slate-900">+91 {authPhone}</strong>
+                    </p>
+                  </div>
+
+                  {authError && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+                      ⚠️ {authError}
                     </div>
-                  )
-                ) : (
-                  <div className="space-y-2 sm:space-y-3">
-                    <div className="p-2.5 sm:p-3 bg-orange-50 border border-orange-200 rounded-xl">
-                      <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-orange-800">
-                        New Customer Registration
+                  )}
+
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      maxLength={4}
+                      autoFocus
+                      value={authOtp}
+                      onChange={(e) => setAuthOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="••••"
+                      className="w-full text-center text-3xl tracking-[0.5em] font-mono font-black rounded-2xl border border-slate-300 py-3.5 text-slate-900 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition bg-slate-50"
+                    />
+
+                    {authDebugOtp && (
+                      <div className="text-center">
+                        <span className="inline-flex items-center gap-1.5 bg-orange-100 border border-orange-300 text-orange-900 text-xs font-bold px-3 py-1 rounded-full">
+                          <span>⚡ Dev Code: {authDebugOtp}</span>
+                          <span className="text-[10px] font-normal text-orange-700">(Auto-filled)</span>
+                        </span>
                       </div>
-                      <p className="text-[11px] sm:text-xs text-orange-700 mt-0.5">
-                        Please enter your full name to complete your profile setup.
-                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authLoading || authOtp.length !== 4}
+                    className="w-full py-3.5 rounded-2xl bg-[#F05323] text-white font-bold text-base hover:bg-orange-600 active:scale-[0.99] transition shadow-lg shadow-orange-500/25 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {authLoading ? 'Verifying...' : 'Verify & Continue →'}
+                  </button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => setAuthStep('PHONE')}
+                      className="text-xs font-semibold text-orange-600 hover:text-orange-800 transition"
+                    >
+                      Change Mobile Number
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Bottom Switch Link */}
+            {authStep === 'PHONE' && (
+              <div className="text-center pt-3 pb-2 text-sm text-slate-600 font-medium">
+                {authMode === 'LOGIN' ? (
+                  <>
+                    New to Kandy Cabs?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('REGISTER');
+                        setAuthError('');
+                      }}
+                      className="text-[#F05323] font-bold hover:underline"
+                    >
+                      Sign Up
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('LOGIN');
+                        setAuthError('');
+                      }}
+                      className="text-[#F05323] font-bold hover:underline"
+                    >
+                      Login
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* DESKTOP VIEW (>=lg): Centered Floating Dialog Modal */}
+          <div className="hidden lg:flex fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-5 border border-slate-100 animate-fade-in relative max-h-[92vh] overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(false)}
+                className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition text-lg font-bold"
+              >
+                ✕
+              </button>
+
+              <div className="text-center space-y-1">
+                <Image
+                  src="/images/logo.webp"
+                  alt="Kandy Cabs"
+                  width={140}
+                  height={44}
+                  className="h-11 w-auto object-contain mx-auto mb-2"
+                />
+                <h3 className="text-xl font-black text-slate-900">
+                  {authStep === 'PHONE'
+                    ? authMode === 'LOGIN'
+                      ? 'Welcome Back'
+                      : 'Create Account'
+                    : 'Enter Verification Code'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {authStep === 'PHONE'
+                    ? authMode === 'LOGIN'
+                      ? 'Login to book your next journey'
+                      : 'Register to book your journey'
+                    : `We sent a 4-digit code to +91 ${authPhone}`}
+                </p>
+              </div>
+
+              {authError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+                  ⚠️ {authError}
+                </div>
+              )}
+
+              {authStep === 'PHONE' ? (
+                authMode === 'LOGIN' ? (
+                  <form onSubmit={handleAuthSendOtp} className="space-y-4">
+                    {/* Mobile Number */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Mobile Number *
+                      </label>
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3.5 rounded-l-xl border border-r-0 border-slate-300 bg-slate-100 text-slate-700 text-sm font-bold">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          required
+                          autoFocus
+                          value={authPhone}
+                          onChange={(e) => setAuthPhone(e.target.value.replace(/\D/g, ''))}
+                          placeholder="9876543210"
+                          className="w-full rounded-r-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition tracking-wider"
+                        />
+                      </div>
                     </div>
 
+                    {/* Password */}
                     <div>
-                      <label className="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 sm:mb-1.5">
-                        Your Full Name *
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Password
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleAuthSendOtp}
+                          className="text-xs font-bold text-orange-600 hover:text-orange-800 transition"
+                        >
+                          Forgot Password?
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={authShowPassword ? 'text' : 'password'}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setAuthShowPassword((prev) => !prev)}
+                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
+                        >
+                          {authShowPassword ? '🙈' : '👁️'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authLoading || authPhone.length !== 10}
+                      className="w-full py-3 rounded-xl bg-[#F05323] hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-600/20 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                    >
+                      {authLoading ? 'Signing In...' : 'Login →'}
+                    </button>
+
+                    <div className="pt-2 text-center text-xs text-slate-600 border-t border-slate-100">
+                      New to Kandy Cabs?{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('REGISTER');
+                          setAuthError('');
+                        }}
+                        className="text-orange-600 font-bold hover:underline"
+                      >
+                        Create an Account
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleAuthSendOtp} className="space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Full Name *
                       </label>
                       <input
                         type="text"
                         required
                         value={authFullName}
                         onChange={(e) => setAuthFullName(e.target.value)}
-                        placeholder="e.g. Rachel Sharma"
-                        className="w-full rounded-xl border border-slate-300 px-3 sm:px-3.5 py-2 sm:py-2.5 text-sm text-slate-800 font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                        placeholder="e.g. Ramesh Kumar"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-800 font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
                       />
                     </div>
-                  </div>
-                )}
 
-                <div>
-                  <div className="flex justify-between items-center mb-1 sm:mb-1.5 gap-1">
-                    <label className="block text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0">
-                      4-Digit OTP Code
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setAuthStep('PHONE')}
-                      className="text-[10px] sm:text-xs font-semibold text-orange-600 hover:text-orange-800 underline transition truncate"
-                    >
-                      Change (+91 {authPhone})
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    autoFocus={isRegistered}
-                    value={authOtp}
-                    onChange={(e) => setAuthOtp(e.target.value.replace(/\D/g, ''))}
-                    placeholder="••••"
-                    className="w-full text-center text-2xl sm:text-3xl tracking-[0.4em] sm:tracking-[0.5em] font-mono font-black rounded-xl border border-slate-300 py-2 sm:py-3 text-slate-900 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition bg-slate-50"
-                  />
-                  {authDebugOtp && (
-                    <div className="mt-1.5 sm:mt-2 text-center">
-                      <span className="inline-flex items-center gap-1.5 bg-orange-100 border border-orange-300 text-orange-900 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full">
-                        <span>⚡ Dev Code: {authDebugOtp}</span>
-                        <span className="text-[9px] sm:text-[10px] font-normal text-orange-700">(Auto-filled)</span>
-                      </span>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Mobile Number *
+                      </label>
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3.5 rounded-l-xl border border-r-0 border-slate-300 bg-slate-100 text-slate-700 text-sm font-bold">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          required
+                          value={authPhone}
+                          onChange={(e) => setAuthPhone(e.target.value.replace(/\D/g, ''))}
+                          placeholder="9876543210"
+                          className="w-full rounded-r-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-800 font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition tracking-wider"
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={authLoading || authOtp.length !== 4 || (!isRegistered && !authFullName.trim())}
-                  className="w-full py-2.5 sm:py-3 rounded-xl bg-orange-600 text-white font-bold text-sm sm:text-base hover:bg-orange-700 transition shadow-md shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {authLoading
-                    ? 'Verifying...'
-                    : existingRoles.includes('DRIVER')
-                    ? 'Verify & Continue as Customer →'
-                    : 'Verify & Continue →'}
-                </button>
-              </form>
-            )}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Email Address (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="name@example.com"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-800 font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        id="terms-desktop"
+                        checked={authAgreeTerms}
+                        onChange={(e) => setAuthAgreeTerms(e.target.checked)}
+                        className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300 accent-orange-600"
+                      />
+                      <label htmlFor="terms-desktop" className="text-xs font-semibold text-slate-700 select-none">
+                        I agree to the <span className="text-slate-900 font-bold">Terms &amp; Conditions</span>
+                      </label>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authLoading || authPhone.length !== 10 || !authFullName.trim() || !authAgreeTerms}
+                      className="w-full py-3 rounded-xl bg-[#F05323] hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-600/20 disabled:opacity-50 transition flex items-center justify-center gap-2"
+                    >
+                      {authLoading ? 'Creating Account...' : 'Sign Up →'}
+                    </button>
+
+                    <div className="pt-2 text-center text-xs text-slate-600 border-t border-slate-100">
+                      Already have an account?{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('LOGIN');
+                          setAuthError('');
+                        }}
+                        className="text-orange-600 font-bold hover:underline"
+                      >
+                        Login
+                      </button>
+                    </div>
+                  </form>
+                )
+              ) : (
+                <form onSubmit={handleAuthVerifyOtp} className="space-y-4">
+                  {isRegistered ? (
+                    existingRoles.includes('DRIVER') ? (
+                      <div className="p-3 bg-orange-50 border border-orange-300 rounded-2xl space-y-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-orange-600 text-white font-black flex items-center justify-center text-sm shadow-xs flex-shrink-0">
+                            🚕
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-wider text-orange-900 bg-orange-200/80 px-2 py-0.5 rounded inline-block">
+                              Registered Driver Partner
+                            </div>
+                            <div className="text-sm font-extrabold text-slate-900 mt-0.5">
+                              Welcome back, {existingName || 'Driver Partner'}!
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          To receive live trip requests &amp; toggle duty status, please use the <strong>Kandy Driver App</strong>.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">
+                          ✓
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+                            {existingRoles.includes('ADMIN') ? 'Kandy Administrator' : 'Registered Customer'}
+                          </div>
+                          <div className="text-sm font-extrabold text-slate-900">
+                            Welcome back, {existingName || 'Customer'}!
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  ) : null}
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5 gap-1">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0">
+                        4-Digit OTP Code
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setAuthStep('PHONE')}
+                        className="text-xs font-semibold text-orange-600 hover:text-orange-800 underline transition truncate"
+                      >
+                        Change (+91 {authPhone})
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      autoFocus={isRegistered}
+                      value={authOtp}
+                      onChange={(e) => setAuthOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="••••"
+                      className="w-full text-center text-3xl tracking-[0.5em] font-mono font-black rounded-xl border border-slate-300 py-3 text-slate-900 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition bg-slate-50"
+                    />
+                    {authDebugOtp && (
+                      <div className="mt-2 text-center">
+                        <span className="inline-flex items-center gap-1.5 bg-orange-100 border border-orange-300 text-orange-900 text-xs font-bold px-3 py-1 rounded-full">
+                          <span>⚡ Dev Code: {authDebugOtp}</span>
+                          <span className="text-[10px] font-normal text-orange-700">(Auto-filled)</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authLoading || authOtp.length !== 4 || (!isRegistered && !authFullName.trim())}
+                    className="w-full py-3 rounded-xl bg-[#F05323] text-white font-bold text-base hover:bg-orange-600 transition shadow-md shadow-orange-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {authLoading
+                      ? 'Verifying...'
+                      : existingRoles.includes('DRIVER')
+                      ? 'Verify & Continue as Customer →'
+                      : 'Verify & Continue →'}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Driver App Download / Information Modal */}
-      <DriverAppModal
-        isOpen={driverAppModalOpen}
-        onClose={() => setDriverAppModalOpen(false)}
-        driverName={user?.fullName || existingName}
-      />
+      {mounted && driverAppModalOpen && (
+        <DriverAppModal
+          isOpen={driverAppModalOpen}
+          onClose={() => setDriverAppModalOpen(false)}
+          driverName={user?.fullName || existingName}
+        />
+      )}
 
       {/* Interactive OpenStreetMap Location Picker Modal */}
-      <LocationPickerModal
-        isOpen={locationModalOpen}
-        onClose={() => setLocationModalOpen(false)}
-        title={
-          locationModalTarget === 'PICKUP'
-            ? 'Select Pickup Location'
-            : locationModalTarget === 'DROP'
-            ? 'Select Drop Destination'
-            : 'Select Intermediate Stop'
-        }
-        targetType={
-          locationModalTarget === 'PICKUP'
-            ? 'PICKUP'
-            : locationModalTarget === 'DROP'
-            ? 'DROP'
-            : 'STOP'
-        }
-        selectedAddress={
-          locationModalTarget === 'PICKUP'
-            ? pickupAddress
-            : locationModalTarget === 'DROP'
-            ? dropAddress
-            : stops.find((s) => s.id === locationModalTarget)?.address || ''
-        }
-        onSelectLocation={handleSelectLocation}
-      />
+      {mounted && locationModalOpen && (
+        <LocationPickerModal
+          isOpen={locationModalOpen}
+          onClose={() => setLocationModalOpen(false)}
+          title={
+            locationModalTarget === 'PICKUP'
+              ? 'Select Pickup Location'
+              : locationModalTarget === 'DROP'
+              ? 'Select Drop Destination'
+              : 'Select Intermediate Stop'
+          }
+          targetType={
+            locationModalTarget === 'PICKUP'
+              ? 'PICKUP'
+              : locationModalTarget === 'DROP'
+              ? 'DROP'
+              : 'STOP'
+          }
+          selectedAddress={
+            locationModalTarget === 'PICKUP'
+              ? pickupAddress
+              : locationModalTarget === 'DROP'
+              ? dropAddress
+              : stops.find((s) => s.id === locationModalTarget)?.address || ''
+          }
+          onSelectLocation={handleSelectLocation}
+        />
+      )}
 
       {/* Mobile-Only Fixed Bottom Trip-Type Navigation Bar (Visible only when scrolling down) */}
       <div

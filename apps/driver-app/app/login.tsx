@@ -61,17 +61,8 @@ export default function DriverLoginScreen() {
     setLoading(true);
     try {
       const res = await driverApiClient.auth.verifyOtp(phone, otp);
-      if (res.success) {
-        // Check driver status
-        const statusRes = await driverApiClient.fetch('/api/driver/status').catch(() => null);
-        if (!statusRes?.driver) {
-          setError('No driver registered with this number. Please contact admin to register as a driver partner.');
-          await driverApiClient.auth.logout().catch(() => {});
-          return;
-        }
-        if (statusRes?.driver) {
-          router.replace('/dashboard');
-        }
+      if (res.success && res.token) {
+        router.replace('/dashboard');
       } else {
         setError(res.message || 'Verification failed');
       }

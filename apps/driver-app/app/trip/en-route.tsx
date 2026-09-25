@@ -57,17 +57,26 @@ export default function DriverEnRouteScreen() {
 
   const openNavigation = () => {
     if (!booking) return;
-    const lat = booking.pickupLat;
-    const lng = booking.pickupLng;
-    const label = encodeURIComponent(booking.pickupAddress);
-    const url =
-      Platform.OS === 'ios'
-        ? `maps:0,0?q=${label}@${lat},${lng}`
-        : `geo:${lat},${lng}?q=${lat},${lng}(${label})`;
+    const hasCoords = typeof booking.pickupLat === 'number' && typeof booking.pickupLng === 'number';
+    const targetQuery = hasCoords
+      ? `${booking.pickupLat},${booking.pickupLng}`
+      : encodeURIComponent(booking.pickupAddress || '');
 
-    Linking.openURL(url).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
-    });
+    const androidNavUrl = `google.navigation:q=${targetQuery}&mode=d`;
+    const universalFallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${targetQuery}&travelmode=driving`;
+    const iosUrl = `maps:0,0?q=${targetQuery}`;
+
+    if (Platform.OS === 'android') {
+      Linking.openURL(androidNavUrl).catch(() => {
+        Linking.openURL(universalFallbackUrl).catch(() => {});
+      });
+    } else if (Platform.OS === 'ios') {
+      Linking.openURL(iosUrl).catch(() => {
+        Linking.openURL(universalFallbackUrl).catch(() => {});
+      });
+    } else {
+      Linking.openURL(universalFallbackUrl).catch(() => {});
+    }
   };
 
   const handleArrived = () => {
@@ -126,7 +135,7 @@ export default function DriverEnRouteScreen() {
               <View>
                 <Text style={styles.customerLiveTitle}>Live Customer Pin Moving</Text>
                 <Text style={styles.coordsText}>
-                  Lat: {booking.customerCurrentLat.toFixed(4)}, Lng: {booking.customerCurrentLng.toFixed(4)}
+                  Customer GPS: {booking.customerCurrentLat.toFixed(4)}, {booking.customerCurrentLng.toFixed(4)}
                 </Text>
               </View>
             </View>

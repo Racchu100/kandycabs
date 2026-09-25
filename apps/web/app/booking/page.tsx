@@ -15,14 +15,8 @@ import {
 import { useAuth } from '@/lib/AuthContext';
 import { ALL_LOCATIONS, PlaceLocation } from '@/lib/locations';
 
-const DriverAppModal = nextDynamic(
-  () => import('@/components/DriverAppModal').then((mod) => mod.DriverAppModal),
-  { ssr: false }
-);
-const LocationPickerModal = nextDynamic(
-  () => import('@/components/LocationPickerModal').then((mod) => mod.LocationPickerModal),
-  { ssr: false }
-);
+import { DriverAppModal } from '@/components/DriverAppModal';
+import { LocationPickerModal } from '@/components/LocationPickerModal';
 
 export const dynamic = 'force-dynamic';
 

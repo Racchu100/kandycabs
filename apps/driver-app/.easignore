@@ -1,0 +1,9 @@
+# Ignore local platform build artifacts and caches when uploading to EAS Cloud
+.expo/
+android/app/build/
+android/.gradle/
+android/app/.cxx/
+android/build/
+node_modules/
+dist/
+*.log

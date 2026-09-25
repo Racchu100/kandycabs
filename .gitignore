@@ -42,3 +42,12 @@ yarn-error.log*
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Build & binary artifacts
+*.tsbuildinfo
+*.apk
+*.aab
+scratch/
+apps/driver-app/scratch/
+app_routes_backup/
+

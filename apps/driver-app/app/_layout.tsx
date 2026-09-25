@@ -25,6 +25,7 @@ export default function RootLayout() {
       <Stack.Screen name="login" options={{ title: 'Driver Sign In' }} />
       <Stack.Screen name="onboarding" options={{ title: 'Driver Onboarding' }} />
       <Stack.Screen name="dashboard" options={{ title: 'Driver Dashboard' }} />
+      <Stack.Screen name="documents" options={{ title: 'Driver Documents' }} />
       <Stack.Screen name="trip/en-route" options={{ title: 'En Route to Pickup' }} />
       <Stack.Screen name="trip/start" options={{ title: 'Start Trip' }} />
       <Stack.Screen name="trip/active" options={{ title: 'Active Trip' }} />

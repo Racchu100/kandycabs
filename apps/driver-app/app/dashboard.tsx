@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -13,25 +13,29 @@ import {
   ImageBackground,
   StatusBar,
   Image,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { driverApiClient } from '../lib/api';
-import { locationTracker } from '../lib/location-tracker';
+import { locationTracker, LocationState } from '../lib/location-tracker';
 import { driverRealtimeClient } from '../lib/realtime-client';
 import { BookingStatus } from '@kandy-cabs/shared';
 import { SlideToAccept } from '../components/SlideToAccept';
 
 export default function DriverDashboardScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [driver, setDriver] = useState<any>(null);
   const [onlineStatus, setOnlineStatus] = useState(false);
   const [activeBooking, setActiveBooking] = useState<any>(null);
   const [dispatches, setDispatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
-  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number }>({ lat: 12.87211, lng: 74.84340 });
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsState, setGpsState] = useState<LocationState>(locationTracker.getState());
 
   // Bottom Navigation State: 'HOME' | 'MY_TRIPS' | 'SUPPORT' | 'PROFILE'
   const [activeBottomTab, setActiveBottomTab] = useState<'HOME' | 'MY_TRIPS' | 'SUPPORT' | 'PROFILE'>('HOME');
@@ -39,6 +43,8 @@ export default function DriverDashboardScreen() {
   // Top Card Sub-Tab State: 'MY_TRIPS' | 'UPCOMING' | 'HISTORY'
   const [activeCardTab, setActiveCardTab] = useState<'MY_TRIPS' | 'UPCOMING' | 'HISTORY'>('MY_TRIPS');
 
+  const [tripsLoading, setTripsLoading] = useState(false);
+  const [tripsLoaded, setTripsLoaded] = useState(false);
   const [driverTrips, setDriverTrips] = useState<any[]>([]);
   const [earningsSummary, setEarningsSummary] = useState<any>({
     totalAllowanceEarned: 0,
@@ -130,18 +136,33 @@ export default function DriverDashboardScreen() {
 
   // Listen to live GPS changes directly from device hardware/emulator
   useEffect(() => {
-    const unsub = locationTracker.addListener((lat, lng) => {
-      setCurrentCoords({ lat, lng });
+    const unsub = locationTracker.addListener((lat, lng, state) => {
+      if (lat != null && lng != null) {
+        setCurrentCoords({ lat, lng });
+      }
+      setGpsState(state);
     });
     return () => unsub();
   }, []);
 
+  const isFetchingRef = useRef(false);
+  const pendingRefreshRef = useRef(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const tripsLoadedRef = useRef(tripsLoaded);
+  tripsLoadedRef.current = tripsLoaded;
+
   const fetchDriverData = useCallback(async () => {
+    // Prevent simultaneous in-flight fetches
+    if (isFetchingRef.current) {
+      pendingRefreshRef.current = true;
+      return;
+    }
+
+    isFetchingRef.current = true;
     try {
-      const [statusRes, dispatchRes, tripsRes] = await Promise.all([
+      const [statusRes, dispatchRes] = await Promise.all([
         driverApiClient.fetch('/api/driver/status'),
         driverApiClient.fetch('/api/driver/dispatches'),
-        driverApiClient.fetch('/api/driver/trips').catch(() => ({ success: false, trips: [] })),
       ]);
 
       if (statusRes.success) {
@@ -164,7 +185,45 @@ export default function DriverDashboardScreen() {
       if (dispatchRes.success) {
         setDispatches(dispatchRes.dispatches || []);
       }
+    } catch (err) {
+      console.error('Failed to fetch driver data:', err);
+    } finally {
+      isFetchingRef.current = false;
+      setLoading(false);
 
+      // Perform at most one follow-up refresh if another request arrived while in flight
+      if (pendingRefreshRef.current) {
+        pendingRefreshRef.current = false;
+        fetchDriverData();
+      }
+    }
+  }, []);
+
+  // Coalesced / Debounced fetch trigger for rapid bursts of SSE events or reconnects
+  const triggerDebouncedFetch = useCallback((delayMs: number = 600) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    if (delayMs <= 0) {
+      fetchDriverData();
+      return;
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = null;
+      fetchDriverData();
+    }, delayMs);
+  }, [fetchDriverData]);
+
+  const fetchTripsData = useCallback(async (force: boolean = false) => {
+    if (tripsLoading) return;
+    if (tripsLoaded && !force) return;
+
+    setTripsLoading(true);
+    try {
+      const tripsRes = await driverApiClient.fetch('/api/driver/trips').catch(() => ({ success: false, trips: [] }));
       if (tripsRes.success) {
         setDriverTrips(tripsRes.trips || []);
         if (tripsRes.summary) {
@@ -179,18 +238,27 @@ export default function DriverDashboardScreen() {
         if (tripsRes.previousMonthSummary) {
           setPreviousMonthSummary(tripsRes.previousMonthSummary);
         }
+        setTripsLoaded(true);
       }
     } catch (err) {
-      console.error('Failed to fetch driver data:', err);
+      console.error('Failed to fetch trips data:', err);
     } finally {
-      setLoading(false);
+      setTripsLoading(false);
     }
-  }, []);
+  }, [tripsLoading, tripsLoaded]);
+
+  // Lazy-load trip history only when MY_TRIPS tab is opened
+  useEffect(() => {
+    if (activeBottomTab === 'MY_TRIPS' && !tripsLoaded && !tripsLoading) {
+      fetchTripsData();
+    }
+  }, [activeBottomTab, tripsLoaded, tripsLoading, fetchTripsData]);
 
   useEffect(() => {
+    // Initial fetch on mount
     fetchDriverData();
 
-    // Start Realtime SSE Stream
+    // Start Realtime SSE Stream (guaranteed singleton connection)
     driverRealtimeClient.start();
 
     const unsubNew = driverRealtimeClient.on('DISPATCH_NEW', (newDispatch: any) => {
@@ -207,37 +275,140 @@ export default function DriverDashboardScreen() {
     });
 
     const unsubTrip = driverRealtimeClient.on('TRIP_STATUS', () => {
-      fetchDriverData();
+      // Coalesce rapid trip status updates
+      triggerDebouncedFetch(600);
+      if (tripsLoadedRef.current) {
+        fetchTripsData(true);
+      }
     });
 
-    // Gentle 60s background safety sync (reduced from aggressive 5s polling)
-    const interval = setInterval(fetchDriverData, 60000);
+    // Gentle 60s background safety sync
+    const interval = setInterval(() => {
+      triggerDebouncedFetch(0);
+    }, 60000);
+
+    // AppState listener for background / foreground transitions
+    const appStateSubscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        driverRealtimeClient.start();
+        triggerDebouncedFetch(500);
+      }
+    });
 
     return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
       unsubNew();
       unsubRevoke();
       unsubTrip();
       clearInterval(interval);
+      appStateSubscription.remove();
       driverRealtimeClient.stop();
     };
-  }, [fetchDriverData]);
+  }, [fetchDriverData, fetchTripsData, triggerDebouncedFetch]);
+
+  const isTogglingDutyRef = useRef(false);
 
   const handleToggleOnline = async (val: boolean) => {
+    // Prevent double taps while a toggle request is already in progress
+    if (isTogglingDutyRef.current) return;
+    isTogglingDutyRef.current = true;
+
+    // Fast-path hardware / permission check only if going online
+    if (val) {
+      // Check if location services are already known to be disabled
+      if (gpsState.status === 'SERVICES_DISABLED') {
+        Alert.alert(
+          'Location Services Required',
+          'GPS/Location Services are currently disabled on your device. Please enable GPS in your device settings to go online and receive ride dispatches.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Open Settings',
+              onPress: () => locationTracker.openLocationSettings(),
+            },
+          ]
+        );
+        isTogglingDutyRef.current = false;
+        return;
+      }
+
+      // If permissions haven't been granted yet, request them
+      if (gpsState.status === 'PERMISSION_DENIED' || gpsState.status === 'NOT_STARTED') {
+        const permResult = await locationTracker.requestPermissions();
+        if (!permResult.granted) {
+          if (permResult.status === 'SERVICES_DISABLED') {
+            Alert.alert(
+              'Location Services Required',
+              'GPS/Location Services are currently disabled on your device. Please enable GPS in your device settings to go online and receive ride dispatches.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Open Settings',
+                  onPress: () => locationTracker.openLocationSettings(),
+                },
+              ]
+            );
+          } else {
+            Alert.alert(
+              'Location Permission Required',
+              'Location permission is required to detect nearby ride dispatches and navigate routes.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Settings',
+                  onPress: () => Linking.openSettings(),
+                },
+              ]
+            );
+          }
+          isTogglingDutyRef.current = false;
+          return;
+        }
+      }
+    }
+
+    // 1. OPTIMISTIC 0ms UI FLIP
+    const prevStatus = onlineStatus;
+    setOnlineStatus(val);
+
+    // 2. Immediate tracking start/stop
+    if (val) {
+      locationTracker.startIdleTracking();
+    } else {
+      locationTracker.stopTracking();
+    }
+
+    // 3. Background server synchronization with rollback on failure
     try {
       const res = await driverApiClient.fetch('/api/driver/toggle-online', {
         method: 'PATCH',
         body: JSON.stringify({ onlineStatus: val }),
       });
-      if (res.success) {
-        setOnlineStatus(res.onlineStatus);
-        if (res.onlineStatus) {
+
+      if (!res.success) {
+        // Rollback state
+        setOnlineStatus(prevStatus);
+        if (prevStatus) {
           locationTracker.startIdleTracking();
         } else {
           locationTracker.stopTracking();
         }
+        Alert.alert('Status Error', res.message || 'Failed to update online status');
       }
     } catch (err: any) {
+      // Rollback on network or server error (e.g. not verified)
+      setOnlineStatus(prevStatus);
+      if (prevStatus) {
+        locationTracker.startIdleTracking();
+      } else {
+        locationTracker.stopTracking();
+      }
       Alert.alert('Status Error', err.message || 'Failed to update online status');
+    } finally {
+      isTogglingDutyRef.current = false;
     }
   };
 
@@ -293,15 +464,31 @@ export default function DriverDashboardScreen() {
     ]);
   };
 
-  const openNavigationMap = (destination: string) => {
-    const url = Platform.select({
-      ios: `maps:0,0?q=${encodeURIComponent(destination)}`,
-      android: `geo:0,0?q=${encodeURIComponent(destination)}`,
-      default: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`,
-    });
-    Linking.openURL(url as string).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`);
-    });
+  const openNavigationMap = (
+    destinationLat?: number | null,
+    destinationLng?: number | null,
+    destinationAddress?: string
+  ) => {
+    const hasCoords = typeof destinationLat === 'number' && typeof destinationLng === 'number';
+    const targetQuery = hasCoords
+      ? `${destinationLat},${destinationLng}`
+      : encodeURIComponent(destinationAddress || '');
+
+    const androidNavUrl = `google.navigation:q=${targetQuery}&mode=d`;
+    const universalFallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${targetQuery}&travelmode=driving`;
+    const iosUrl = `maps:0,0?q=${targetQuery}`;
+
+    if (Platform.OS === 'android') {
+      Linking.openURL(androidNavUrl).catch(() => {
+        Linking.openURL(universalFallbackUrl).catch(() => {});
+      });
+    } else if (Platform.OS === 'ios') {
+      Linking.openURL(iosUrl).catch(() => {
+        Linking.openURL(universalFallbackUrl).catch(() => {});
+      });
+    } else {
+      Linking.openURL(universalFallbackUrl).catch(() => {});
+    }
   };
 
   if (loading && !driver) {
@@ -315,7 +502,6 @@ export default function DriverDashboardScreen() {
 
   // Display booking (either active booking or mock demo if none)
   const currentTrip = activeBooking;
-  const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 20);
 
   return (
@@ -330,7 +516,7 @@ export default function DriverDashboardScreen() {
       {activeBottomTab === 'HOME' ? (
         /* FULL HERO BANNER ONLY FOR HOME TAB */
         <ImageBackground
-          source={require('../assets/images/hero-banner.jpg')}
+          source={require('../assets/images/hero-banner.webp')}
           style={styles.heroBannerBackground}
           imageStyle={{ resizeMode: 'cover' }}
         >
@@ -404,12 +590,35 @@ export default function DriverDashboardScreen() {
             <View style={styles.heroBottomBar}>
               <TouchableOpacity
                 style={styles.heroGpsPill}
-                onPress={() => locationTracker.forceImmediatePing()}
+                onPress={() => {
+                  if (gpsState.status === 'SERVICES_DISABLED' || gpsState.status === 'PERMISSION_DENIED') {
+                    locationTracker.openLocationSettings();
+                  } else {
+                    locationTracker.forceImmediatePing();
+                  }
+                }}
                 activeOpacity={0.7}
               >
-                <View style={[styles.gpsDot, onlineStatus ? styles.gpsDotActive : styles.gpsDotInactive]} />
-                <Text style={styles.heroGpsText}>
-                  📍 GPS: {currentCoords.lat.toFixed(5)}, {currentCoords.lng.toFixed(5)}
+                <View
+                  style={[
+                    styles.gpsDot,
+                    gpsState.status === 'SERVICES_DISABLED' || gpsState.status === 'PERMISSION_DENIED'
+                      ? { backgroundColor: '#ef4444' }
+                      : currentCoords
+                      ? onlineStatus
+                        ? styles.gpsDotActive
+                        : styles.gpsDotInactive
+                      : { backgroundColor: '#f59e0b' },
+                  ]}
+                />
+                <Text style={styles.heroGpsText} numberOfLines={1}>
+                  {gpsState.status === 'SERVICES_DISABLED'
+                    ? '⚠️ Please enable GPS'
+                    : gpsState.status === 'PERMISSION_DENIED'
+                    ? '⚠️ Location permission required'
+                    : currentCoords
+                    ? `📍 GPS: ${currentCoords.lat.toFixed(5)}, ${currentCoords.lng.toFixed(5)}`
+                    : '⏳ Acquiring GPS...'}
                 </Text>
               </TouchableOpacity>
 
@@ -739,7 +948,7 @@ export default function DriverDashboardScreen() {
 
                       <TouchableOpacity
                         style={styles.creamViewRouteBtn}
-                        onPress={() => openNavigationMap(currentTrip.dropAddress)}
+                        onPress={() => openNavigationMap(currentTrip.dropLat, currentTrip.dropLng, currentTrip.dropAddress)}
                         activeOpacity={0.85}
                       >
                         <Text style={styles.creamBtnIcon}>📍</Text>
@@ -957,110 +1166,124 @@ export default function DriverDashboardScreen() {
         {/* ============================================================ */}
         {activeBottomTab === 'MY_TRIPS' && (
           <View style={styles.tabSectionContainer}>
-            {/* Month Selector Pills */}
-            <View style={styles.monthSelectorBoxWhite}>
-              <Text style={styles.monthSelectorLabelDark}>📅 SELECT BILLING MONTH</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthPillsScroll}>
-                {currentMonthSummary && (
-                  <TouchableOpacity
-                    style={[styles.monthPillWhite, selectedMonthKey === currentMonthSummary.monthKey && styles.monthPillActiveOrange]}
-                    onPress={() => setSelectedMonthKey(currentMonthSummary.monthKey)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.monthPillTextDark, selectedMonthKey === currentMonthSummary.monthKey && styles.monthPillTextWhite]}>
-                      ⚡ {currentMonthSummary.shortMonth} (This Month)
-                    </Text>
-                  </TouchableOpacity>
-                )}
+            {tripsLoading && !tripsLoaded ? (
+              <View style={{ paddingVertical: 48, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="large" color="#ea580c" />
+                <Text style={{ color: '#0f172a', marginTop: 14, fontWeight: '700', fontSize: 14 }}>
+                  Loading Trip Accounting & History...
+                </Text>
+                <Text style={{ color: '#64748b', marginTop: 4, fontSize: 12 }}>
+                  Fetching settlements and monthly breakdowns
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Month Selector Pills */}
+                <View style={styles.monthSelectorBoxWhite}>
+                  <Text style={styles.monthSelectorLabelDark}>📅 SELECT BILLING MONTH</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthPillsScroll}>
+                    {currentMonthSummary && (
+                      <TouchableOpacity
+                        style={[styles.monthPillWhite, selectedMonthKey === currentMonthSummary.monthKey && styles.monthPillActiveOrange]}
+                        onPress={() => setSelectedMonthKey(currentMonthSummary.monthKey)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.monthPillTextDark, selectedMonthKey === currentMonthSummary.monthKey && styles.monthPillTextWhite]}>
+                          ⚡ {currentMonthSummary.shortMonth} (This Month)
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
-                {previousMonthSummary && (
-                  <TouchableOpacity
-                    style={[styles.monthPillWhite, selectedMonthKey === previousMonthSummary.monthKey && styles.monthPillActiveOrange]}
-                    onPress={() => setSelectedMonthKey(previousMonthSummary.monthKey)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.monthPillTextDark, selectedMonthKey === previousMonthSummary.monthKey && styles.monthPillTextWhite]}>
-                      ⏮️ {previousMonthSummary.shortMonth} (Last Month)
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                    {previousMonthSummary && (
+                      <TouchableOpacity
+                        style={[styles.monthPillWhite, selectedMonthKey === previousMonthSummary.monthKey && styles.monthPillActiveOrange]}
+                        onPress={() => setSelectedMonthKey(previousMonthSummary.monthKey)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.monthPillTextDark, selectedMonthKey === previousMonthSummary.monthKey && styles.monthPillTextWhite]}>
+                          ⏮️ {previousMonthSummary.shortMonth} (Last Month)
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
-                {monthlyBreakdown
-                  .filter((m) => m.monthKey !== currentMonthSummary?.monthKey && m.monthKey !== previousMonthSummary?.monthKey)
-                  .map((m) => (
+                    {monthlyBreakdown
+                      .filter((m) => m.monthKey !== currentMonthSummary?.monthKey && m.monthKey !== previousMonthSummary?.monthKey)
+                      .map((m) => (
+                        <TouchableOpacity
+                          key={m.monthKey}
+                          style={[styles.monthPillWhite, selectedMonthKey === m.monthKey && styles.monthPillActiveOrange]}
+                          onPress={() => setSelectedMonthKey(m.monthKey)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.monthPillTextDark, selectedMonthKey === m.monthKey && styles.monthPillTextWhite]}>
+                            🗓️ {m.shortMonth}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+
                     <TouchableOpacity
-                      key={m.monthKey}
-                      style={[styles.monthPillWhite, selectedMonthKey === m.monthKey && styles.monthPillActiveOrange]}
-                      onPress={() => setSelectedMonthKey(m.monthKey)}
+                      style={[styles.monthPillWhite, selectedMonthKey === 'ALL' && styles.monthPillActiveOrange]}
+                      onPress={() => setSelectedMonthKey('ALL')}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.monthPillTextDark, selectedMonthKey === m.monthKey && styles.monthPillTextWhite]}>
-                        🗓️ {m.shortMonth}
+                      <Text style={[styles.monthPillTextDark, selectedMonthKey === 'ALL' && styles.monthPillTextWhite]}>
+                        🌐 All Time
                       </Text>
                     </TouchableOpacity>
-                  ))}
+                  </ScrollView>
+                </View>
 
-                <TouchableOpacity
-                  style={[styles.monthPillWhite, selectedMonthKey === 'ALL' && styles.monthPillActiveOrange]}
-                  onPress={() => setSelectedMonthKey('ALL')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.monthPillTextDark, selectedMonthKey === 'ALL' && styles.monthPillTextWhite]}>
-                    🌐 All Time
+                {/* KPI Summary Card */}
+                <View style={styles.earningsKpiCardWhite}>
+                  <View style={styles.kpiHeaderRow}>
+                    <Text style={styles.kpiHeaderLabelOrange}>
+                      {selectedMonthKey === 'ALL'
+                        ? '🌐 LIFETIME TOTAL EARNINGS'
+                        : selectedMonthKey === currentMonthSummary?.monthKey
+                        ? `📅 THIS MONTH (${(currentMonthSummary.monthName || '').toUpperCase()})`
+                        : `🗓️ ${(selectedMonthKey).toUpperCase()} EARNINGS`}
+                    </Text>
+                    <View style={styles.kpiTripsCountBadgeLight}>
+                      <Text style={styles.kpiTripsCountTextGreen}>{activeKpiSummary.completedTripsCount || 0} Completed Trips</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.kpiTotalEarningsAmountDark}>
+                    ₹{Number(activeKpiSummary.totalEarnings || 0).toLocaleString('en-IN')}
                   </Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
 
-            {/* KPI Summary Card */}
-            <View style={styles.earningsKpiCardWhite}>
-              <View style={styles.kpiHeaderRow}>
-                <Text style={styles.kpiHeaderLabelOrange}>
-                  {selectedMonthKey === 'ALL'
-                    ? '🌐 LIFETIME TOTAL EARNINGS'
-                    : selectedMonthKey === currentMonthSummary?.monthKey
-                    ? `📅 THIS MONTH (${(currentMonthSummary.monthName || '').toUpperCase()})`
-                    : `🗓️ ${(selectedMonthKey).toUpperCase()} EARNINGS`}
-                </Text>
-                <View style={styles.kpiTripsCountBadgeLight}>
-                  <Text style={styles.kpiTripsCountTextGreen}>{activeKpiSummary.completedTripsCount || 0} Completed Trips</Text>
+                  <View style={styles.kpiSubBreakdownRow}>
+                    <Text style={styles.kpiSubTextDark}>
+                      🚗 Driver Allowance: ₹{Number(activeKpiSummary.totalAllowanceEarned || 0).toLocaleString('en-IN')}
+                    </Text>
+                    <Text style={styles.kpiSubTextDark}>
+                      • 💰 Payee: ₹{Number(activeKpiSummary.totalPayeeEarned || 0).toLocaleString('en-IN')}
+                    </Text>
+                  </View>
+
+                  <View style={styles.kpiSettlementRowLight}>
+                    <View style={styles.kpiSettledPillLight}>
+                      <Text style={styles.kpiSettledLabel}>✓ SETTLED (PAID)</Text>
+                      <Text style={styles.kpiSettledAmountDark}>₹{Number(activeKpiSummary.totalSettled || 0).toLocaleString('en-IN')}</Text>
+                    </View>
+                    <View style={styles.kpiPendingPillLight}>
+                      <Text style={styles.kpiPendingLabel}>⏳ PENDING PAYEE</Text>
+                      <Text style={styles.kpiPendingAmountDark}>₹{Number(activeKpiSummary.totalPending || 0).toLocaleString('en-IN')}</Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
 
-              <Text style={styles.kpiTotalEarningsAmountDark}>
-                ₹{Number(activeKpiSummary.totalEarnings || 0).toLocaleString('en-IN')}
-              </Text>
-
-              <View style={styles.kpiSubBreakdownRow}>
-                <Text style={styles.kpiSubTextDark}>
-                  🚗 Driver Allowance: ₹{Number(activeKpiSummary.totalAllowanceEarned || 0).toLocaleString('en-IN')}
-                </Text>
-                <Text style={styles.kpiSubTextDark}>
-                  • 💰 Payee: ₹{Number(activeKpiSummary.totalPayeeEarned || 0).toLocaleString('en-IN')}
-                </Text>
-              </View>
-
-              <View style={styles.kpiSettlementRowLight}>
-                <View style={styles.kpiSettledPillLight}>
-                  <Text style={styles.kpiSettledLabel}>✓ SETTLED (PAID)</Text>
-                  <Text style={styles.kpiSettledAmountDark}>₹{Number(activeKpiSummary.totalSettled || 0).toLocaleString('en-IN')}</Text>
+                {/* Trips List */}
+                <View style={styles.tripsHeaderRow}>
+                  <Text style={styles.tripsHeaderTitleDark}>
+                    Trip History ({filteredTrips.length}{selectedMonthKey !== 'ALL' ? ' in selected month' : ''})
+                  </Text>
+                  <TouchableOpacity onPress={() => fetchTripsData(true)} style={styles.refreshBtnLight} disabled={tripsLoading}>
+                    <Text style={styles.refreshBtnTextOrange}>
+                      {tripsLoading ? '⏳ Refreshing...' : '🔄 Refresh'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.kpiPendingPillLight}>
-                  <Text style={styles.kpiPendingLabel}>⏳ PENDING PAYEE</Text>
-                  <Text style={styles.kpiPendingAmountDark}>₹{Number(activeKpiSummary.totalPending || 0).toLocaleString('en-IN')}</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Trips List */}
-            <View style={styles.tripsHeaderRow}>
-              <Text style={styles.tripsHeaderTitleDark}>
-                Trip History ({filteredTrips.length}{selectedMonthKey !== 'ALL' ? ' in selected month' : ''})
-              </Text>
-              <TouchableOpacity onPress={fetchDriverData} style={styles.refreshBtnLight}>
-                <Text style={styles.refreshBtnTextOrange}>🔄 Refresh</Text>
-              </TouchableOpacity>
-            </View>
 
             {filteredTrips.length === 0 ? (
               <View style={styles.emptyCardWhite}>
@@ -1132,6 +1355,8 @@ export default function DriverDashboardScreen() {
                 );
               })
             )}
+            </>
+          )}
           </View>
         )}
 

@@ -40,6 +40,9 @@ class DriverRealtimeClient {
 
   public start() {
     this.isStopped = false;
+    if (this.xhr && this.isConnected) {
+      return; // Already actively connected
+    }
     this.connect();
   }
 
@@ -50,7 +53,9 @@ class DriverRealtimeClient {
       this.reconnectTimer = null;
     }
     if (this.xhr) {
-      this.xhr.abort();
+      try {
+        this.xhr.abort();
+      } catch (_) {}
       this.xhr = null;
     }
     this.isConnected = false;
@@ -59,6 +64,19 @@ class DriverRealtimeClient {
 
   private connect() {
     if (this.isStopped) return;
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    // Clean up any stale active connection before establishing a new one
+    if (this.xhr) {
+      try {
+        this.xhr.abort();
+      } catch (_) {}
+      this.xhr = null;
+    }
 
     const token = driverTokenStorage.getToken();
     if (!token) {

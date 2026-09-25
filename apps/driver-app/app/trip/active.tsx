@@ -48,17 +48,26 @@ export default function DriverTripActiveScreen() {
 
   const openDropNavigation = () => {
     if (!booking) return;
-    const lat = booking.dropLat;
-    const lng = booking.dropLng;
-    const label = encodeURIComponent(booking.dropAddress);
-    const url =
-      Platform.OS === 'ios'
-        ? `maps:0,0?q=${label}@${lat},${lng}`
-        : `geo:${lat},${lng}?q=${lat},${lng}(${label})`;
+    const hasCoords = typeof booking.dropLat === 'number' && typeof booking.dropLng === 'number';
+    const targetQuery = hasCoords
+      ? `${booking.dropLat},${booking.dropLng}`
+      : encodeURIComponent(booking.dropAddress || '');
 
-    Linking.openURL(url).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
-    });
+    const androidNavUrl = `google.navigation:q=${targetQuery}&mode=d`;
+    const universalFallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${targetQuery}&travelmode=driving`;
+    const iosUrl = `maps:0,0?q=${targetQuery}`;
+
+    if (Platform.OS === 'android') {
+      Linking.openURL(androidNavUrl).catch(() => {
+        Linking.openURL(universalFallbackUrl).catch(() => {});
+      });
+    } else if (Platform.OS === 'ios') {
+      Linking.openURL(iosUrl).catch(() => {
+        Linking.openURL(universalFallbackUrl).catch(() => {});
+      });
+    } else {
+      Linking.openURL(universalFallbackUrl).catch(() => {});
+    }
   };
 
   const handleProceedToComplete = () => {

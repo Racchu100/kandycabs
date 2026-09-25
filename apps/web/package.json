@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "dev": "next dev -H 0.0.0.0 -p 3000 --turbo",
     "build": "node ../../packages/db/src/generate.js && next build",
     "vercel-build": "node ../../packages/db/src/generate.js && next build",
     "start": "next start",

@@ -14,9 +14,9 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { driverApiClient } from '../lib/api';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function DriverDocumentsUploadScreen() {
   const router = useRouter();

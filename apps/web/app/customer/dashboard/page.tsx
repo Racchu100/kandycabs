@@ -7,18 +7,9 @@ import nextDynamic from 'next/dynamic';
 import { BookingStatus, getSupabaseClient, UserRole } from '@kandy-cabs/shared';
 import { useAuth } from '@/lib/AuthContext';
 
-const TaxInvoiceModal = nextDynamic(
-  () => import('@/components/TaxInvoiceModal').then((mod) => mod.TaxInvoiceModal),
-  { ssr: false }
-);
-const CancelBookingModal = nextDynamic(
-  () => import('@/components/CancelBookingModal').then((mod) => mod.CancelBookingModal),
-  { ssr: false }
-);
-const DriverAppModal = nextDynamic(
-  () => import('@/components/DriverAppModal').then((mod) => mod.DriverAppModal),
-  { ssr: false }
-);
+import { TaxInvoiceModal } from '@/components/TaxInvoiceModal';
+import { CancelBookingModal } from '@/components/CancelBookingModal';
+import { DriverAppModal } from '@/components/DriverAppModal';
 
 export const dynamic = 'force-dynamic';
 

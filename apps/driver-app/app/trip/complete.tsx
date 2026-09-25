@@ -15,10 +15,10 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { driverApiClient } from '../../lib/api';
 import { locationTracker } from '../../lib/location-tracker';
+import { driverApiClient } from '../../lib/api';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function DriverTripCompleteScreen() {
   const router = useRouter();
@@ -34,13 +34,15 @@ export default function DriverTripCompleteScreen() {
   const [parkingAmount, setParkingAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number }>({ lat: 12.9716, lng: 77.5946 });
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [photoLocation, setPhotoLocation] = useState<{ lat: number; lng: number; time: string } | null>(null);
 
   // Subscribe to live GPS coordinates
   useEffect(() => {
     const unsub = locationTracker.addListener((lat, lng) => {
-      setCurrentCoords({ lat, lng });
+      if (lat != null && lng != null) {
+        setCurrentCoords({ lat, lng });
+      }
     });
     return () => unsub();
   }, []);
@@ -81,11 +83,13 @@ export default function DriverTripCompleteScreen() {
         setOdometerPhotoAttached(true);
         // Lock location at the exact moment of photo capture
         const latest = locationTracker.getCurrentCoordinates();
-        setPhotoLocation({
-          lat: latest.lat,
-          lng: latest.lng,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        });
+        if (latest.lat != null && latest.lng != null) {
+          setPhotoLocation({
+            lat: latest.lat,
+            lng: latest.lng,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          });
+        }
       }
     } catch (err: any) {
       Alert.alert('Camera Error', err.message || 'Failed to open camera');
@@ -245,7 +249,11 @@ export default function DriverTripCompleteScreen() {
                     <Text style={styles.gpsWatermarkTitle}>📍 GPS LOCATION STAMP</Text>
                   </View>
                   <Text style={styles.gpsWatermarkCoords}>
-                    {photoLocation ? `${photoLocation.lat.toFixed(5)}° N, ${photoLocation.lng.toFixed(5)}° E` : `${currentCoords.lat.toFixed(5)}° N, ${currentCoords.lng.toFixed(5)}° E`}
+                    {photoLocation
+                      ? `${photoLocation.lat.toFixed(5)}° N, ${photoLocation.lng.toFixed(5)}° E`
+                      : currentCoords
+                      ? `${currentCoords.lat.toFixed(5)}° N, ${currentCoords.lng.toFixed(5)}° E`
+                      : 'Acquiring GPS...'}
                   </Text>
                   <Text style={styles.gpsWatermarkTime}>
                     ⏱️ Captured: {photoLocation?.time || 'Just now'} • Verified Odometer Evidence
@@ -258,13 +266,13 @@ export default function DriverTripCompleteScreen() {
                 <View style={styles.photoLocationRow}>
                   <Text style={styles.photoLocationLabel}>📍 Latitude:</Text>
                   <Text style={styles.photoLocationVal}>
-                    {photoLocation ? photoLocation.lat.toFixed(6) : currentCoords.lat.toFixed(6)}°
+                    {photoLocation ? `${photoLocation.lat.toFixed(6)}°` : currentCoords ? `${currentCoords.lat.toFixed(6)}°` : 'Acquiring...'}
                   </Text>
                 </View>
                 <View style={styles.photoLocationRow}>
                   <Text style={styles.photoLocationLabel}>📍 Longitude:</Text>
                   <Text style={styles.photoLocationVal}>
-                    {photoLocation ? photoLocation.lng.toFixed(6) : currentCoords.lng.toFixed(6)}°
+                    {photoLocation ? `${photoLocation.lng.toFixed(6)}°` : currentCoords ? `${currentCoords.lng.toFixed(6)}°` : 'Acquiring...'}
                   </Text>
                 </View>
                 <View style={styles.photoLocationRow}>
@@ -288,9 +296,11 @@ export default function DriverTripCompleteScreen() {
 
               {/* Pre-capture Current Location Indicator */}
               <View style={styles.preCaptureGpsRow}>
-                <View style={styles.liveGpsDot} />
+                <View style={[styles.liveGpsDot, !currentCoords && { backgroundColor: '#f59e0b' }]} />
                 <Text style={styles.preCaptureGpsText}>
-                  📍 Current GPS: {currentCoords.lat.toFixed(5)}, {currentCoords.lng.toFixed(5)}
+                  {currentCoords
+                    ? `📍 Current GPS: ${currentCoords.lat.toFixed(5)}, ${currentCoords.lng.toFixed(5)}`
+                    : '⏳ Acquiring GPS position...'}
                 </Text>
               </View>
             </View>
