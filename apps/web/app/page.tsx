@@ -294,8 +294,6 @@ export default function HomePage() {
   const [authPhone, setAuthPhone] = useState('');
   const [authFullName, setAuthFullName] = useState('');
   const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authShowPassword, setAuthShowPassword] = useState(false);
   const [authAgreeTerms, setAuthAgreeTerms] = useState(true);
   const [authOtp, setAuthOtp] = useState('');
   const [authStep, setAuthStep] = useState<'PHONE' | 'OTP'>('PHONE');
@@ -2226,68 +2224,27 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {/* Form: LOGIN Mode */}
+                  {/* Form: LOGIN Mode (OTP Only) */}
                   {authMode === 'LOGIN' ? (
-                    <form onSubmit={handleAuthSendOtp} className="space-y-3.5">
+                    <form onSubmit={handleAuthSendOtp} className="space-y-4">
                       {/* Mobile Number Field */}
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold text-sm">
+                          <svg className="w-5 h-5 mr-1 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                           </svg>
+                          <span className="text-slate-500 font-bold">+91</span>
                         </div>
                         <input
                           type="tel"
                           maxLength={10}
                           required
+                          autoFocus
                           value={authPhone}
                           onChange={(e) => setAuthPhone(e.target.value.replace(/\D/g, ''))}
                           placeholder="Mobile Number"
-                          className="w-full pl-12 pr-4 py-3.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                          className="w-full pl-20 pr-4 py-3.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition tracking-wide"
                         />
-                      </div>
-
-                      {/* Password / Optional Field */}
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                        </div>
-                        <input
-                          type={authShowPassword ? 'text' : 'password'}
-                          value={authPassword}
-                          onChange={(e) => setAuthPassword(e.target.value)}
-                          placeholder="Password"
-                          className="w-full pl-12 pr-11 py-3.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setAuthShowPassword((prev) => !prev)}
-                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
-                        >
-                          {authShowPassword ? (
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Forgot Password */}
-                      <div className="text-right">
-                        <button
-                          type="button"
-                          onClick={handleAuthSendOtp}
-                          className="text-xs font-bold text-slate-700 hover:text-orange-600 transition"
-                        >
-                          Forgot Password?
-                        </button>
                       </div>
 
                       {/* Primary Login Button */}
@@ -2296,50 +2253,12 @@ export default function HomePage() {
                         disabled={authLoading || authPhone.length !== 10}
                         className="w-full py-3.5 rounded-2xl bg-[#F05323] hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-base shadow-lg shadow-orange-500/25 disabled:opacity-50 transition flex items-center justify-center gap-2"
                       >
-                        {authLoading ? 'Signing In...' : 'Login'}
-                      </button>
-
-                      {/* OR Divider */}
-                      <div className="relative flex py-1.5 items-center">
-                        <div className="flex-grow border-t border-slate-200"></div>
-                        <span className="flex-shrink mx-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          — OR —
-                        </span>
-                        <div className="flex-grow border-t border-slate-200"></div>
-                      </div>
-
-                      {/* Google Login Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAuthError('Google sign-in will connect with your registered Google Account.');
-                        }}
-                        className="w-full py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-700 font-bold text-sm shadow-xs flex items-center justify-center gap-3 transition"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24">
-                          <path
-                            fill="#4285F4"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                          />
-                          <path
-                            fill="#EA4335"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                          />
-                        </svg>
-                        <span>Continue with Google</span>
+                        {authLoading ? 'Sending OTP...' : 'Login'}
                       </button>
                     </form>
                   ) : (
-                    /* Form: REGISTER Mode (Create Account) */
-                    <form onSubmit={handleAuthSendOtp} className="space-y-3">
+                    /* Form: REGISTER Mode (Create Account - OTP Only) */
+                    <form onSubmit={handleAuthSendOtp} className="space-y-3.5">
                       {/* Full Name */}
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -2353,16 +2272,17 @@ export default function HomePage() {
                           value={authFullName}
                           onChange={(e) => setAuthFullName(e.target.value)}
                           placeholder="Full Name"
-                          className="w-full pl-12 pr-4 py-3 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                          className="w-full pl-12 pr-4 py-3.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
                         />
                       </div>
 
                       {/* Mobile Number */}
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold text-sm">
+                          <svg className="w-5 h-5 mr-1 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                           </svg>
+                          <span className="text-slate-500 font-bold">+91</span>
                         </div>
                         <input
                           type="tel"
@@ -2371,7 +2291,7 @@ export default function HomePage() {
                           value={authPhone}
                           onChange={(e) => setAuthPhone(e.target.value.replace(/\D/g, ''))}
                           placeholder="Mobile Number"
-                          className="w-full pl-12 pr-4 py-3 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                          className="w-full pl-20 pr-4 py-3.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition tracking-wide"
                         />
                       </div>
 
@@ -2386,41 +2306,9 @@ export default function HomePage() {
                           type="email"
                           value={authEmail}
                           onChange={(e) => setAuthEmail(e.target.value)}
-                          placeholder="Email Address"
-                          className="w-full pl-12 pr-4 py-3 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
+                          placeholder="Email Address (Optional)"
+                          className="w-full pl-12 pr-4 py-3.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
                         />
-                      </div>
-
-                      {/* Password */}
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                        </div>
-                        <input
-                          type={authShowPassword ? 'text' : 'password'}
-                          value={authPassword}
-                          onChange={(e) => setAuthPassword(e.target.value)}
-                          placeholder="Password"
-                          className="w-full pl-12 pr-11 py-3 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/90 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setAuthShowPassword((prev) => !prev)}
-                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
-                        >
-                          {authShowPassword ? (
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          )}
-                        </button>
                       </div>
 
                       {/* Terms and Conditions Checkbox */}
@@ -2443,7 +2331,7 @@ export default function HomePage() {
                         disabled={authLoading || authPhone.length !== 10 || !authFullName.trim() || !authAgreeTerms}
                         className="w-full py-3.5 rounded-2xl bg-[#F05323] hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-base shadow-lg shadow-orange-500/25 disabled:opacity-50 transition flex items-center justify-center gap-2"
                       >
-                        {authLoading ? 'Creating Account...' : 'Sign Up'}
+                        {authLoading ? 'Sending OTP...' : 'Sign Up'}
                       </button>
                     </form>
                   )}
@@ -2610,44 +2498,12 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* Password */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                          Password
-                        </label>
-                        <button
-                          type="button"
-                          onClick={handleAuthSendOtp}
-                          className="text-xs font-bold text-orange-600 hover:text-orange-800 transition"
-                        >
-                          Forgot Password?
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type={authShowPassword ? 'text' : 'password'}
-                          value={authPassword}
-                          onChange={(e) => setAuthPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setAuthShowPassword((prev) => !prev)}
-                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
-                        >
-                          {authShowPassword ? '🙈' : '👁️'}
-                        </button>
-                      </div>
-                    </div>
-
                     <button
                       type="submit"
                       disabled={authLoading || authPhone.length !== 10}
                       className="w-full py-3 rounded-xl bg-[#F05323] hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-600/20 disabled:opacity-50 transition flex items-center justify-center gap-2"
                     >
-                      {authLoading ? 'Signing In...' : 'Login →'}
+                      {authLoading ? 'Sending OTP...' : 'Login →'}
                     </button>
 
                     <div className="pt-2 text-center text-xs text-slate-600 border-t border-slate-100">
@@ -2731,7 +2587,7 @@ export default function HomePage() {
                       disabled={authLoading || authPhone.length !== 10 || !authFullName.trim() || !authAgreeTerms}
                       className="w-full py-3 rounded-xl bg-[#F05323] hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-600/20 disabled:opacity-50 transition flex items-center justify-center gap-2"
                     >
-                      {authLoading ? 'Creating Account...' : 'Sign Up →'}
+                      {authLoading ? 'Sending OTP...' : 'Sign Up →'}
                     </button>
 
                     <div className="pt-2 text-center text-xs text-slate-600 border-t border-slate-100">
