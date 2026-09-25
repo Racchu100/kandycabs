@@ -70,13 +70,13 @@ export default function BookingFunnelPage() {
 
   // Step 1: Route & Schedule
   const [tripType, setTripType] = useState<TripType>(TripType.ONEWAY);
-  const [pickupAddress, setPickupAddress] = useState(POPULAR_LOCATIONS[2]?.name || 'Indiranagar 100 Feet Rd, Bangalore');
-  const [pickupLat, setPickupLat] = useState(POPULAR_LOCATIONS[2]?.lat || 12.9784);
-  const [pickupLng, setPickupLng] = useState(POPULAR_LOCATIONS[2]?.lng || 77.6408);
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [pickupLat, setPickupLat] = useState(0);
+  const [pickupLng, setPickupLng] = useState(0);
 
-  const [dropAddress, setDropAddress] = useState(POPULAR_LOCATIONS[5]?.name || 'Mysore Palace, Mysore');
-  const [dropLat, setDropLat] = useState(POPULAR_LOCATIONS[5]?.lat || 12.3051);
-  const [dropLng, setDropLng] = useState(POPULAR_LOCATIONS[5]?.lng || 76.6551);
+  const [dropAddress, setDropAddress] = useState('');
+  const [dropLat, setDropLat] = useState(0);
+  const [dropLng, setDropLng] = useState(0);
 
   // Interactive OpenStreetMap Location Picker Modal State
   const [locationModalOpen, setLocationModalOpen] = useState(false);
@@ -973,9 +973,9 @@ export default function BookingFunnelPage() {
                         className="w-full rounded-2xl border border-slate-300 p-3 text-sm text-slate-800 bg-slate-50 hover:bg-slate-100/80 focus:bg-white flex items-center justify-between text-left transition focus:ring-2 focus:ring-orange-500 shadow-2xs group"
                       >
                         <div className="flex items-center gap-2.5 truncate">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-xs ring-2 ring-emerald-200" />
-                          <span className="truncate font-bold text-slate-900 group-hover:text-orange-600 text-xs sm:text-sm">
-                            {pickupAddress}
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-xs ring-2 ${pickupAddress ? 'bg-emerald-500 ring-emerald-200' : 'bg-slate-300 ring-slate-100'}`} />
+                          <span className={`truncate text-xs sm:text-sm ${pickupAddress ? 'font-bold text-slate-900 group-hover:text-orange-600' : 'text-slate-400 font-medium'}`}>
+                            {pickupAddress || 'Select pickup location'}
                           </span>
                         </div>
                         <span className="text-slate-400 text-xs font-bold pl-2 flex-shrink-0">▾</span>
@@ -1008,9 +1008,9 @@ export default function BookingFunnelPage() {
                         className="w-full rounded-2xl border border-slate-300 p-3 text-sm text-slate-800 bg-slate-50 hover:bg-slate-100/80 focus:bg-white flex items-center justify-between text-left transition focus:ring-2 focus:ring-orange-500 shadow-2xs group"
                       >
                         <div className="flex items-center gap-2.5 truncate">
-                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 shadow-xs ring-2 ring-rose-200" />
-                          <span className="truncate font-bold text-slate-900 group-hover:text-orange-600 text-xs sm:text-sm">
-                            {dropAddress}
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-xs ring-2 ${dropAddress ? 'bg-rose-500 ring-rose-200' : 'bg-slate-300 ring-slate-100'}`} />
+                          <span className={`truncate text-xs sm:text-sm ${dropAddress ? 'font-bold text-slate-900 group-hover:text-orange-600' : 'text-slate-400 font-medium'}`}>
+                            {dropAddress || 'Select drop destination'}
                           </span>
                         </div>
                         <span className="text-slate-400 text-xs font-bold pl-2 flex-shrink-0">▾</span>
@@ -1159,10 +1159,16 @@ export default function BookingFunnelPage() {
 
                 {/* Bottom Action CTA Button */}
                 <div className="pt-2">
+                  {(!pickupAddress || !dropAddress) && (
+                    <p className="text-center text-[11px] text-slate-400 mb-1.5">
+                      Please select both pickup and drop locations to continue
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={() => setStep(2)}
-                    className="w-full py-3.5 sm:py-4 rounded-2xl bg-[#F05323] hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-base shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition"
+                    disabled={!pickupAddress || !dropAddress}
+                    className="w-full py-3.5 sm:py-4 rounded-2xl bg-[#F05323] hover:bg-orange-600 active:scale-[0.99] text-white font-bold text-base shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
                   >
                     <span>Next: Choose Cab →</span>
                   </button>
