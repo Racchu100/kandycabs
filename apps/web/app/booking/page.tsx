@@ -1341,15 +1341,13 @@ export default function BookingFunnelPage() {
 
                 {/* Live Fare Breakdown (Compact Banner for 100vh Mobile) */}
                 {activePricing && (
-                  <div className="bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs shrink-0 shadow-2xs">
-                    <div className="flex items-center gap-1.5 sm:gap-2.5 text-slate-700 font-semibold text-[11px] sm:text-xs truncate">
+                  <div className="bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-1.5 flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                    <div className="flex items-center gap-2 sm:gap-3 text-slate-700 font-semibold text-[11px] sm:text-xs truncate">
                       <span className="text-slate-900 font-bold">Base: ₹{activePricing.baseFare}</span>
                       {activePricing.driverAllowance > 0 && <span>• DA: ₹{activePricing.driverAllowance}</span>}
-                      <span>• GST: ₹{activePricing.gstAmount}</span>
+                      {activePricing.nightCharge > 0 && <span>• Night: ₹{activePricing.nightCharge}</span>}
+                      <span>• GST (5%): ₹{activePricing.gstAmount}</span>
                     </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full shrink-0">
-                      All Inclusive
-                    </span>
                   </div>
                 )}
 
