@@ -573,17 +573,6 @@ export default function HomePage() {
     }
     if (!pickupAddress || !dropAddress) {
       scrollToBookingEngine(cat);
-      if (!pickupAddress) {
-        setTimeout(() => {
-          setLocationModalTarget('PICKUP');
-          setLocationModalOpen(true);
-        }, 400);
-      } else if (!dropAddress) {
-        setTimeout(() => {
-          setLocationModalTarget('DROP');
-          setLocationModalOpen(true);
-        }, 400);
-      }
       return;
     }
     const params = new URLSearchParams({
@@ -613,7 +602,14 @@ export default function HomePage() {
     }
     const el = document.getElementById('booking-engine');
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+      const rect = el.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const targetY = scrollTop + rect.top - (isMobile ? 82 : 90);
+      window.scrollTo({
+        top: Math.max(0, targetY),
+        behavior: 'smooth',
+      });
     }
   };
 
@@ -1120,7 +1116,7 @@ export default function HomePage() {
       </section>
 
       {/* 4. Floating Main Booking Engine Card */}
-      <section id="booking-engine" className="relative mt-6 lg:-mt-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-20 w-full mb-6 sm:mb-8 lg:mb-14">
+      <section id="booking-engine" className="relative mt-6 lg:-mt-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-20 w-full mb-6 sm:mb-8 lg:mb-14 scroll-mt-24 sm:scroll-mt-28">
         <div className="bg-white text-slate-900 rounded-3xl shadow-2xl p-4 sm:p-8 border border-slate-200">
           {/* Trip Type / Package Tabs */}
           {/* MOBILE ONLY (<sm): Dynamic sub-tabs for Local, Airport, and Outstation */}
