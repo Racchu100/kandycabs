@@ -235,7 +235,7 @@ export default function AdminBookingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <AdminNavbar />
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6 flex-1">
         {/* Top Navbar / Navigation */}

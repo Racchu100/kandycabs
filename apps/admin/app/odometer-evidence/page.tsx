@@ -71,23 +71,23 @@ export default function AdminOdometerEvidencePage() {
   const displayedItems = discrepancyOnly ? items.filter((i) => i.hasDiscrepancy) : items;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       <AdminNavbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
               <span>🔍</span> Odometer & GPS Distance Audit
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Verify starting vs final odometer photos against Flow A breadcrumb GPS distance
             </p>
           </div>
           <button
             onClick={() => fetchOdometerData()}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 text-slate-200 transition"
+            className="px-3.5 py-2 bg-white hover:bg-slate-100 text-xs font-semibold rounded-lg border border-slate-200 flex items-center gap-1.5 text-slate-700 transition shadow-xs"
           >
             <span>🔄</span> Refresh
           </button>
@@ -95,24 +95,24 @@ export default function AdminOdometerEvidencePage() {
 
         {/* Stats & Filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-            <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Total Audited Trips</div>
-            <div className="text-2xl font-black text-white mt-1">{summary.totalCount}</div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Total Audited Trips</div>
+            <div className="text-2xl font-black text-slate-900 mt-1">{summary.totalCount}</div>
             <div className="text-[10px] text-slate-400 mt-1">With photo evidence</div>
           </div>
 
-          <div className="bg-gradient-to-br from-rose-950/40 to-slate-900 border border-rose-500/20 p-4 rounded-xl">
-            <div className="text-[11px] font-medium text-rose-400 uppercase tracking-wider">Flagged Discrepancies</div>
-            <div className="text-2xl font-black text-rose-300 mt-1">{summary.discrepancyCount}</div>
-            <div className="text-[10px] text-rose-400/80 mt-1">&gt;{threshold}% variance vs GPS/Est</div>
+          <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[11px] font-medium text-rose-700 uppercase tracking-wider">Flagged Discrepancies</div>
+            <div className="text-2xl font-black text-rose-700 mt-1">{summary.discrepancyCount}</div>
+            <div className="text-[10px] text-rose-600 mt-1">&gt;{threshold}% variance vs GPS/Est</div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-center">
-            <label className="text-[11px] font-semibold text-slate-300 mb-1.5">Discrepancy Threshold:</label>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col justify-center shadow-xs">
+            <label className="text-[11px] font-semibold text-slate-700 mb-1.5">Discrepancy Threshold:</label>
             <select
               value={threshold}
               onChange={(e) => setThreshold(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+              className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               <option value="5">5% Variance</option>
               <option value="10">10% Variance (Recommended)</option>
@@ -121,10 +121,10 @@ export default function AdminOdometerEvidencePage() {
             </select>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+          <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-xs">
             <div>
-              <div className="text-xs font-bold text-white">Filter Flags</div>
-              <div className="text-[10px] text-slate-400">Show only flagged trips</div>
+              <div className="text-xs font-bold text-slate-900">Filter Flags</div>
+              <div className="text-[10px] text-slate-500">Show only flagged trips</div>
             </div>
             <input
               type="checkbox"
@@ -136,7 +136,7 @@ export default function AdminOdometerEvidencePage() {
         </div>
 
         {/* Audit Table */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
           {loading ? (
             <div className="py-20 text-center text-slate-400 text-sm">
               <div className="inline-block animate-spin text-2xl mb-2">🔄</div>
@@ -150,7 +150,7 @@ export default function AdminOdometerEvidencePage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
                   <tr>
                     <th className="py-3 px-4">Booking / Trip</th>
                     <th className="py-3 px-4">Driver & Vehicle</th>
@@ -162,32 +162,32 @@ export default function AdminOdometerEvidencePage() {
                     <th className="py-3 px-4 text-right">Photo Lightbox</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {displayedItems.map((item) => (
                     <tr
                       key={item.bookingId}
-                      className={`hover:bg-slate-800/50 transition ${
-                        item.hasDiscrepancy ? 'bg-rose-950/20' : ''
+                      className={`hover:bg-slate-50 transition ${
+                        item.hasDiscrepancy ? 'bg-rose-50/40' : ''
                       }`}
                     >
                       <td className="py-3 px-4">
-                        <div className="font-bold text-amber-400">{item.humanReadableRef}</div>
-                        <div className="text-slate-300 font-medium">{item.customerName}</div>
-                        <div className="text-[10px] text-slate-400 uppercase">{item.tripType}</div>
+                        <div className="font-bold text-amber-800">{item.humanReadableRef}</div>
+                        <div className="text-slate-900 font-medium">{item.customerName}</div>
+                        <div className="text-[10px] text-slate-500 uppercase">{item.tripType}</div>
                       </td>
 
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-200">{item.driverName}</div>
-                        <div className="text-[10px] text-slate-400">{item.vehiclePlate}</div>
-                        <div className="text-[10px] text-slate-400">{item.category}</div>
+                        <div className="font-semibold text-slate-900">{item.driverName}</div>
+                        <div className="text-[10px] text-slate-500">{item.vehiclePlate}</div>
+                        <div className="text-[10px] text-slate-500">{item.category}</div>
                       </td>
 
                       <td className="py-3 px-4">
-                        <div className="font-mono font-bold text-slate-200">
+                        <div className="font-mono font-bold text-slate-900">
                           {item.startingOdometer !== null ? `${item.startingOdometer} km` : '—'}
                         </div>
                         {item.startingOdometerImagePath ? (
-                          <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-400">
+                          <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-700 font-semibold">
                             <span>📷</span> Photo attached
                           </div>
                         ) : (
@@ -196,11 +196,11 @@ export default function AdminOdometerEvidencePage() {
                       </td>
 
                       <td className="py-3 px-4">
-                        <div className="font-mono font-bold text-slate-200">
+                        <div className="font-mono font-bold text-slate-900">
                           {item.finalOdometer !== null ? `${item.finalOdometer} km` : '—'}
                         </div>
                         {item.finalOdometerImagePath ? (
-                          <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-400">
+                          <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-700 font-semibold">
                             <span>📷</span> Photo attached
                           </div>
                         ) : (
@@ -209,7 +209,7 @@ export default function AdminOdometerEvidencePage() {
                       </td>
 
                       <td className="py-3 px-4">
-                        <span className="font-bold text-slate-100">
+                        <span className="font-bold text-slate-900">
                           {item.odometerDistanceKm !== null ? `${item.odometerDistanceKm} km` : '—'}
                         </span>
                       </td>
@@ -217,13 +217,13 @@ export default function AdminOdometerEvidencePage() {
                       <td className="py-3 px-4">
                         {item.gpsTrackedDistanceKm !== null ? (
                           <div>
-                            <div className="font-bold text-blue-300">{item.gpsTrackedDistanceKm} km</div>
-                            <div className="text-[9px] text-slate-400">
+                            <div className="font-bold text-blue-700">{item.gpsTrackedDistanceKm} km</div>
+                            <div className="text-[9px] text-slate-500">
                               ({item.breadcrumbPointsCount} GPS points)
                             </div>
                           </div>
                         ) : (
-                          <div className="text-slate-400">
+                          <div className="text-slate-600">
                             <div>Est: {item.estimatedDistanceKm} km</div>
                             <div className="text-[9px] text-slate-400">(No breadcrumbs)</div>
                           </div>
@@ -233,13 +233,13 @@ export default function AdminOdometerEvidencePage() {
                       <td className="py-3 px-4">
                         {item.discrepancyPercent !== null ? (
                           <div>
-                            <div className="font-bold">{item.discrepancyPercent}%</div>
+                            <div className="font-bold text-slate-900">{item.discrepancyPercent}%</div>
                             {item.hasDiscrepancy ? (
-                              <span className="inline-block mt-0.5 px-2 py-0.5 bg-rose-500/20 text-rose-400 border border-rose-500/40 rounded text-[10px] font-black animate-pulse">
+                              <span className="inline-block mt-0.5 px-2 py-0.5 bg-rose-100 text-rose-800 border border-rose-300 rounded text-[10px] font-black animate-pulse">
                                 🚨 &gt;{threshold}% VARIANCE
                               </span>
                             ) : (
-                              <span className="inline-block mt-0.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-semibold">
+                              <span className="inline-block mt-0.5 px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[10px] font-semibold">
                                 ✓ Verified In-Range
                               </span>
                             )}
@@ -252,7 +252,7 @@ export default function AdminOdometerEvidencePage() {
                       <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => setLightboxItem(item)}
-                          className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold transition"
+                          className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded-lg text-xs font-semibold transition shadow-2xs"
                         >
                           Compare Photos 🔎
                         </button>
@@ -268,23 +268,23 @@ export default function AdminOdometerEvidencePage() {
 
       {/* Lightbox Side-by-Side Photo Modal */}
       {lightboxItem && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <span>📸</span> Odometer Photo Evidence: {lightboxItem.humanReadableRef}
                 </h3>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-0.5">
-                  <span>Driver: <strong className="text-slate-200">{lightboxItem.driverName}</strong> ({lightboxItem.driverPhone})</span>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-0.5">
+                  <span>Driver: <strong className="text-slate-800">{lightboxItem.driverName}</strong> ({lightboxItem.driverPhone})</span>
                   <span>•</span>
-                  <span>Vehicle: <strong className="text-slate-200">{lightboxItem.vehiclePlate}</strong></span>
+                  <span>Vehicle: <strong className="text-slate-800">{lightboxItem.vehiclePlate}</strong></span>
                   {lightboxItem.driverCurrentLat && lightboxItem.driverCurrentLng && (
                     <>
                       <span>•</span>
-                      <span className="text-emerald-400 font-mono flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-emerald-700 font-mono flex items-center gap-1 font-semibold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         Live GPS: {lightboxItem.driverCurrentLat.toFixed(5)}, {lightboxItem.driverCurrentLng.toFixed(5)}
                         {driverLiveLocName ? ` (${driverLiveLocName})` : ''}
                       </span>
@@ -294,7 +294,7 @@ export default function AdminOdometerEvidencePage() {
               </div>
               <button
                 onClick={() => setLightboxItem(null)}
-                className="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800"
+                className="text-slate-400 hover:text-slate-700 p-2 rounded-lg bg-white border border-slate-200 font-bold"
               >
                 ✕
               </button>
@@ -304,12 +304,12 @@ export default function AdminOdometerEvidencePage() {
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Starting Odometer */}
-                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col">
                   <div className="w-full flex justify-between items-center mb-3">
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
                       1. Starting Odometer Photo
                     </span>
-                    <span className="text-xs font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded">
+                    <span className="text-xs font-mono font-bold text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-2xs">
                       {lightboxItem.startingOdometer !== null ? `${lightboxItem.startingOdometer} KM` : 'N/A'}
                     </span>
                   </div>
@@ -317,21 +317,21 @@ export default function AdminOdometerEvidencePage() {
                     <img
                       src={lightboxItem.startingOdometerImagePath}
                       alt="Starting Odometer"
-                      className="w-full h-72 object-contain bg-black rounded-lg border border-slate-800"
+                      className="w-full h-72 object-contain bg-slate-900 rounded-lg border border-slate-200"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/800x600/1e293b/94a3b8?text=Image+Unavailable';
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/800x600/e2e8f0/475569?text=Image+Unavailable';
                       }}
                     />
                   ) : (
-                    <div className="w-full h-72 flex flex-col items-center justify-center bg-slate-900 rounded-lg text-slate-400 border border-slate-800 p-4 text-center">
+                    <div className="w-full h-72 flex flex-col items-center justify-center bg-white rounded-lg text-slate-500 border border-slate-200 p-4 text-center">
                       <div className="text-3xl mb-2">📸</div>
-                      <div className="text-xs font-semibold text-slate-300">
+                      <div className="text-xs font-semibold text-slate-700">
                         {lightboxItem.startingOdometerImagePath?.startsWith('file://')
                           ? 'Photo captured on driver device (Local URI from older test)'
                           : 'No starting photo recorded'}
                       </div>
                       {lightboxItem.startingOdometerImagePath?.startsWith('file://') && (
-                        <div className="text-[10px] text-amber-400/80 mt-1">
+                        <div className="text-[10px] text-amber-700 mt-1">
                           New photos taken with updated driver app will render here automatically in HD.
                         </div>
                       )}
@@ -339,26 +339,26 @@ export default function AdminOdometerEvidencePage() {
                   )}
 
                   {/* Starting Photo Location Details Card */}
-                  <div className="mt-3 bg-slate-900 border border-slate-800/80 rounded-lg p-3 text-xs space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-400">
+                  <div className="mt-3 bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1.5 shadow-2xs">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-700">
                       <span>📍 START GPS LOCATION</span>
                       {lightboxItem.startGpsLat && lightboxItem.startGpsLng && (
                         <a
                           href={`https://www.google.com/maps?q=${lightboxItem.startGpsLat},${lightboxItem.startGpsLng}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[10px] text-sky-400 hover:text-sky-300 underline flex items-center gap-0.5"
+                          className="text-[10px] text-sky-600 hover:text-sky-700 underline flex items-center gap-0.5"
                         >
                           Open in Maps ↗
                         </a>
                       )}
                     </div>
-                    <div className="text-[11px] font-mono text-slate-300">
-                      Coordinates: <span className="text-white font-bold">{lightboxItem.startGpsLat ? `${lightboxItem.startGpsLat.toFixed(5)}° N, ${lightboxItem.startGpsLng.toFixed(5)}° E` : 'Not recorded'}</span>
+                    <div className="text-[11px] font-mono text-slate-700">
+                      Coordinates: <span className="text-slate-900 font-bold">{lightboxItem.startGpsLat ? `${lightboxItem.startGpsLat.toFixed(5)}° N, ${lightboxItem.startGpsLng.toFixed(5)}° E` : 'Not recorded'}</span>
                     </div>
-                    <div className="text-[11px] text-slate-300">
-                      🏢 <strong className="text-slate-200">Area / Building:</strong>{' '}
-                      <span className="text-emerald-300 font-medium">
+                    <div className="text-[11px] text-slate-700">
+                      🏢 <strong className="text-slate-900">Area / Building:</strong>{' '}
+                      <span className="text-emerald-700 font-medium">
                         {startLocName || lightboxItem.pickupAddress || 'Locating area...'}
                       </span>
                     </div>
@@ -366,12 +366,12 @@ export default function AdminOdometerEvidencePage() {
                 </div>
 
                 {/* Final Odometer */}
-                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col">
                   <div className="w-full flex justify-between items-center mb-3">
-                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">
+                    <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
                       2. Final Odometer Photo
                     </span>
-                    <span className="text-xs font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded">
+                    <span className="text-xs font-mono font-bold text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-2xs">
                       {lightboxItem.finalOdometer !== null ? `${lightboxItem.finalOdometer} KM` : 'N/A'}
                     </span>
                   </div>
@@ -379,21 +379,21 @@ export default function AdminOdometerEvidencePage() {
                     <img
                       src={lightboxItem.finalOdometerImagePath}
                       alt="Final Odometer"
-                      className="w-full h-72 object-contain bg-black rounded-lg border border-slate-800"
+                      className="w-full h-72 object-contain bg-slate-900 rounded-lg border border-slate-200"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/800x600/1e293b/94a3b8?text=Image+Unavailable';
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/800x600/e2e8f0/475569?text=Image+Unavailable';
                       }}
                     />
                   ) : (
-                    <div className="w-full h-72 flex flex-col items-center justify-center bg-slate-900 rounded-lg text-slate-400 border border-slate-800 p-4 text-center">
+                    <div className="w-full h-72 flex flex-col items-center justify-center bg-white rounded-lg text-slate-500 border border-slate-200 p-4 text-center">
                       <div className="text-3xl mb-2">📸</div>
-                      <div className="text-xs font-semibold text-slate-300">
+                      <div className="text-xs font-semibold text-slate-700">
                         {lightboxItem.finalOdometerImagePath?.startsWith('file://')
                           ? 'Photo captured on driver device (Local URI from older test)'
                           : 'No final photo recorded'}
                       </div>
                       {lightboxItem.finalOdometerImagePath?.startsWith('file://') && (
-                        <div className="text-[10px] text-amber-400/80 mt-1">
+                        <div className="text-[10px] text-amber-700 mt-1">
                           New photos taken with updated driver app will render here automatically in HD.
                         </div>
                       )}
@@ -401,26 +401,26 @@ export default function AdminOdometerEvidencePage() {
                   )}
 
                   {/* Final Photo Location Details Card */}
-                  <div className="mt-3 bg-slate-900 border border-slate-800/80 rounded-lg p-3 text-xs space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-blue-400">
+                  <div className="mt-3 bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1.5 shadow-2xs">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-blue-700">
                       <span>📍 FINAL GPS LOCATION</span>
                       {lightboxItem.finalGpsLat && lightboxItem.finalGpsLng && (
                         <a
                           href={`https://www.google.com/maps?q=${lightboxItem.finalGpsLat},${lightboxItem.finalGpsLng}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[10px] text-sky-400 hover:text-sky-300 underline flex items-center gap-0.5"
+                          className="text-[10px] text-sky-600 hover:text-sky-700 underline flex items-center gap-0.5"
                         >
                           Open in Maps ↗
                         </a>
                       )}
                     </div>
-                    <div className="text-[11px] font-mono text-slate-300">
-                      Coordinates: <span className="text-white font-bold">{lightboxItem.finalGpsLat ? `${lightboxItem.finalGpsLat.toFixed(5)}° N, ${lightboxItem.finalGpsLng.toFixed(5)}° E` : 'Not recorded'}</span>
+                    <div className="text-[11px] font-mono text-slate-700">
+                      Coordinates: <span className="text-slate-900 font-bold">{lightboxItem.finalGpsLat ? `${lightboxItem.finalGpsLat.toFixed(5)}° N, ${lightboxItem.finalGpsLng.toFixed(5)}° E` : 'Not recorded'}</span>
                     </div>
-                    <div className="text-[11px] text-slate-300">
-                      🏢 <strong className="text-slate-200">Area / Building:</strong>{' '}
-                      <span className="text-blue-300 font-medium">
+                    <div className="text-[11px] text-slate-700">
+                      🏢 <strong className="text-slate-900">Area / Building:</strong>{' '}
+                      <span className="text-blue-700 font-medium">
                         {finalLocName || lightboxItem.dropAddress || 'Locating area...'}
                       </span>
                     </div>
@@ -429,28 +429,28 @@ export default function AdminOdometerEvidencePage() {
               </div>
 
               {/* Distance Summary Metrics */}
-              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <div className="bg-white border border-slate-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center shadow-xs">
                 <div>
-                  <div className="text-[10px] text-slate-400 uppercase">Odometer Distance</div>
-                  <div className="text-lg font-bold text-white mt-0.5">
+                  <div className="text-[10px] text-slate-500 uppercase font-semibold">Odometer Distance</div>
+                  <div className="text-lg font-bold text-slate-900 mt-0.5">
                     {lightboxItem.odometerDistanceKm !== null ? `${lightboxItem.odometerDistanceKm} km` : '—'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 uppercase">GPS Breadcrumb Dist</div>
-                  <div className="text-lg font-bold text-blue-300 mt-0.5">
+                  <div className="text-[10px] text-slate-500 uppercase font-semibold">GPS Breadcrumb Dist</div>
+                  <div className="text-lg font-bold text-blue-700 mt-0.5">
                     {lightboxItem.gpsTrackedDistanceKm !== null ? `${lightboxItem.gpsTrackedDistanceKm} km` : '—'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 uppercase">Booked Estimated Dist</div>
-                  <div className="text-lg font-bold text-slate-300 mt-0.5">{lightboxItem.estimatedDistanceKm} km</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-semibold">Booked Estimated Dist</div>
+                  <div className="text-lg font-bold text-slate-800 mt-0.5">{lightboxItem.estimatedDistanceKm} km</div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 uppercase">Discrepancy</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-semibold">Discrepancy</div>
                   <div
                     className={`text-lg font-black mt-0.5 ${
-                      lightboxItem.hasDiscrepancy ? 'text-rose-400' : 'text-emerald-400'
+                      lightboxItem.hasDiscrepancy ? 'text-rose-600' : 'text-emerald-600'
                     }`}
                   >
                     {lightboxItem.discrepancyPercent !== null ? `${lightboxItem.discrepancyPercent}%` : '—'}
@@ -460,10 +460,10 @@ export default function AdminOdometerEvidencePage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3 border-t border-slate-800 bg-slate-950 flex justify-end">
+            <div className="px-6 py-3 border-t border-slate-200 bg-slate-50 flex justify-end">
               <button
                 onClick={() => setLightboxItem(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg transition"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold rounded-lg transition"
               >
                 Close Lightbox
               </button>

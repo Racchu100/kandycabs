@@ -74,8 +74,8 @@ function AdminLoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl border border-slate-100">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl border border-slate-200">
         <div className="flex items-center gap-3 mb-6">
           <img
             src="/images/logo.png"

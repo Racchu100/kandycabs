@@ -272,23 +272,23 @@ Thank you for choosing Kandy Cabs Mangalore!
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       <AdminNavbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
               <span>💳</span> Revenue & Driver Payout Ledger
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Live financial ledger, customer collections & manual driver payouts verification
             </p>
           </div>
           <button
             onClick={() => fetchPayments()}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 text-slate-200 transition"
+            className="px-3.5 py-2 bg-white hover:bg-slate-100 text-xs font-semibold rounded-lg border border-slate-200 flex items-center gap-1.5 text-slate-700 transition shadow-xs"
           >
             <span>🔄</span> Refresh Data
           </button>
@@ -297,64 +297,64 @@ Thank you for choosing Kandy Cabs Mangalore!
         {/* Top KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4">
           {/* Total Revenue */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-4 rounded-xl shadow-sm">
-            <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Total Revenue</div>
-            <div className="text-2xl font-black text-white mt-1">
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Total Revenue</div>
+            <div className="text-2xl font-black text-slate-900 mt-1">
               ₹{(summary.totalRevenue || 0).toLocaleString('en-IN')}
             </div>
-            <div className="text-[10px] text-slate-500 mt-1">Verified customer payments</div>
+            <div className="text-[10px] text-slate-400 mt-1">Verified customer payments</div>
           </div>
 
           {/* Driver Payout Done */}
-          <div className="bg-gradient-to-br from-emerald-950/50 to-slate-900 border-2 border-emerald-500/40 p-4 rounded-xl shadow-sm">
-            <div className="text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
               <span>✓</span> Driver Paid
             </div>
-            <div className="text-2xl font-black text-emerald-300 mt-1">
+            <div className="text-2xl font-black text-emerald-800 mt-1">
               ₹{(summary.totalDriverPaidAmount || 0).toLocaleString('en-IN')}
             </div>
-            <div className="text-[10px] text-emerald-400/80 font-medium mt-1">
+            <div className="text-[10px] text-emerald-700 font-medium mt-1">
               {summary.driverPaidCount || 0} trips settled
             </div>
           </div>
 
           {/* Driver Payout Pending */}
-          <div className="bg-gradient-to-br from-rose-950/50 to-slate-900 border-2 border-rose-500/40 p-4 rounded-xl shadow-sm">
-            <div className="text-[11px] font-extrabold text-rose-400 uppercase tracking-wider flex items-center gap-1">
+          <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[11px] font-extrabold text-rose-800 uppercase tracking-wider flex items-center gap-1">
               <span>✗</span> Driver Unpaid
             </div>
-            <div className="text-2xl font-black text-rose-300 mt-1">
+            <div className="text-2xl font-black text-rose-800 mt-1">
               ₹{(summary.totalDriverPendingAmount || 0).toLocaleString('en-IN')}
             </div>
-            <div className="text-[10px] text-rose-400/80 font-medium mt-1">
+            <div className="text-[10px] text-rose-700 font-medium mt-1">
               {summary.driverPendingCount || 0} trips due payout
             </div>
           </div>
 
           {/* Customer Fully Paid */}
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-sm">
-            <div className="text-[11px] font-medium text-blue-400 uppercase tracking-wider">Cust. Fully Paid</div>
-            <div className="text-2xl font-black text-blue-300 mt-1">{summary.paidCount || 0}</div>
-            <div className="text-[10px] text-slate-500 mt-1">Advance + Balance paid</div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[11px] font-medium text-blue-700 uppercase tracking-wider">Cust. Fully Paid</div>
+            <div className="text-2xl font-black text-blue-700 mt-1">{summary.paidCount || 0}</div>
+            <div className="text-[10px] text-slate-400 mt-1">Advance + Balance paid</div>
           </div>
 
           {/* Customer Partially Paid */}
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-sm">
-            <div className="text-[11px] font-medium text-amber-400 uppercase tracking-wider">Advance Paid (25%)</div>
-            <div className="text-2xl font-black text-amber-300 mt-1">{summary.partiallyPaidCount || 0}</div>
-            <div className="text-[10px] text-slate-500 mt-1">Balance due at drop</div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[11px] font-medium text-amber-700 uppercase tracking-wider">Advance Paid (25%)</div>
+            <div className="text-2xl font-black text-amber-700 mt-1">{summary.partiallyPaidCount || 0}</div>
+            <div className="text-[10px] text-slate-400 mt-1">Balance due at drop</div>
           </div>
 
           {/* Customer Pending Advance */}
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-sm">
-            <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Adv. Pending</div>
-            <div className="text-2xl font-black text-slate-300 mt-1">{summary.pendingCount || 0}</div>
-            <div className="text-[10px] text-slate-500 mt-1">Unpaid bookings</div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Adv. Pending</div>
+            <div className="text-2xl font-black text-slate-800 mt-1">{summary.pendingCount || 0}</div>
+            <div className="text-[10px] text-slate-400 mt-1">Unpaid bookings</div>
           </div>
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between items-center shadow-xs">
           {/* Status Tabs */}
           <div className="flex flex-wrap gap-1.5 w-full md:w-auto">
             {[
@@ -366,9 +366,9 @@ Thank you for choosing Kandy Cabs Mangalore!
               { id: 'PENDING', label: 'Customer Adv Due' },
             ].map((tab) => {
               const isActive = statusFilter === tab.id;
-              let activeClass = 'bg-amber-500 text-slate-950 shadow-sm';
-              if (tab.color === 'emerald') activeClass = 'bg-emerald-600 text-white shadow-sm';
-              if (tab.color === 'rose') activeClass = 'bg-rose-600 text-white shadow-sm';
+              let activeClass = 'bg-amber-500 text-slate-950 font-bold shadow-xs';
+              if (tab.color === 'emerald') activeClass = 'bg-emerald-600 text-white font-bold shadow-xs';
+              if (tab.color === 'rose') activeClass = 'bg-rose-600 text-white font-bold shadow-xs';
 
               return (
                 <button
@@ -378,7 +378,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                     setPage(1);
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
-                    isActive ? activeClass : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    isActive ? activeClass : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   {tab.label}
@@ -394,11 +394,11 @@ Thank you for choosing Kandy Cabs Mangalore!
               placeholder="Search by ref, phone, driver name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs"
             />
             <button
               type="submit"
-              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition"
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition shadow-xs"
             >
               Search
             </button>
@@ -406,7 +406,7 @@ Thank you for choosing Kandy Cabs Mangalore!
         </div>
 
         {/* Transactions Table */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
           {loading ? (
             <div className="py-20 text-center text-slate-400 text-sm">
               <div className="inline-block animate-spin text-2xl mb-2">🔄</div>
@@ -420,7 +420,7 @@ Thank you for choosing Kandy Cabs Mangalore!
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
                   <tr>
                     <th className="py-3 px-4">Booking Ref / Date</th>
                     <th className="py-3 px-4">Customer</th>
@@ -429,24 +429,24 @@ Thank you for choosing Kandy Cabs Mangalore!
                     <th className="py-3 px-4">25% Advance</th>
                     <th className="py-3 px-4">75% Balance</th>
                     <th className="py-3 px-4">Tolls / Parking</th>
-                    <th className="py-3 px-4 bg-slate-950/80 border-x border-slate-800 text-emerald-400">
+                    <th className="py-3 px-4 bg-slate-100/70 border-x border-slate-200 text-emerald-800 font-extrabold">
                       Driver Payout (Manual Admin)
                     </th>
                     <th className="py-3 px-4">Ride Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {transactions.map((t) => {
                     const isDriverPaid = t.driverPaymentStatus === 'PAID';
                     const isProcessing = actionLoadingId === t.id;
                     const totalDriverEarning = (t.driverAllowance || 0) + (t.driverPayeeAmount || 0);
 
                     return (
-                      <tr key={t.id} className="hover:bg-slate-800/50 transition">
+                      <tr key={t.id} className="hover:bg-slate-50 transition">
                         {/* Booking Ref */}
                         <td className="py-3 px-4">
-                          <div className="font-bold text-amber-400">{t.humanReadableRef}</div>
-                          <div className="text-[10px] text-slate-400 mt-0.5">
+                          <div className="font-bold text-amber-800">{t.humanReadableRef}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">
                             {new Date(t.createdAt).toLocaleDateString('en-IN', {
                               month: 'short',
                               day: 'numeric',
@@ -454,49 +454,49 @@ Thank you for choosing Kandy Cabs Mangalore!
                               minute: '2-digit',
                             })}
                           </div>
-                          <div className="text-[10px] text-slate-400 uppercase font-medium">{t.tripType}</div>
+                          <div className="text-[10px] text-slate-500 uppercase font-medium">{t.tripType}</div>
                         </td>
 
                         {/* Customer */}
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-slate-200">{t.customerName}</div>
-                          <div className="text-[10px] text-slate-400">{t.customerPhone}</div>
+                          <div className="font-semibold text-slate-900">{t.customerName}</div>
+                          <div className="text-[10px] text-slate-500">{t.customerPhone}</div>
                         </td>
 
                         {/* Driver */}
                         <td className="py-3 px-4">
                           {t.driverName ? (
                             <div>
-                              <div className="font-bold text-slate-200 flex items-center gap-1">
+                              <div className="font-bold text-slate-900 flex items-center gap-1">
                                 <span>🚕</span> {t.driverName}
                               </div>
-                              <div className="text-[10px] text-slate-400 font-mono">{t.driverPhone}</div>
+                              <div className="text-[10px] text-slate-500 font-mono">{t.driverPhone}</div>
                             </div>
                           ) : (
-                            <span className="text-slate-500 italic text-[11px]">Unassigned</span>
+                            <span className="text-slate-400 italic text-[11px]">Unassigned</span>
                           )}
                         </td>
 
                         {/* Total Fare */}
                         <td className="py-3 px-4">
-                          <div className="font-bold text-slate-200">₹{t.estimatedFare.toLocaleString('en-IN')}</div>
+                          <div className="font-bold text-slate-900">₹{t.estimatedFare.toLocaleString('en-IN')}</div>
                         </td>
 
                         {/* 25% Advance */}
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-slate-200">₹{t.advanceAmount.toLocaleString('en-IN')}</div>
+                          <div className="font-semibold text-slate-900">₹{t.advanceAmount.toLocaleString('en-IN')}</div>
                           {t.advancePaymentStatus === PaymentStatus.PAID ? (
-                            <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[9px] font-bold">
+                            <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold">
                               ✓ PAID (Online)
                             </span>
                           ) : (
-                            <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded text-[9px] font-bold">
+                            <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-rose-100 text-rose-800 border border-rose-300 rounded text-[9px] font-bold">
                               PENDING
                             </span>
                           )}
                           {t.advancePayment?.razorpayPaymentId && (
                             <div
-                              className="text-[9px] font-mono text-slate-400 mt-0.5 truncate max-w-[110px]"
+                              className="text-[9px] font-mono text-slate-500 mt-0.5 truncate max-w-[110px]"
                               title={t.advancePayment.razorpayPaymentId}
                             >
                               {t.advancePayment.razorpayPaymentId}
@@ -506,17 +506,17 @@ Thank you for choosing Kandy Cabs Mangalore!
 
                         {/* 75% Balance */}
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-slate-200">₹{t.balanceAmount.toLocaleString('en-IN')}</div>
+                          <div className="font-semibold text-slate-900">₹{t.balanceAmount.toLocaleString('en-IN')}</div>
                           {t.balancePaymentStatus === PaymentStatus.PAID ? (
                             <div className="space-y-1 mt-0.5">
-                              <span className="inline-block px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[9px] font-bold">
+                              <span className="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold">
                                 ✓ PAID ({t.balancePayment?.paymentMethod || 'CASH'})
                               </span>
                               <div className="flex flex-wrap gap-1 pt-0.5">
                                 <button
                                   type="button"
                                   onClick={() => handleShareWhatsAppReceipt(t)}
-                                  className="px-2 py-0.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded text-[9px] font-bold transition flex items-center gap-1"
+                                  className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold transition flex items-center gap-1 shadow-2xs"
                                   title="Send Official Receipt via WhatsApp"
                                 >
                                   <span>📲</span> Receipt
@@ -525,7 +525,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                                   href={`http://localhost:3000/pay/${t.humanReadableRef}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9px] font-semibold border border-slate-700 transition"
+                                  className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[9px] font-semibold border border-slate-300 transition shadow-2xs"
                                   title="View Public Tax Invoice"
                                 >
                                   📄 View
@@ -534,14 +534,14 @@ Thank you for choosing Kandy Cabs Mangalore!
                             </div>
                           ) : (
                             <div className="space-y-1.5 mt-0.5">
-                              <span className="inline-block px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded text-[9px] font-bold">
+                              <span className="inline-block px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded text-[9px] font-bold">
                                 DUE AT DROP
                               </span>
                               <div className="flex flex-wrap gap-1">
                                 <button
                                   type="button"
                                   onClick={() => handleShareWhatsAppBill(t)}
-                                  className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[9px] font-bold transition flex items-center gap-1 shadow-xs"
+                                  className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[9px] font-bold transition flex items-center gap-1 shadow-2xs"
                                   title="Share Trip Bill & Payment Link on WhatsApp"
                                 >
                                   <span>📲</span> Share Bill
@@ -549,7 +549,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                                 <button
                                   type="button"
                                   onClick={() => handleOpenBalanceModal(t)}
-                                  className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded text-[9px] font-bold transition flex items-center gap-0.5"
+                                  className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-amber-900 border border-amber-300 rounded text-[9px] font-bold transition flex items-center gap-0.5 shadow-2xs"
                                   title="Record or Mark Balance Payment"
                                 >
                                   <span>💵</span> Mark Paid
@@ -564,38 +564,38 @@ Thank you for choosing Kandy Cabs Mangalore!
                           {t.tollAmount > 0 || t.parkingAmount > 0 ? (
                             <div className="space-y-1">
                               {t.tollAmount > 0 && (
-                                <div className="text-[10px] font-mono text-amber-400 font-semibold">
+                                <div className="text-[10px] font-mono text-amber-800 font-semibold">
                                   🛣️ Toll: ₹{t.tollAmount.toLocaleString('en-IN')}
                                 </div>
                               )}
                               {t.parkingAmount > 0 && (
-                                <div className="text-[10px] font-mono text-sky-400 font-semibold">
+                                <div className="text-[10px] font-mono text-sky-800 font-semibold">
                                   🅿️ Park: ₹{t.parkingAmount.toLocaleString('en-IN')}
                                 </div>
                               )}
-                              <div className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-block">
+                              <div className="text-[9px] text-emerald-800 font-bold bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded inline-block">
                                 +₹{(t.tollAmount + t.parkingAmount).toLocaleString('en-IN')}
                               </div>
                             </div>
                           ) : (
-                            <span className="text-slate-500 text-[11px]">—</span>
+                            <span className="text-slate-400 text-[11px]">—</span>
                           )}
                         </td>
 
                         {/* Driver Payout Column with Tick Mark PAID / Cross Mark NOT PAID */}
-                        <td className="py-3 px-4 bg-slate-950/40 border-x border-slate-800">
+                        <td className="py-3 px-4 bg-slate-50/50 border-x border-slate-200">
                           {t.driverName ? (
                             <div className="space-y-2">
                               {/* Prominent Badge */}
                               <div className="flex items-center gap-2">
                                 {isDriverPaid ? (
-                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs">
-                                    <span className="text-base font-black text-emerald-400">✓</span>
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                    <span className="text-base font-black text-emerald-700">✓</span>
                                     <span>PAID</span>
                                   </div>
                                 ) : (
-                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs">
-                                    <span className="text-base font-black text-rose-400">✗</span>
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                                    <span className="text-base font-black text-rose-700">✗</span>
                                     <span>NOT PAID</span>
                                   </div>
                                 )}
@@ -603,7 +603,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditModal(t)}
-                                  className="text-[10px] text-slate-400 hover:text-amber-400 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
+                                  className="text-[10px] text-slate-600 hover:text-amber-800 px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 border border-slate-300 transition"
                                   title="Edit Allowance and Payee Amounts"
                                 >
                                   ✏️ Edit
@@ -612,13 +612,13 @@ Thank you for choosing Kandy Cabs Mangalore!
 
                               {/* Breakdown */}
                               <div className="text-[11px] space-y-0.5">
-                                <div className="text-emerald-300">
+                                <div className="text-emerald-800">
                                   🚗 Allowance: <span className="font-bold">₹{(t.driverAllowance || 0).toLocaleString('en-IN')}</span>
                                 </div>
-                                <div className="text-sky-300">
+                                <div className="text-sky-800">
                                   💰 Payee: <span className="font-bold">₹{(t.driverPayeeAmount || 0).toLocaleString('en-IN')}</span>
                                 </div>
-                                <div className="text-white font-extrabold border-t border-slate-800 pt-0.5">
+                                <div className="text-slate-900 font-extrabold border-t border-slate-200 pt-0.5">
                                   Total: ₹{totalDriverEarning.toLocaleString('en-IN')}
                                 </div>
                               </div>
@@ -630,7 +630,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                                     type="button"
                                     disabled={isProcessing}
                                     onClick={() => handleToggleDriverPayment(t.id, 'PENDING')}
-                                    className="w-full px-2 py-1 bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-200 border border-slate-700 hover:border-rose-500/50 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50"
+                                    className="w-full px-2 py-1 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-800 border border-slate-300 hover:border-rose-300 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1 disabled:opacity-50 shadow-2xs"
                                   >
                                     {isProcessing ? (
                                       <span>Updating...</span>
@@ -645,7 +645,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                                     type="button"
                                     disabled={isProcessing}
                                     onClick={() => handleToggleDriverPayment(t.id, 'PAID')}
-                                    className="w-full px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black rounded-lg transition shadow flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                    className="w-full px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black rounded-lg transition shadow-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
                                   >
                                     {isProcessing ? (
                                       <span>Updating...</span>
@@ -659,7 +659,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                               </div>
                             </div>
                           ) : (
-                            <span className="text-slate-500 italic text-[11px]">No driver assigned</span>
+                            <span className="text-slate-400 italic text-[11px]">No driver assigned</span>
                           )}
                         </td>
 
@@ -668,10 +668,10 @@ Thank you for choosing Kandy Cabs Mangalore!
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
                               t.status === 'TRIP_COMPLETED'
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                                 : t.status === 'CANCELLED'
-                                ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                                : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                : 'bg-blue-100 text-blue-800 border-blue-300'
                             }`}
                           >
                             {t.status.replace('_', ' ')}
@@ -686,25 +686,25 @@ Thank you for choosing Kandy Cabs Mangalore!
           )}
 
           {/* Pagination Footer */}
-          <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400">
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-600">
             <div>
               Showing {transactions.length} of {pagination.totalCount} transactions
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white rounded transition"
+                className="px-3 py-1 bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 text-slate-700 rounded transition shadow-2xs font-medium"
               >
                 Previous
               </button>
-              <span className="px-2 py-1 font-semibold text-slate-300">
+              <span className="px-2 py-1 font-semibold text-slate-700">
                 Page {page} of {pagination.totalPages}
               </span>
               <button
                 disabled={page >= pagination.totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white rounded transition"
+                className="px-3 py-1 bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-50 text-slate-700 rounded transition shadow-2xs font-medium"
               >
                 Next
               </button>
@@ -715,20 +715,20 @@ Thank you for choosing Kandy Cabs Mangalore!
 
       {/* Driver Payout Edit Modal */}
       {editModalBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
-                <h3 className="font-black text-white text-base flex items-center gap-1.5">
+                <h3 className="font-black text-slate-900 text-base flex items-center gap-1.5">
                   <span>💵</span> Edit Driver Payout
                 </h3>
-                <p className="text-xs text-amber-400 font-mono mt-0.5">
+                <p className="text-xs text-amber-800 font-mono mt-0.5 font-bold">
                   {editModalBooking.humanReadableRef} • {editModalBooking.driverName || 'Driver'}
                 </p>
               </div>
               <button
                 onClick={() => setEditModalBooking(null)}
-                className="text-slate-400 hover:text-white text-lg font-bold p-1"
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold p-1"
               >
                 ✕
               </button>
@@ -736,58 +736,58 @@ Thank you for choosing Kandy Cabs Mangalore!
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-300 font-bold mb-1">🚗 Driver Allowance (₹)</label>
+                <label className="block text-slate-700 font-bold mb-1">🚗 Driver Allowance (₹)</label>
                 <input
                   type="number"
                   min="0"
                   step="50"
                   value={editAllowance}
                   onChange={(e) => setEditAllowance(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   placeholder="e.g. 350"
                 />
                 <span className="text-[10px] text-slate-500 mt-0.5 block">Given at trip start / acceptance</span>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">💰 Driver Final Payee (₹)</label>
+                <label className="block text-slate-700 font-bold mb-1">💰 Driver Final Payee (₹)</label>
                 <input
                   type="number"
                   min="0"
                   step="50"
                   value={editPayee}
                   onChange={(e) => setEditPayee(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   placeholder="e.g. 1800"
                 />
                 <span className="text-[10px] text-slate-500 mt-0.5 block">Settled after ride completion</span>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">💳 Driver Payment Status</label>
+                <label className="block text-slate-700 font-bold mb-1">💳 Driver Payment Status</label>
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
                   <option value="PAID">✓ PAID (Settled)</option>
                   <option value="PENDING">✗ NOT PAID (Pending)</option>
                 </select>
               </div>
 
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                <span className="text-slate-400 font-medium">Total Driver Amount:</span>
-                <span className="text-emerald-400 font-black text-sm">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
+                <span className="text-slate-600 font-medium">Total Driver Amount:</span>
+                <span className="text-emerald-800 font-black text-sm">
                   ₹{((parseFloat(editAllowance) || 0) + (parseFloat(editPayee) || 0)).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
+            <div className="flex gap-2 justify-end pt-2 border-t border-slate-200">
               <button
                 type="button"
                 onClick={() => setEditModalBooking(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
               >
                 Cancel
               </button>
@@ -795,7 +795,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                 type="button"
                 disabled={savingEdit}
                 onClick={handleSaveDriverPayoutEdit}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow flex items-center gap-1.5"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5"
               >
                 {savingEdit ? <span>Saving...</span> : <span>💾 Save Payout</span>}
               </button>
@@ -806,47 +806,47 @@ Thank you for choosing Kandy Cabs Mangalore!
 
       {/* Record Customer Balance Payment Modal */}
       {balanceModalBooking && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-800">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl text-slate-900">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <span>💵</span> Record Balance Payment — {balanceModalBooking.humanReadableRef}
               </h3>
               <button
                 type="button"
                 onClick={() => setBalanceModalBooking(null)}
-                className="text-slate-400 hover:text-white p-1 text-sm"
+                className="text-slate-400 hover:text-slate-700 p-1 text-sm font-bold"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-4 text-xs">
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
-                <div className="text-slate-400 flex justify-between">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                <div className="text-slate-600 flex justify-between">
                   <span>Customer:</span>
-                  <span className="font-bold text-white">{balanceModalBooking.customerName}</span>
+                  <span className="font-bold text-slate-900">{balanceModalBooking.customerName}</span>
                 </div>
-                <div className="text-slate-400 flex justify-between">
+                <div className="text-slate-600 flex justify-between">
                   <span>Total Fare:</span>
-                  <span className="font-bold text-white">₹{balanceModalBooking.estimatedFare.toLocaleString('en-IN')}</span>
+                  <span className="font-bold text-slate-900">₹{balanceModalBooking.estimatedFare.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="text-slate-400 flex justify-between">
+                <div className="text-slate-600 flex justify-between">
                   <span>Advance Paid:</span>
-                  <span className="font-bold text-emerald-400">-₹{balanceModalBooking.advanceAmount.toLocaleString('en-IN')}</span>
+                  <span className="font-bold text-emerald-800">-₹{balanceModalBooking.advanceAmount.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-sm">
-                  <span className="font-bold text-white">Balance Due:</span>
-                  <span className="font-black text-amber-400 text-base">₹{balanceModalBooking.balanceAmount.toLocaleString('en-IN')}</span>
+                <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm">
+                  <span className="font-bold text-slate-900">Balance Due:</span>
+                  <span className="font-black text-amber-800 text-base">₹{balanceModalBooking.balanceAmount.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">💳 Payment Collection Method</label>
+                <label className="block text-slate-700 font-bold mb-1">💳 Payment Collection Method</label>
                 <select
                   value={balanceMethod}
                   onChange={(e) => setBalanceMethod(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
                   <option value="UPI_QR">📱 UPI QR / GPay / PhonePe</option>
                   <option value="CASH">💵 Cash Collected by Driver / Office</option>
@@ -856,33 +856,33 @@ Thank you for choosing Kandy Cabs Mangalore!
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">🔖 Transaction Reference / UTR (Optional)</label>
+                <label className="block text-slate-700 font-bold mb-1">🔖 Transaction Reference / UTR (Optional)</label>
                 <input
                   type="text"
                   value={balanceTxnRef}
                   onChange={(e) => setBalanceTxnRef(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   placeholder="e.g. UPI Ref #426789123456"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">📝 Internal Note (Optional)</label>
+                <label className="block text-slate-700 font-bold mb-1">📝 Internal Note (Optional)</label>
                 <input
                   type="text"
                   value={balanceNotes}
                   onChange={(e) => setBalanceNotes(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   placeholder="e.g. Received at drop location by driver"
                 />
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end pt-3 border-t border-slate-800">
+            <div className="flex gap-2 justify-end pt-3 border-t border-slate-200">
               <button
                 type="button"
                 onClick={() => setBalanceModalBooking(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
               >
                 Cancel
               </button>
@@ -890,7 +890,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                 type="button"
                 disabled={savingBalance}
                 onClick={handleSaveBalancePayment}
-                className="px-5 py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-black rounded-xl transition shadow flex items-center gap-1.5"
+                className="px-5 py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-black rounded-xl transition shadow-xs flex items-center gap-1.5"
               >
                 {savingBalance ? <span>Recording...</span> : <span>✓ Confirm & Generate Receipt</span>}
               </button>
