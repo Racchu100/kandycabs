@@ -174,43 +174,35 @@ export function LocationPickerModal({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white text-slate-900 animate-fadeIn">
       {/* Modal Header */}
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="text-xl">
-            {targetType === 'PICKUP' ? '🟢' : targetType === 'DROP' ? '🔴' : '🟡'}
-          </span>
-          <div>
-            <h3 className="text-base font-bold text-slate-900">{title}</h3>
-            <p className="text-xs text-slate-500 font-medium">Karnataka Door-to-Door Verified Search</p>
-          </div>
-        </div>
+      <div className="px-3.5 py-2.5 sm:py-3 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+        <h3 className="text-sm sm:text-base font-bold text-slate-900">{title}</h3>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close modal"
-          className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition text-sm font-bold"
+          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition text-xs font-bold"
         >
           ✕
         </button>
       </div>
 
       {/* Search Bar & GPS Button */}
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/80 space-y-2.5 shrink-0">
+      <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/80 space-y-1.5 shrink-0">
         <div className="relative flex items-center">
-          <span className="absolute left-3.5 text-slate-400 pointer-events-none">🔍</span>
+          <span className="absolute left-2.5 text-slate-400 pointer-events-none text-xs">🔍</span>
           <input
             ref={inputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search area, landmark, airport, temple, beach..."
-            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-medium shadow-xs"
+            className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-8 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-medium shadow-2xs"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 text-slate-400 hover:text-slate-600 text-xs font-bold"
+              className="absolute right-2.5 text-slate-400 hover:text-slate-600 text-[11px] font-bold"
             >
               ✕
             </button>
@@ -219,16 +211,16 @@ export function LocationPickerModal({
 
         {/* Quick Current Location GPS Pill - ONLY for PICKUP */}
         {targetType === 'PICKUP' && (
-          <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center justify-between gap-1.5 flex-wrap">
             <button
               type="button"
               onClick={handleFetchCurrentLocation}
               disabled={fetchingGps}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold transition shadow-xs disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-md text-[11px] sm:text-xs font-bold transition shadow-2xs disabled:opacity-50"
             >
               {fetchingGps ? (
                 <>
-                  <span className="animate-spin text-sm">⏳</span>
+                  <span className="animate-spin text-xs">⏳</span>
                   <span>Detecting GPS Location...</span>
                 </>
               ) : (
@@ -238,13 +230,13 @@ export function LocationPickerModal({
               )}
             </button>
             {gpsError && (
-              <span className="text-[11px] text-red-600 font-medium">{gpsError}</span>
+              <span className="text-[10.5px] text-red-600 font-medium">{gpsError}</span>
             )}
           </div>
         )}
 
         {/* Category Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 text-xs no-scrollbar">
           {[
             { id: 'ALL', label: 'All Locations' },
             { id: 'MANGALURU', label: '🏖️ Mangaluru & Udupi' },
@@ -255,7 +247,7 @@ export function LocationPickerModal({
               key={tab.id}
               type="button"
               onClick={() => setActiveCategory(tab.id as any)}
-              className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-bold transition shadow-xs ${
+              className={`px-2.5 py-1 rounded-md whitespace-nowrap text-[11px] sm:text-xs font-bold transition shadow-2xs ${
                 activeCategory === tab.id
                   ? 'bg-orange-500 text-white'
                   : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -352,9 +344,7 @@ export function LocationPickerModal({
                 }`}
               >
                 <div className="flex items-start gap-2.5">
-                  <span className="text-base mt-0.5">
-                    {loc.category === 'AIRPORTS' ? '✈️' : loc.category === 'OUTSTATION' ? '🛣️' : '📍'}
-                  </span>
+                  <span className="text-base mt-0.5">📍</span>
                   <div>
                     <div className="flex items-center gap-2">
                       <span
