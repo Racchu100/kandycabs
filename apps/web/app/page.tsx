@@ -75,29 +75,29 @@ const FLEET_DATA = [
   {
     category: VehicleCategory.HATCHBACK,
     name: 'Hatchback',
-    models: 'WagonR, Tiago, Celerio',
+    models: 'WagonR • Tiago • Celerio',
     image: '/images/fleet-hatchback.webp',
-    ratePerKm: '₹11/km',
+    ratePerKm: '₹11',
+    ratePerKmUnit: '/ km',
     capacity: '4 Passengers',
     luggage: '2 Luggage Bags',
     idealFor: 'Budget city & short outstation trips',
-    badge: 'ECONOMY CHOICE',
-    badgeBg: 'bg-[#059668] text-white',
-    cardBorder: 'border-emerald-200 hover:border-emerald-400',
-    cardHeaderGradient: 'bg-gradient-to-b from-emerald-50/70 via-white to-white',
-    rateBadge: 'bg-emerald-100 text-emerald-800',
-    iconBg: 'bg-emerald-100/80 text-emerald-600 border border-emerald-200/80',
-    idealForBg: 'bg-emerald-50/80 text-emerald-950 border border-emerald-100/80',
+    badge: 'ECONOMY',
+    badgeBg: 'bg-emerald-100/80 text-emerald-800 border border-emerald-300/80',
+    cardBg: 'bg-[#F0FBF7]',
+    cardBorder: 'border-emerald-200/80 hover:border-emerald-400',
+    rateBadge: 'bg-emerald-100/70 text-emerald-800',
+    iconBg: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+    idealForBg: 'bg-emerald-50/60 text-emerald-800 border border-emerald-100',
     checkColor: 'text-emerald-600',
-    btnHover: 'hover:bg-emerald-600',
     badgeIcon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
         <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
         <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
       </svg>
     ),
     icon: (
-      <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="11" width="18" height="9" rx="3" />
         <path d="M5 11l2-6h10l2 6" />
         <circle cx="7" cy="15.5" r="1.5" />
@@ -109,28 +109,28 @@ const FLEET_DATA = [
   {
     category: VehicleCategory.SEDAN,
     name: 'Prime Sedan',
-    models: 'Dzire, Etios, Honda Amaze',
+    models: 'Dzire • Etios • Honda Amaze',
     image: '/images/fleet-sedan.webp',
-    ratePerKm: '₹13/km',
+    ratePerKm: '₹13',
+    ratePerKmUnit: '/ km',
     capacity: '4 Passengers',
-    luggage: '3 Large Bags',
+    luggage: '3 Luggage Bags',
     idealFor: 'Comfortable family & business highway rides',
     badge: 'MOST POPULAR',
-    badgeBg: 'bg-[#0066ff] text-white',
-    cardBorder: 'border-blue-200 hover:border-blue-400',
-    cardHeaderGradient: 'bg-gradient-to-b from-blue-50/70 via-white to-white',
-    rateBadge: 'bg-blue-100 text-blue-800',
-    iconBg: 'bg-blue-100/80 text-blue-600 border border-blue-200/80',
-    idealForBg: 'bg-blue-50/80 text-blue-950 border border-blue-100/80',
+    badgeBg: 'bg-blue-100/80 text-blue-800 border border-blue-300/80',
+    cardBg: 'bg-[#F3F7FF]',
+    cardBorder: 'border-blue-200/80 hover:border-blue-400',
+    rateBadge: 'bg-blue-100/70 text-blue-800',
+    iconBg: 'bg-blue-100 text-blue-700 border border-blue-200',
+    idealForBg: 'bg-blue-50/60 text-blue-800 border border-blue-100',
     checkColor: 'text-blue-600',
-    btnHover: 'hover:bg-blue-600',
     badgeIcon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
         <path d="M5 16l-2-9 5.5 3.5L12 4l3.5 6.5L21 7l-2 9H5z" />
       </svg>
     ),
     icon: (
-      <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="11" width="18" height="9" rx="3" />
         <path d="M5 11l2-6h10l2 6" />
         <circle cx="7" cy="15.5" r="1.5" />
@@ -142,28 +142,28 @@ const FLEET_DATA = [
   {
     category: VehicleCategory.SUV,
     name: 'Prime SUV (6+1)',
-    models: 'Ertiga, Carens, Triber',
+    models: 'Ertiga • Carens • Triber',
     image: '/images/fleet-suv.webp',
-    ratePerKm: '₹18/km',
+    ratePerKm: '₹18',
+    ratePerKmUnit: '/ km',
     capacity: '6 Passengers',
-    luggage: '4 Large Bags',
+    luggage: '4 Luggage Bags',
     idealFor: 'Family vacations, hill stations & extra luggage',
     badge: 'EXTRA SPACE',
-    badgeBg: 'bg-[#7c3aed] text-white',
-    cardBorder: 'border-purple-200 hover:border-purple-400',
-    cardHeaderGradient: 'bg-gradient-to-b from-purple-50/70 via-white to-white',
-    rateBadge: 'bg-purple-100 text-purple-800',
-    iconBg: 'bg-purple-100/80 text-purple-600 border border-purple-200/80',
-    idealForBg: 'bg-purple-50/80 text-purple-950 border border-purple-100/80',
+    badgeBg: 'bg-purple-100/80 text-purple-800 border border-purple-300/80',
+    cardBg: 'bg-[#FAF5FF]',
+    cardBorder: 'border-purple-200/80 hover:border-purple-400',
+    rateBadge: 'bg-purple-100/70 text-purple-800',
+    iconBg: 'bg-purple-100 text-purple-700 border border-purple-200',
+    idealForBg: 'bg-purple-50/60 text-purple-800 border border-purple-100',
     checkColor: 'text-purple-600',
-    btnHover: 'hover:bg-purple-600',
     badgeIcon: (
-      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+      <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
         <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
       </svg>
     ),
     icon: (
-      <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9C2.1 11.1 2 11.5 2 12v4c0 .6.4 1 1 1h2" />
         <circle cx="7" cy="17" r="2" />
         <path d="M9 17h6" />
@@ -173,58 +173,58 @@ const FLEET_DATA = [
   },
   {
     category: VehicleCategory.SUV_PREMIUM,
-    name: 'Innova Crysta Luxury',
-    models: 'Toyota Innova Crysta / Hycross',
+    name: 'Innova Crysta',
+    models: '7 Seater • Spacious • Comfortable',
     image: '/images/fleet-crysta.webp',
-    ratePerKm: '₹23/km',
-    capacity: '6+1 Captain Seats',
-    luggage: '5 Large Bags',
+    ratePerKm: '₹23',
+    ratePerKmUnit: '/ km',
+    capacity: '7 Passengers',
+    luggage: '4 Luggage Bags',
     idealFor: 'VIP travel, long distance hill tours & unmatched comfort',
-    badge: 'PREMIUM COMFORT',
-    badgeBg: 'bg-fuchsia-100 text-fuchsia-800 font-extrabold',
-    cardBorder: 'border-fuchsia-200 hover:border-fuchsia-400',
-    cardHeaderGradient: 'bg-gradient-to-b from-fuchsia-50/70 via-white to-white',
-    rateBadge: 'bg-fuchsia-100 text-fuchsia-800',
-    iconBg: 'bg-fuchsia-100/80 text-fuchsia-600 border border-fuchsia-200/80',
-    idealForBg: 'bg-fuchsia-50/80 text-fuchsia-950 border border-fuchsia-100/80',
-    checkColor: 'text-fuchsia-600',
-    btnHover: 'hover:bg-fuchsia-600',
+    badge: 'PREMIUM',
+    badgeBg: 'bg-amber-100/80 text-amber-800 border border-amber-300/80',
+    cardBg: 'bg-[#FFFAF2]',
+    cardBorder: 'border-amber-200/80 hover:border-amber-400',
+    rateBadge: 'bg-amber-100/70 text-amber-800',
+    iconBg: 'bg-amber-100 text-amber-700 border border-amber-200',
+    idealForBg: 'bg-amber-50/60 text-amber-800 border border-amber-100',
+    checkColor: 'text-amber-600',
     badgeIcon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
         <path d="M6 3h12l4 7-10 11L2 10l4-7z" />
       </svg>
     ),
     icon: (
-      <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
       </svg>
     ),
   },
   {
     category: VehicleCategory.TEMPO_TRAVELER,
-    name: 'Tempo Traveller (12+1)',
-    models: 'Force Traveller 3350 AC',
+    name: 'Tempo Traveller',
+    models: '12 / 17 Seater • Group Travel',
     image: '/images/fleet-traveller.webp',
-    ratePerKm: '₹28/km',
-    capacity: '12-14 Passengers',
-    luggage: 'Heavy Luggage Carrier',
+    ratePerKm: '₹28',
+    ratePerKmUnit: '/ km',
+    capacity: '12-17 Passengers',
+    luggage: 'Bags as per seats',
     idealFor: 'Corporate outings, wedding parties & large groups',
     badge: 'GROUP TRAVEL',
-    badgeBg: 'bg-amber-100 text-amber-800 font-extrabold',
-    cardBorder: 'border-amber-200 hover:border-amber-400',
-    cardHeaderGradient: 'bg-gradient-to-b from-amber-50/70 via-white to-white',
-    rateBadge: 'bg-amber-100 text-amber-800',
-    iconBg: 'bg-amber-100/80 text-amber-600 border border-amber-200/80',
-    idealForBg: 'bg-amber-50/80 text-amber-950 border border-amber-100/80',
-    checkColor: 'text-amber-600',
-    btnHover: 'hover:bg-amber-600',
+    badgeBg: 'bg-slate-200/80 text-slate-800 border border-slate-300',
+    cardBg: 'bg-[#F6F8FC]',
+    cardBorder: 'border-slate-200/90 hover:border-slate-400',
+    rateBadge: 'bg-slate-200/70 text-slate-800',
+    iconBg: 'bg-slate-200 text-slate-700 border border-slate-300',
+    idealForBg: 'bg-slate-100/60 text-slate-800 border border-slate-200',
+    checkColor: 'text-slate-700',
     badgeIcon: (
-      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+      <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
         <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
       </svg>
     ),
     icon: (
-      <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
         <circle cx="9" cy="7" r="4" />
         <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -249,6 +249,7 @@ export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentFleetSlide, setCurrentFleetSlide] = useState(0);
   const [prevFleetSlide, setPrevFleetSlide] = useState<number | null>(null);
+  const [expandedFleetCategory, setExpandedFleetCategory] = useState<VehicleCategory | null>(null);
 
   const goToSlide = (nextIndex: number) => {
     setPrevFleetSlide(currentFleetSlide);
@@ -567,6 +568,24 @@ export default function HomePage() {
 
   const handleStartBooking = (category?: VehicleCategory) => {
     const cat = category || selectedCategory;
+    if (category) {
+      setSelectedCategory(category);
+    }
+    if (!pickupAddress || !dropAddress) {
+      scrollToBookingEngine(cat);
+      if (!pickupAddress) {
+        setTimeout(() => {
+          setLocationModalTarget('PICKUP');
+          setLocationModalOpen(true);
+        }, 400);
+      } else if (!dropAddress) {
+        setTimeout(() => {
+          setLocationModalTarget('DROP');
+          setLocationModalOpen(true);
+        }, 400);
+      }
+      return;
+    }
     const params = new URLSearchParams({
       step: '2',
       tripType,
@@ -594,7 +613,7 @@ export default function HomePage() {
     }
     const el = document.getElementById('booking-engine');
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -1101,13 +1120,13 @@ export default function HomePage() {
       </section>
 
       {/* 4. Floating Main Booking Engine Card */}
-      <section id="booking-engine" className="relative mt-6 lg:-mt-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-20 w-full mb-16">
+      <section id="booking-engine" className="relative mt-6 lg:-mt-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-20 w-full mb-6 sm:mb-8 lg:mb-14">
         <div className="bg-white text-slate-900 rounded-3xl shadow-2xl p-4 sm:p-8 border border-slate-200">
           {/* Trip Type / Package Tabs */}
           {/* MOBILE ONLY (<sm): Dynamic sub-tabs for Local, Airport, and Outstation */}
           <div className="sm:hidden">
             {tripType === TripType.LOCAL ? (
-              <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-slate-100 rounded-2xl mb-3.5">
+              <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl mb-2.5">
                 {[
                   { hours: 4, label: '4 hrs (40 km)' },
                   { hours: 8, label: '8 hrs (80 km)' },
@@ -1120,9 +1139,9 @@ export default function HomePage() {
                       setPackageHours(pkg.hours);
                       setQuoteData(null);
                     }}
-                    className={`py-2.5 px-1 rounded-xl text-xs font-bold transition-all text-center ${
+                    className={`py-1.5 px-1 rounded-lg text-xs font-bold transition-all text-center ${
                       packageHours === pkg.hours
-                        ? 'bg-orange-600 text-white shadow-md shadow-orange-600/25'
+                        ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/25'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                     }`}
                   >
@@ -1131,7 +1150,7 @@ export default function HomePage() {
                 ))}
               </div>
             ) : tripType === TripType.AIRPORT ? (
-              <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-slate-100 rounded-2xl mb-3.5">
+              <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl mb-2.5">
                 {[
                   { type: 'PICKUP' as const, label: 'Pickup (From Airport)' },
                   { type: 'DROP' as const, label: 'Drop (To Airport)' },
@@ -1140,9 +1159,9 @@ export default function HomePage() {
                     key={item.type}
                     type="button"
                     onClick={() => handleAirportTransferSelect(item.type)}
-                    className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all text-center ${
+                    className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center ${
                       airportTransferType === item.type
-                        ? 'bg-orange-600 text-white shadow-md shadow-orange-600/25'
+                        ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/25'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                     }`}
                   >
@@ -1151,7 +1170,7 @@ export default function HomePage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-slate-100 rounded-2xl mb-3.5">
+              <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl mb-2.5">
                 {[
                   { id: TripType.ONEWAY, label: 'Outstation One-Way' },
                   { id: TripType.ROUND, label: 'Round Trip' },
@@ -1162,9 +1181,9 @@ export default function HomePage() {
                       setTripType(t.id);
                       setQuoteData(null);
                     }}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-center ${
+                    className={`py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all text-center ${
                       tripType === t.id
-                        ? 'bg-orange-600 text-white shadow-md shadow-orange-600/25'
+                        ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/25'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                     }`}
                   >
@@ -1176,7 +1195,7 @@ export default function HomePage() {
           </div>
 
           {/* TABLET, LAPTOP & DESKTOP (>=sm): Always display standard 4 Trip Type tabs */}
-          <div className="hidden sm:grid sm:grid-cols-4 gap-2 p-1.5 bg-slate-100 rounded-2xl mb-6">
+          <div className="hidden sm:grid sm:grid-cols-4 gap-1.5 p-1 bg-slate-100 rounded-xl mb-4 sm:mb-5">
             {[
               { id: TripType.ONEWAY, label: 'Outstation One-Way' },
               { id: TripType.ROUND, label: 'Round Trip' },
@@ -1189,9 +1208,9 @@ export default function HomePage() {
                   setTripType(t.id);
                   setQuoteData(null);
                 }}
-                className={`py-3 px-3 rounded-xl text-sm font-bold transition-all text-center ${
+                className={`py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all text-center ${
                   tripType === t.id
-                    ? 'bg-orange-600 text-white shadow-md shadow-orange-600/25'
+                    ? 'bg-orange-600 text-white shadow-sm shadow-orange-600/25'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
               >
@@ -1505,7 +1524,7 @@ export default function HomePage() {
                 type="button"
                 onClick={() => handleStartBooking()}
                 disabled={!pickupAddress || !dropAddress}
-                className="w-full py-3.5 px-4 bg-orange-600 hover:bg-orange-700 text-white font-black text-sm sm:text-base rounded-xl transition shadow-lg shadow-orange-600/25 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full py-2.5 sm:py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs sm:text-sm rounded-xl transition shadow-md shadow-orange-600/25 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>⚡ Explore Cabs</span>
               </button>
@@ -1515,479 +1534,399 @@ export default function HomePage() {
       </section>
 
       {/* 5. Fleet & Live Rates Showcase */}
-      <section id="fleet" className="py-10 sm:py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-12">
-          <span className="text-xs font-extrabold uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 px-3 py-1 rounded-full">
-            Our Vehicle Fleet
+      <section id="fleet" className="py-4 sm:py-8 lg:py-14 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
+        <div className="text-left sm:text-center max-w-3xl sm:mx-auto mb-3 sm:mb-6 lg:mb-10">
+          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-[#F36B21]">
+            OUR VEHICLES
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mt-3">
+          <h2 className="text-[17px] sm:text-2xl lg:text-3xl font-black text-[#0B1730] tracking-tight mt-0.5 sm:mt-1">
             Choose Your Travel Comfort
           </h2>
-          <p className="text-slate-600 text-base mt-2">
-            Every vehicle is thoroughly sanitized, GPS enabled, AC equipped, and driven by experienced commercial chauffeurs.
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {FLEET_DATA.map((car) => (
-            <div
-              key={car.category}
-              className={`bg-white rounded-3xl border-2 ${car.cardBorder} overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col justify-between group`}
-            >
-              <div className={`p-4 sm:p-5 ${car.cardHeaderGradient}`}>
-                {/* Header Badge & Rate */}
-                <div className="flex justify-between items-start mb-2">
-                  <span className={`${car.badgeBg} text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-xs`}>
+        {/* MOBILE ONLY (< sm): Collapsible Accordion Fleet Cards */}
+        <div className="sm:hidden space-y-2.5">
+          {FLEET_DATA.map((car) => {
+            const isExpanded = expandedFleetCategory === car.category;
+
+            if (!isExpanded) {
+              return (
+                <div
+                  key={car.category}
+                  onClick={() => setExpandedFleetCategory(car.category)}
+                  className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-orange-300 hover:shadow-xs p-2.5 transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 group"
+                >
+                  {/* Left: Car Image */}
+                  <div className="w-20 h-14 shrink-0 flex items-center justify-center">
+                    <Image
+                      src={car.image}
+                      alt={car.name}
+                      width={120}
+                      height={75}
+                      className="w-auto h-12 max-w-full object-contain filter drop-shadow-sm select-none pointer-events-none group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+
+                  {/* Middle: Name & Specs (without icons) */}
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="text-xs font-extrabold text-[#0B1730] tracking-tight leading-snug">
+                      {car.name}
+                    </h3>
+                    <p className="text-[10.5px] text-slate-500 font-medium mt-0.5 leading-snug">
+                      {car.capacity.replace(' Passengers', ' Seats')} | {car.luggage.replace(' Luggage Bags', ' Bags').replace(' Bags as per seats', 'Luggage')} | A/C
+                    </p>
+                  </div>
+
+                  {/* Right: Expand Icon */}
+                  <div className="shrink-0 flex items-center">
+                    <div className="w-6 h-6 rounded-full border border-slate-200 bg-slate-50 text-slate-400 group-hover:bg-orange-50 group-hover:text-[#F36B21] group-hover:border-orange-200 flex items-center justify-center transition">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key={car.category}
+                className={`${car.cardBg} rounded-2xl border-2 ${car.cardBorder} shadow-sm transition-all duration-200 p-3.5 flex flex-col gap-3`}
+              >
+                {/* Top Row: Badge & Collapse Button */}
+                <div className="flex items-center justify-between">
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${car.badgeBg}`}>
                     {car.badgeIcon}
                     <span>{car.badge}</span>
                   </span>
-                  <div className="text-right">
-                    <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{car.ratePerKm}</span>
-                    <span className={`block text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md mt-0.5 ${car.rateBadge}`}>
-                      BASE OUTSTATION RATE
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedFleetCategory(null)}
+                    className="w-6 h-6 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 border border-slate-200/80 flex items-center justify-center transition"
+                    aria-label="Collapse"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="18 15 12 9 6 15" />
+                    </svg>
+                  </button>
                 </div>
 
-                {/* Car Image Showcase */}
-                <div className="relative py-1 flex items-center justify-center min-h-[110px] sm:min-h-[125px]">
-                  <div className="absolute inset-x-8 bottom-1.5 h-3.5 bg-slate-400/20 rounded-full blur-md" />
+                {/* Car Large Image Container */}
+                <div className="w-full flex items-center justify-center py-3 bg-white/85 rounded-xl border border-white/70">
                   <Image
                     src={car.image}
                     alt={car.name}
                     width={260}
                     height={130}
-                    className="relative z-10 h-24 sm:h-28 w-auto max-w-[90%] object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                    className="w-auto h-28 max-w-full object-contain filter drop-shadow-md select-none pointer-events-none"
                   />
                 </div>
 
-                {/* Icon & Vehicle Model */}
-                <div className="flex items-center gap-3 mb-2.5 sm:mb-3">
-                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${car.iconBg} flex items-center justify-center shrink-0`}>
-                    {car.icon}
-                  </div>
+                {/* Details: Title & Price */}
+                <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">{car.name}</h3>
-                    <p className="text-[11px] sm:text-xs text-slate-500 font-medium">{car.models}</p>
+                    <h3 className="text-base font-black text-[#0B1730] tracking-tight leading-tight">
+                      {car.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                      {car.models}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="flex items-baseline justify-end gap-0.5">
+                      <span className="text-xl font-black text-[#0B1730] tracking-tight">
+                        {car.ratePerKm}
+                      </span>
+                      <span className="text-xs font-bold text-slate-500">
+                        {car.ratePerKmUnit}
+                      </span>
+                    </div>
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                      BASE OUTSTATION RATE
+                    </div>
                   </div>
                 </div>
 
-                {/* Highlight Description Box */}
-                <p className={`text-[11px] sm:text-xs ${car.idealForBg} px-3 py-2 rounded-xl mb-3 sm:mb-3.5 font-medium leading-relaxed`}>
-                  {car.idealFor}
-                </p>
+                {/* Specs Row with Icons */}
+                <div className="flex items-center gap-3 text-[11px] text-slate-600 font-medium pt-2 border-t border-slate-200/60 flex-wrap">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="text-slate-400 text-xs">👤</span>
+                    <span className="truncate">{car.capacity}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="text-slate-400 text-xs">🧳</span>
+                    <span className="truncate">{car.luggage}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="text-slate-400 text-xs">❄️</span>
+                    <span className="truncate">AC • Clean Interiors</span>
+                  </div>
+                </div>
 
-                {/* Features List with Themed Checkmarks */}
-                <div className="space-y-1.5 sm:space-y-2 text-[11px] sm:text-xs text-slate-700 font-medium">
-                  <div className="flex items-center gap-2">
-                    <span className={`${car.checkColor} font-black text-xs sm:text-sm`}>✓</span>
-                    <span>{car.capacity}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`${car.checkColor} font-black text-xs sm:text-sm`}>✓</span>
-                    <span>{car.luggage}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`${car.checkColor} font-black text-xs sm:text-sm`}>✓</span>
-                    <span>Air Conditioned & Clean Interiors</span>
-                  </div>
+                {/* CTA Button */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleStartBooking(car.category)}
+                    className="w-full py-2.5 bg-[#0B1730] hover:bg-slate-800 active:scale-95 text-white font-bold text-xs rounded-xl transition duration-150 flex items-center justify-center gap-1.5 shadow-xs"
+                  >
+                    <span>Select {car.name}</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
+        {/* TABLET & DESKTOP (>= sm): Full Horizontal Cards matching Reference */}
+        <div className="hidden sm:flex sm:flex-col space-y-3 sm:space-y-4">
+          {FLEET_DATA.map((car) => (
+            <div
+              key={car.category}
+              className={`${car.cardBg} rounded-2xl border ${car.cardBorder} shadow-2xs hover:shadow-md transition-all duration-200 p-4 sm:p-5 flex flex-row items-stretch gap-4 sm:gap-6 group`}
+            >
+              {/* Left Column: Badge + Centered Car Image */}
+              <div className="w-2/5 sm:w-[280px] md:w-[320px] lg:w-[360px] flex flex-col justify-between items-start relative shrink-0">
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wider uppercase ${car.badgeBg}`}>
+                  {car.badgeIcon}
+                  <span>{car.badge}</span>
+                </span>
+                <div className="w-full flex items-center justify-center my-auto py-2 sm:py-3">
+                  <Image
+                    src={car.image}
+                    alt={car.name}
+                    width={360}
+                    height={180}
+                    className="w-auto h-32 sm:h-36 md:h-40 lg:h-44 max-w-full object-contain filter drop-shadow-md select-none group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                  />
                 </div>
               </div>
 
-              {/* Bottom Action Button */}
-              <div className="p-4 sm:p-5 pt-0 bg-white">
-                <button
-                  type="button"
-                  onClick={() => handleStartBooking(car.category)}
-                  className="w-full py-2.5 sm:py-3 bg-[#0f172a] hover:bg-[#1e293b] text-white font-bold text-xs sm:text-sm rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <span>Book {car.name}</span>
-                  <span>→</span>
-                </button>
+              {/* Vertical Divider */}
+              <div className="w-px bg-slate-200/80 my-1 self-stretch shrink-0" />
+
+              {/* Right Column: Title, Price, 2-Column Specs, CTA Button */}
+              <div className="flex-1 flex flex-col justify-between gap-3 py-0.5">
+                {/* Top Row: Name & Rate */}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-[#0B1730] tracking-tight leading-tight">
+                      {car.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                      {car.models}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="flex items-baseline justify-end gap-0.5">
+                      <span className="text-xl sm:text-2xl font-black text-[#0B1730] tracking-tight">
+                        {car.ratePerKm}
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-slate-500">
+                        {car.ratePerKmUnit}
+                      </span>
+                    </div>
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                      BASE OUTSTATION RATE
+                    </div>
+                  </div>
+                </div>
+
+                {/* Middle Row: Specs Grid */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-600 font-medium">
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="text-slate-400 text-sm">👤</span>
+                    <span className="truncate">{car.capacity}</span>
+                  </div>
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="text-slate-400 text-sm">🧳</span>
+                    <span className="truncate">{car.luggage}</span>
+                  </div>
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="text-slate-400 text-sm">❄️</span>
+                    <span className="truncate">AC • Clean Interiors</span>
+                  </div>
+                </div>
+
+                {/* Bottom Row: Select Button */}
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleStartBooking(car.category)}
+                    className="px-6 py-2.5 bg-[#0B1730] hover:bg-slate-800 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-xl transition duration-150 flex items-center justify-center gap-1.5 shadow-xs"
+                  >
+                    <span>Select →</span>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 5. Why Choose Kandy Cabs */}
-      <section id="why-kandy" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs font-extrabold uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 px-3 py-1 rounded-full">
-            Our Commitment
+      {/* 6. Why Choose Kandy Cabs */}
+      {/* 6. Why Travelers Choose Kandy Cabs Section */}
+      <section id="why-kandy" className="py-6 sm:py-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
+        <div className="text-left sm:text-center max-w-3xl sm:mx-auto mb-4 sm:mb-6">
+          <span className="text-[11px] font-black uppercase tracking-widest text-[#F36B21]">
+            WHY KANDY CABS
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mt-3">
+          <h2 className="text-[17px] sm:text-2xl lg:text-3xl font-black text-[#0B1730] tracking-tight mt-1">
             Why Travelers Choose Kandy Cabs
           </h2>
-          <p className="text-slate-600 text-base mt-2">
-            Engineered for reliability, safety, and transparent customer-first service.
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* 1. Zero Surge Guarantee */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-amber-200/90 hover:border-amber-400 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5">
+          {/* Card 1 */}
+          <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-sm transition text-left flex flex-col justify-between">
             <div>
-              <div className="flex items-start gap-3 mb-2.5 sm:mb-3">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 border border-orange-200/80 flex items-center justify-center text-orange-600 shadow-xs shrink-0">
-                  <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5 fill-orange-500 stroke-orange-600" viewBox="0 0 24 24" strokeWidth={1.5}>
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="#f97316" stroke="#ea580c" />
-                    <path d="M9 12l2 2 4-4" fill="none" stroke="#ffffff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">Zero Surge Guarantee</h3>
-                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed mt-1 font-normal">
-                    No rain surges, peak hour spikes, or last-minute extortion. You pay exact per-km rates calculated server-side with standard 5% GST.
-                  </p>
-                </div>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-orange-50 text-[#F36B21] border border-orange-100 flex items-center justify-center font-bold text-sm sm:text-base mb-2 sm:mb-2.5">
+                ₹
               </div>
+              <h3 className="text-xs sm:text-sm font-bold text-[#0B1730] leading-tight">
+                Zero Surge Fares
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-1.5 sm:mt-2">
+                Know your fare before you travel. No hidden surge charges.
+              </p>
             </div>
-            <div className="flex items-center justify-between gap-2 pt-2.5 sm:pt-3 mt-2 border-t border-slate-100">
-              <span className="bg-orange-50/90 text-orange-700 border border-orange-200/80 text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-2xs">
-                <svg className="w-3 h-3 fill-orange-600" viewBox="0 0 24 24">
+          </div>
+
+          {/* Card 2 */}
+          <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-sm transition text-left flex flex-col justify-between">
+            <div>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-orange-50 text-[#F36B21] border border-orange-100 flex items-center justify-center font-bold text-sm sm:text-base mb-2 sm:mb-2.5">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  <path d="M9 12l2 2 4-4" fill="none" stroke="#ffffff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span>Fair Pricing. Always.</span>
-              </span>
-              <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full border border-orange-200 bg-white text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
-                →
               </div>
+              <h3 className="text-xs sm:text-sm font-bold text-[#0B1730] leading-tight">
+                24/7 Safety &amp; Support
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-1.5 sm:mt-2">
+                Help whenever you need it with live route monitoring.
+              </p>
             </div>
           </div>
 
-          {/* 2. 4-Digit Security OTP */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-sky-200/90 hover:border-sky-400 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+          {/* Card 3 */}
+          <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-sm transition text-left flex flex-col justify-between">
             <div>
-              <div className="flex items-start gap-3 mb-2.5 sm:mb-3">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-sky-100 to-blue-100 border border-sky-200/80 flex items-center justify-center text-sky-600 shadow-xs shrink-0">
-                  <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="#0284c7">
-                    <rect x="5" y="11" width="14" height="10" rx="3" fill="#0284c7" />
-                    <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="#0284c7" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx="12" cy="16" r="1.5" fill="#ffffff" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">4-Digit Security OTP</h3>
-                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed mt-1 font-normal">
-                    Trips only start when you provide your secret 4-digit pickup OTP to the assigned chauffeur. Driver phone number is unlocked upon dispatch.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 pt-2.5 sm:pt-3 mt-2 border-t border-slate-100">
-              <span className="bg-sky-50/90 text-sky-700 border border-sky-200/80 text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-2xs">
-                <svg className="w-3 h-3 fill-sky-600" viewBox="0 0 24 24">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  <path d="M9 12l2 2 4-4" fill="none" stroke="#ffffff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-orange-50 text-[#F36B21] border border-orange-100 flex items-center justify-center font-bold text-sm sm:text-base mb-2 sm:mb-2.5">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="10" r="3" />
+                  <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
                 </svg>
-                <span>Your Safety Comes First</span>
-              </span>
-              <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full border border-sky-200 bg-white text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
-                →
               </div>
+              <h3 className="text-xs sm:text-sm font-bold text-[#0B1730] leading-tight">
+                Real-Time Tracking
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-1.5 sm:mt-2">
+                Track your journey from pickup to destination securely.
+              </p>
             </div>
           </div>
 
-          {/* 3. 20% Advance Booking */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-emerald-200/90 hover:border-emerald-400 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+          {/* Card 4 */}
+          <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs hover:shadow-sm transition text-left flex flex-col justify-between">
             <div>
-              <div className="flex items-start gap-3 mb-2.5 sm:mb-3">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 border border-emerald-200/80 flex items-center justify-center text-emerald-600 shadow-xs shrink-0">
-                  <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none">
-                    <rect x="2" y="5" width="20" height="14" rx="3" fill="#059669" />
-                    <rect x="2" y="8.5" width="20" height="3" fill="#047857" />
-                    <circle cx="6" cy="15" r="1.5" fill="#a7f3d0" />
-                    <rect x="10" y="14" width="8" height="2" rx="1" fill="#a7f3d0" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">20% Advance Booking</h3>
-                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed mt-1 font-normal">
-                    Lock in your vehicle with only a 20% advance payment via Razorpay / UPI. Pay the balance directly to the driver or upon trip completion.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 pt-2.5 sm:pt-3 mt-2 border-t border-slate-100">
-              <span className="bg-emerald-50/90 text-emerald-700 border border-emerald-200/80 text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-2xs">
-                <span className="font-extrabold text-xs">₹</span>
-                <span>Easy & Secure Payments</span>
-              </span>
-              <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full border border-emerald-200 bg-white text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
-                →
-              </div>
-            </div>
-          </div>
-
-          {/* 4. Verified Chauffeurs */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-indigo-200/90 hover:border-indigo-400 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
-            <div>
-              <div className="flex items-start gap-3 mb-2.5 sm:mb-3">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 border border-indigo-200/80 flex items-center justify-center text-indigo-700 shadow-xs shrink-0">
-                  <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="#4338ca">
-                    <path d="M12 2C8.5 2 6 4 6 5.5c0 .4.2.8.5 1.1L3 8.5c-.6.4-.4 1.5.3 1.5h17.4c.7 0 .9-1.1.3-1.5L17.5 6.6c.3-.3.5-.7.5-1.1C18 4 15.5 2 12 2z" />
-                    <circle cx="12" cy="12" r="3.5" fill="#4338ca" />
-                    <path d="M4 21c0-3.5 3.5-5.5 8-5.5s8 2 8 5.5v1H4v-1z" fill="#4338ca" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">Verified Chauffeurs</h3>
-                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed mt-1 font-normal">
-                    All chauffeurs are background-verified, licensed for commercial passenger transport, and trained in polite highway etiquette.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 pt-2.5 sm:pt-3 mt-2 border-t border-slate-100">
-              <span className="bg-indigo-50/90 text-indigo-700 border border-indigo-200/80 text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-2xs">
-                <svg className="w-3 h-3 fill-indigo-600" viewBox="0 0 24 24">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  <path d="M9 12l2 2 4-4" fill="none" stroke="#ffffff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-orange-50 text-[#F36B21] border border-orange-100 flex items-center justify-center font-bold text-sm sm:text-base mb-2 sm:mb-2.5">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
                 </svg>
-                <span>Trusted. Trained. Professional.</span>
-              </span>
-              <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full border border-indigo-200 bg-white text-indigo-700 group-hover:bg-indigo-700 group-hover:text-white transition flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
-                →
               </div>
-            </div>
-          </div>
-
-          {/* 5. Official GST Invoices */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-rose-200/90 hover:border-rose-400 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
-            <div>
-              <div className="flex items-start gap-3 mb-2.5 sm:mb-3">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-rose-100 to-red-100 border border-rose-200/80 flex items-center justify-center text-rose-600 shadow-xs shrink-0">
-                  <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none">
-                    <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#e11d48" />
-                    <path d="M14 2v6h6" fill="#be123c" />
-                    <rect x="7" y="11" width="10" height="2" rx="1" fill="#fecdd3" />
-                    <rect x="7" y="15" width="7" height="2" rx="1" fill="#fecdd3" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">Official GST Invoices</h3>
-                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed mt-1 font-normal">
-                    Download structured, printable GST tax invoices directly from your dashboard for corporate reimbursements and tax compliance.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 pt-2.5 sm:pt-3 mt-2 border-t border-slate-100">
-              <span className="bg-rose-50/90 text-rose-700 border border-rose-200/80 text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-2xs">
-                <svg className="w-3 h-3 fill-rose-600" viewBox="0 0 24 24">
-                  <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
-                </svg>
-                <span>100% Genuine & Compliant</span>
-              </span>
-              <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full border border-rose-200 bg-white text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
-                →
-              </div>
-            </div>
-          </div>
-
-          {/* 6. Live Dual-Tier Tracking */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-teal-200/90 hover:border-teal-400 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
-            <div>
-              <div className="flex items-start gap-3 mb-2.5 sm:mb-3">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 border border-teal-200/80 flex items-center justify-center text-teal-600 shadow-xs shrink-0">
-                  <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="#0d9488">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#0d9488" />
-                    <circle cx="12" cy="9" r="2.5" fill="#ffffff" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">Live Dual-Tier Tracking</h3>
-                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed mt-1 font-normal">
-                    Real-time GPS visibility ensures your family can track your journey securely while the driver navigates straight to your doorstep.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 pt-2.5 sm:pt-3 mt-2 border-t border-slate-100">
-              <span className="bg-teal-50/90 text-teal-700 border border-teal-200/80 text-[10px] sm:text-[11px] font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-2xs">
-                <svg className="w-3 h-3 fill-teal-600" viewBox="0 0 24 24">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                </svg>
-                <span>Track. Stay Informed. Travel Confidently.</span>
-              </span>
-              <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full border border-teal-200 bg-white text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
-                →
-              </div>
+              <h3 className="text-xs sm:text-sm font-bold text-[#0B1730] leading-tight">
+                Verified Drivers
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-1.5 sm:mt-2">
+                Experienced commercial chauffeurs for comfortable journeys.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6. How It Works Section */}
-      <section id="how-it-works" className="py-10 sm:py-14 bg-slate-50/80 border-t border-slate-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mb-8 sm:mb-10">
-            <span className="text-xs font-extrabold tracking-wider uppercase text-orange-600">
-              — SIMPLE &amp; EASY
+      {/* 7. How Booking Works Section */}
+      <section id="how-it-works" className="py-6 sm:py-10 bg-slate-50 border-t border-slate-200/80">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-left sm:text-center max-w-3xl sm:mx-auto mb-4 sm:mb-6">
+            <span className="text-[11px] font-black uppercase tracking-widest text-[#F36B21]">
+              HOW BOOKING WORKS
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight mt-1.5">
-              How <span className="text-orange-600">Booking</span> Works
+            <h2 className="text-[17px] sm:text-2xl lg:text-3xl font-black text-[#0B1730] tracking-tight mt-1">
+              Book Your Ride in 4 Simple Steps
             </h2>
-            <p className="text-slate-500 text-xs sm:text-sm mt-1.5 font-normal">
-              Just a few simple steps and you&apos;re on your way. Fast, secure and hassle-free!
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
             {/* Step 01 */}
-            <div className="bg-white rounded-2xl p-3.5 sm:p-4 border-2 border-orange-100 border-l-[4px] border-l-orange-500 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group">
+            <div className="bg-white rounded-xl p-2.5 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-sm transition text-left flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-full bg-orange-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-xs shadow-orange-600/20 shrink-0">
+                <div className="mb-1.5 sm:mb-2">
+                  <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#F36B21] text-white font-bold text-[10px] sm:text-xs flex items-center justify-center">
                     01
-                  </div>
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-orange-50/80 border border-orange-100 flex items-center justify-center relative shrink-0">
-                    <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 48 48" fill="none">
-                      <path d="M6 10L18 6L30 10L42 6V38L30 42L18 38L6 42V10Z" fill="#fff7ed" stroke="#fdba74" strokeWidth="2" strokeLinejoin="round" />
-                      <path d="M14 26C18 20 22 28 28 20C32 15 36 24 36 24" stroke="#f97316" strokeWidth="2.5" strokeDasharray="3 3" strokeLinecap="round" />
-                      <circle cx="14" cy="26" r="3.5" fill="#ea580c" />
-                      <circle cx="14" cy="26" r="1.5" fill="#ffffff" />
-                      <circle cx="36" cy="24" r="3.5" fill="#2563eb" />
-                      <circle cx="36" cy="24" r="1.5" fill="#ffffff" />
-                    </svg>
-                  </div>
+                  </span>
                 </div>
-
-                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight mt-2.5 sm:mt-3 leading-snug">
-                  Select Trip &amp; Route
+                <h3 className="text-xs sm:text-sm font-bold text-[#0B1730] leading-tight">
+                  Choose Trip
                 </h3>
-                <p className="text-[11px] sm:text-xs text-slate-500 leading-normal mt-1 font-normal">
-                  Choose One-Way, Round Trip, Airport or Hourly rental and see instant fare estimates.
+                <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-1.5 sm:mt-2">
+                  Select your pickup and destination
                 </p>
-              </div>
-
-              <div className="flex items-center justify-between gap-1.5 pt-2 sm:pt-2.5 mt-2.5 border-t border-slate-100">
-                <div className="bg-orange-50/90 text-slate-700 border border-orange-200/80 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-semibold flex items-center gap-1 flex-wrap">
-                  <span>🚗 One Way</span>
-                  <span>🔄 Round Trip</span>
-                  <span>✈ Airport</span>
-                  <span>⏱ Hourly</span>
-                </div>
-                <div className="w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full bg-orange-600 text-white flex items-center justify-center font-bold text-[10px] shadow-xs shadow-orange-600/20 group-hover:scale-110 transition shrink-0">
-                  →
-                </div>
               </div>
             </div>
 
             {/* Step 02 */}
-            <div className="bg-white rounded-2xl p-3.5 sm:p-4 border-2 border-blue-100 border-l-[4px] border-l-blue-600 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group">
+            <div className="bg-white rounded-xl p-2.5 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-sm transition text-left flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-xs shadow-blue-600/20 shrink-0">
+                <div className="mb-1.5 sm:mb-2">
+                  <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#F36B21] text-white font-bold text-[10px] sm:text-xs flex items-center justify-center">
                     02
-                  </div>
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50/80 border border-blue-100 flex items-center justify-center relative shrink-0">
-                    <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 48 48" fill="none">
-                      <rect x="12" y="6" width="24" height="36" rx="5" fill="#eff6ff" stroke="#93c5fd" strokeWidth="2" />
-                      <rect x="16" y="12" width="16" height="12" rx="2" fill="#dbeafe" />
-                      <circle cx="34" cy="34" r="7.5" fill="#0284c7" />
-                      <path d="M31 34L33 36L37 32" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
+                  </span>
                 </div>
-
-                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight mt-2.5 sm:mt-3 leading-snug">
-                  Pay 20% Advance
+                <h3 className="text-xs sm:text-sm font-bold text-[#0B1730] leading-tight">
+                  Select Vehicle
                 </h3>
-                <p className="text-[11px] sm:text-xs text-slate-500 leading-normal mt-1 font-normal">
-                  Confirm your ride securely with UPI / Card advance. Instantly receive your Booking ID.
+                <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-1.5 sm:mt-2">
+                  Pick your preferred car category
                 </p>
-              </div>
-
-              <div className="flex items-center justify-between gap-1.5 pt-2 sm:pt-2.5 mt-2.5 border-t border-slate-100">
-                <div className="bg-blue-50 text-blue-800 border border-blue-200/80 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold flex items-center gap-1">
-                  <svg className="w-2.5 h-2.5 fill-blue-600" viewBox="0 0 24 24">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    <path d="M9 12l2 2 4-4" fill="none" stroke="#ffffff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span>Secure &amp; Trusted</span>
-                </div>
-                <div className="w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px] shadow-xs shadow-blue-600/20 group-hover:scale-110 transition shrink-0">
-                  →
-                </div>
               </div>
             </div>
 
             {/* Step 03 */}
-            <div className="bg-white rounded-2xl p-3.5 sm:p-4 border-2 border-emerald-100 border-l-[4px] border-l-emerald-600 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group">
+            <div className="bg-white rounded-xl p-2.5 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-sm transition text-left flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-xs shadow-emerald-600/20 shrink-0">
+                <div className="mb-1.5 sm:mb-2">
+                  <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#F36B21] text-white font-bold text-[10px] sm:text-xs flex items-center justify-center">
                     03
-                  </div>
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50/80 border border-emerald-100 flex items-center justify-center relative shrink-0">
-                    <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 48 48" fill="none">
-                      <path d="M24 10C20 10 17 12 17 14c0 .4.2.8.5 1.1L14 17c-.6.4-.4 1.5.3 1.5h19.4c.7 0 .9-1.1.3-1.5l-3.5-1.9c.3-.3.5-.7.5-1.1 0-2-3-4-7-4z" fill="#047857" />
-                      <circle cx="24" cy="22" r="4.5" fill="#047857" />
-                      <path d="M14 34c0-4 4.5-6.5 10-6.5s10 2.5 10 6.5v2H14v-2z" fill="#047857" />
-                      <path d="M34 38s6-3 6-7.5V25l-6-2.5-6 2.5v5.5c0 4.5 6 7.5 6 7.5z" fill="#059669" />
-                      <path d="M31.5 30.5L33.5 32.5L36.5 28.5" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
+                  </span>
                 </div>
-
-                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight mt-2.5 sm:mt-3 leading-snug">
-                  Driver Match &amp; OTP
+                <h3 className="text-xs sm:text-sm font-bold text-[#0B1730] leading-tight">
+                  Enter Details
                 </h3>
-                <p className="text-[11px] sm:text-xs text-slate-500 leading-normal mt-1 font-normal">
-                  Get assigned chauffeur details and share your 4-digit pickup OTP only when the car arrives.
+                <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-1.5 sm:mt-2">
+                  Add date, time &amp; passenger info
                 </p>
-              </div>
-
-              <div className="flex items-center justify-between gap-1.5 pt-2 sm:pt-2.5 mt-2.5 border-t border-slate-100">
-                <div className="bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold flex items-center gap-1">
-                  <span>📱</span>
-                  <span>4-Digit OTP Gate</span>
-                </div>
-                <div className="w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px] shadow-xs shadow-emerald-600/20 group-hover:scale-110 transition shrink-0">
-                  →
-                </div>
               </div>
             </div>
 
             {/* Step 04 */}
-            <div className="bg-white rounded-2xl p-3.5 sm:p-4 border-2 border-indigo-100 border-l-[4px] border-l-indigo-600 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group">
+            <div className="bg-white rounded-xl p-2.5 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-sm transition text-left flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-xs shadow-indigo-600/20 shrink-0">
+                <div className="mb-1.5 sm:mb-2">
+                  <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#F36B21] text-white font-bold text-[10px] sm:text-xs flex items-center justify-center">
                     04
-                  </div>
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50/80 border border-indigo-100 flex items-center justify-center relative shrink-0">
-                    <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 48 48" fill="none">
-                      <rect x="8" y="20" width="32" height="14" rx="4" fill="#6366f1" />
-                      <path d="M12 20L15 11H33L36 20" fill="#818cf8" />
-                      <circle cx="14" cy="27" r="2.5" fill="#ffffff" />
-                      <circle cx="34" cy="27" r="2.5" fill="#ffffff" />
-                      <circle cx="37" cy="35" r="7" fill="#4f46e5" />
-                      <path d="M34 35L36 37L40 33" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
+                  </span>
                 </div>
-
-                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight mt-2.5 sm:mt-3 leading-snug">
-                  Enjoy Ride &amp; Invoice
+                <h3 className="text-xs sm:text-sm font-bold text-[#0B1730] leading-tight">
+                  Confirm &amp; Pay
                 </h3>
-                <p className="text-[11px] sm:text-xs text-slate-500 leading-normal mt-1 font-normal">
-                  Enjoy your comfortable ride and download the official tax invoice right upon completion.
+                <p className="text-[10px] sm:text-[11px] text-slate-500 leading-snug mt-1.5 sm:mt-2">
+                  Complete your booking securely
                 </p>
-              </div>
-
-              <div className="flex items-center justify-between gap-1.5 pt-2 sm:pt-2.5 mt-2.5 border-t border-slate-100">
-                <div className="bg-indigo-50 text-indigo-800 border border-indigo-200/80 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold flex items-center gap-1">
-                  <span>📄</span>
-                  <span>GST Invoice</span>
-                </div>
-                <div className="w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shadow-xs shadow-indigo-600/20 group-hover:scale-110 transition shrink-0">
-                  →
-                </div>
               </div>
             </div>
           </div>
@@ -1995,110 +1934,29 @@ export default function HomePage() {
       </section>
 
       {/* 8. Call to Action Banner */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-orange-600 via-orange-600 to-amber-600 text-white py-10 sm:py-14 md:py-16 border-t border-orange-500">
-        {/* Background Image on Left with Smooth Gradient Transition to Orange */}
-        <div className="absolute inset-y-0 left-0 w-full md:w-2/5 overflow-hidden pointer-events-none">
-          <Image
-            src="/images/cta-scenic-drive.webp"
-            alt="Scenic Outstation Highway Drive"
-            fill
-            sizes="(max-width: 768px) 100vw, 40vw"
-            className="w-full h-full object-cover object-left opacity-85 md:opacity-100"
-          />
-          {/* Smooth Linear Gradient to Orange Content */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-orange-600/60 to-orange-600 md:from-transparent md:via-orange-600/70 md:to-orange-600" />
-          <div className="absolute inset-0 bg-gradient-to-t from-orange-600/90 via-transparent to-orange-600/30 md:hidden" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid grid-cols-1 md:grid-cols-12 items-center gap-6 md:gap-6 lg:gap-10">
-          {/* Left Column Spacer for tablet & desktop so the car is prominently visible on the left */}
-          <div className="hidden md:block md:col-span-3 lg:col-span-3" />
-
-          {/* Middle Column Content */}
-          <div className="md:col-span-5 lg:col-span-6 text-center md:text-left space-y-3.5">
-            <div className="flex items-center justify-center md:justify-start gap-2 text-white/90 font-extrabold text-[10px] sm:text-[11px] tracking-widest uppercase">
-              <span>YOUR NEXT JOURNEY AWAITS</span>
-              <span className="w-8 h-0.5 bg-white/40 hidden sm:inline-block" />
-            </div>
-
-            <h2 className="text-2xl sm:text-3xl md:text-[1.65rem] lg:text-[2.25rem] font-black tracking-tight text-white leading-tight">
-              Ready for Your Next <span className="text-slate-950 font-black">Outstation Journey?</span>
+      <section className="py-3 sm:py-6 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
+        <div className="relative overflow-hidden rounded-xl bg-[#0B1730] text-white py-3.5 px-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 shadow-md">
+          <div className="relative z-10 text-center sm:text-left space-y-0.5 sm:space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#F36B21]">
+              READY FOR YOUR NEXT JOURNEY?
+            </span>
+            <h2 className="text-base sm:text-xl font-black text-white tracking-tight">
+              Book Your Cab Today
             </h2>
-
-            <p className="text-white/90 font-normal text-xs sm:text-sm max-w-lg mx-auto md:mx-0 leading-relaxed">
-              Book in under 2 minutes. Transparent pricing, sanitized cars, and dedicated 24/7 support.
+            <p className="text-[11px] sm:text-xs text-slate-300 font-normal">
+              Comfortable rides. Transparent fares. Anywhere in Karnataka &amp; beyond.
             </p>
-
-            <div className="pt-1.5 flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3.5">
-              <button
-                type="button"
-                onClick={() => scrollToBookingEngine()}
-                className="px-5 sm:px-6 py-2.5 sm:py-3 bg-[#0b1329] hover:bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer shrink-0"
-              >
-                <svg className="w-4 h-4 text-white shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="9" rx="3" />
-                  <path d="M5 11l2-6h10l2 6" />
-                  <circle cx="7" cy="15.5" r="1.5" />
-                  <circle cx="17" cy="15.5" r="1.5" />
-                  <path d="M10 15.5h4" />
-                </svg>
-                <span className="whitespace-nowrap">Book Your Cab Now</span>
-                <span>→</span>
-              </button>
-              <a
-                href="tel:+919876543210"
-                className="px-5 sm:px-6 py-2.5 sm:py-3 bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer shrink-0"
-              >
-                <svg className="w-4 h-4 text-orange-600 fill-orange-600 shrink-0" viewBox="0 0 24 24">
-                  <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.24 1.02l-2.21 2.2z" />
-                </svg>
-                <span className="whitespace-nowrap">Call Support (+91 98765 43210)</span>
-              </a>
-            </div>
           </div>
 
-          {/* Right Column Value Props with vertical divider */}
-          <div className="md:col-span-4 lg:col-span-3 border-t md:border-t-0 md:border-l border-white/25 pt-5 md:pt-0 md:pl-5 lg:pl-8 space-y-3.5">
-            {/* Value Prop 1 */}
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-xs flex items-center justify-center text-white shrink-0">
-                <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  <path d="M9 12l2 2 4-4" fill="none" stroke="#f97316" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-white font-bold text-xs sm:text-sm leading-snug">Safe &amp; Sanitized Vehicles</div>
-                <div className="text-white/75 text-[10.5px] sm:text-[11px]">Your safety is our priority</div>
-              </div>
-            </div>
-
-            {/* Value Prop 2 */}
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-xs flex items-center justify-center text-white shrink-0">
-                <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                  <circle cx="12" cy="12" r="9" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-white font-bold text-xs sm:text-sm leading-snug">24/7 Customer Support</div>
-                <div className="text-white/75 text-[10.5px] sm:text-[11px]">Always here for you</div>
-              </div>
-            </div>
-
-            {/* Value Prop 3 */}
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 backdrop-blur-xs flex items-center justify-center text-white shrink-0">
-                <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5 fill-current text-white" viewBox="0 0 24 24">
-                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-white font-bold text-xs sm:text-sm leading-snug">Trusted by 10,000+ Customers</div>
-                <div className="text-white/75 text-[10.5px] sm:text-[11px]">Rides you can rely on</div>
-              </div>
-            </div>
+          <div className="relative z-10 shrink-0">
+            <button
+              type="button"
+              onClick={() => scrollToBookingEngine()}
+              className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-[#F36B21] hover:bg-orange-600 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-lg transition-all shadow-sm flex items-center gap-1.5"
+            >
+              <span>Search Cabs</span>
+              <span>→</span>
+            </button>
           </div>
         </div>
       </section>
@@ -2801,11 +2659,11 @@ export default function HomePage() {
                 }}
                 className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
                   isActive
-                    ? 'bg-orange-50 text-orange-600 border border-orange-400 font-black shadow-xs'
+                    ? 'bg-orange-50 text-[#F36B21] border border-orange-200 font-bold shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800 font-semibold'
                 }`}
               >
-                <div className={`${isActive ? 'text-orange-600' : 'text-slate-500'}`}>
+                <div className={`${isActive ? 'text-[#F36B21]' : 'text-slate-400'}`}>
                   {item.icon}
                 </div>
                 <span className="text-[10px] tracking-tight mt-0.5 whitespace-nowrap">

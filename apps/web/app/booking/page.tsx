@@ -1290,27 +1290,63 @@ export default function BookingFunnelPage() {
                           {/* Inline Fuel Dropdown Selector (Shown When Vehicle is Selected) */}
                           {isCatSelected && q.fuelOptions && q.fuelOptions.length > 0 && (
                             <div
-                              className="mt-1.5 pt-1.5 border-t border-orange-200/60"
+                              className="mt-2 pt-2 border-t border-orange-200/70"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="relative w-full">
+                                {/* Custom visual display matching reference */}
+                                <div className="flex items-center justify-between bg-white border border-orange-300 hover:border-orange-400 rounded-xl px-2.5 py-1.5 shadow-2xs transition">
+                                  {/* Left: Fuel Icon + Fuel Type Name */}
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/80 flex items-center justify-center text-xs shrink-0">
+                                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="3" x2="15" y1="22" y2="22" />
+                                        <line x1="4" x2="14" y1="9" y2="9" />
+                                        <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18" />
+                                        <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5" />
+                                      </svg>
+                                    </div>
+                                    <span className="font-extrabold text-xs sm:text-sm text-slate-900 capitalize">
+                                      {selectedFuelType.toLowerCase()}
+                                    </span>
+                                  </div>
+
+                                  {/* Middle Separator */}
+                                  <div className="h-4 w-px bg-slate-200 mx-1.5" />
+
+                                  {/* Right: Fare Amount & Estimated Fare label */}
+                                  <div className="flex items-center gap-2">
+                                    <div className="text-right">
+                                      <div className="text-xs sm:text-sm font-black text-[#0B1730] font-mono leading-none">
+                                        ₹{q.fuelOptions.find((fo) => fo.fuelType === selectedFuelType)?.pricing.totalFare.toLocaleString('en-IN') || q.pricing.totalFare.toLocaleString('en-IN')}
+                                      </div>
+                                      <div className="text-[9px] text-slate-400 font-medium mt-0.5">
+                                        Estimated Fare
+                                      </div>
+                                    </div>
+                                    <span className="text-slate-400 text-[10px] font-bold pl-0.5">▾</span>
+                                  </div>
+                                </div>
+
+                                {/* Transparent overlay select element for interaction */}
                                 <select
                                   value={selectedFuelType}
                                   onChange={(e) => {
                                     e.stopPropagation();
                                     handleSelectCategoryAndFuel(q.category, e.target.value as FuelType);
                                   }}
-                                  className="w-full py-1 px-2.5 pr-6 rounded-lg bg-white border border-orange-300 font-bold text-[11px] sm:text-xs text-slate-800 focus:ring-2 focus:ring-orange-500 focus:outline-none appearance-none cursor-pointer shadow-2xs"
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                  aria-label="Select Fuel Type"
                                 >
-                                  {q.fuelOptions.map((fo) => (
-                                    <option key={fo.fuelType} value={fo.fuelType}>
-                                      {fo.fuelType === FuelType.CNG ? '🟢 CNG' : fo.fuelType === FuelType.PETROL ? '🟡 Petrol' : '🔵 Diesel'} (₹{fo.pricing.totalFare.toLocaleString('en-IN')})
-                                    </option>
-                                  ))}
+                                  {q.fuelOptions.map((fo) => {
+                                    const fuelName = fo.fuelType === FuelType.CNG ? 'CNG' : fo.fuelType === FuelType.PETROL ? 'Petrol' : 'Diesel';
+                                    return (
+                                      <option key={fo.fuelType} value={fo.fuelType}>
+                                        ⛽ {fuelName} | ₹{fo.pricing.totalFare.toLocaleString('en-IN')}
+                                      </option>
+                                    );
+                                  })}
                                 </select>
-                                <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-slate-500 text-[10px]">
-                                  ▼
-                                </div>
                               </div>
                             </div>
                           )}
@@ -1439,7 +1475,7 @@ export default function BookingFunnelPage() {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="e.g. Rachel Sharma"
-                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 font-medium focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
                       />
                     </div>
 
@@ -1566,12 +1602,12 @@ export default function BookingFunnelPage() {
                       )
                     ) : (
                       <div className="space-y-2 sm:space-y-3">
-                        <div className="p-2.5 sm:p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                          <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                        <div className="p-2.5 sm:p-3 bg-orange-50 border border-orange-200 rounded-xl">
+                          <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-orange-800">
                             New Customer Registration
                           </div>
-                          <p className="text-[11px] sm:text-xs text-amber-700 mt-0.5">
-                            Please enter your passenger name for dispatch & trip invoices.
+                          <p className="text-[11px] sm:text-xs text-orange-700 mt-0.5">
+                            Please enter your passenger name for dispatch &amp; trip invoices.
                           </p>
                         </div>
 
@@ -1585,7 +1621,7 @@ export default function BookingFunnelPage() {
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
                             placeholder="e.g. Rachel Sharma"
-                            className="w-full rounded-xl border border-slate-300 px-3 sm:px-3.5 py-2 sm:py-2.5 text-sm text-slate-800 font-medium focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition"
+                            className="w-full rounded-xl border border-slate-300 px-3 sm:px-3.5 py-2 sm:py-2.5 text-sm text-slate-800 font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition"
                           />
                         </div>
                       </div>
@@ -1599,7 +1635,7 @@ export default function BookingFunnelPage() {
                         <button
                           type="button"
                           onClick={() => setOtpSent(false)}
-                          className="text-[10px] sm:text-xs font-semibold text-amber-600 hover:text-amber-800 underline transition truncate"
+                          className="text-[10px] sm:text-xs font-semibold text-orange-600 hover:text-orange-800 underline transition truncate"
                         >
                           Change (+91 {phone})
                         </button>
@@ -1611,13 +1647,13 @@ export default function BookingFunnelPage() {
                         value={otp}
                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                         placeholder="••••"
-                        className="w-full text-center text-2xl sm:text-3xl tracking-[0.4em] sm:tracking-[0.5em] font-mono font-black rounded-xl border border-slate-300 py-2 sm:py-3 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition bg-slate-50"
+                        className="w-full text-center text-2xl sm:text-3xl tracking-[0.4em] sm:tracking-[0.5em] font-mono font-black rounded-xl border border-slate-300 py-2 sm:py-3 text-slate-900 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition bg-slate-50"
                       />
                       {debugOtp && (
                         <div className="mt-1.5 sm:mt-2 text-center">
-                          <span className="inline-flex items-center gap-1.5 bg-amber-100 border border-amber-300 text-amber-900 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full">
+                          <span className="inline-flex items-center gap-1.5 bg-orange-100 border border-orange-300 text-orange-900 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full">
                             <span>⚡ Dev Code: {debugOtp}</span>
-                            <span className="text-[9px] sm:text-[10px] font-normal text-amber-700">(Auto-filled)</span>
+                            <span className="text-[9px] sm:text-[10px] font-normal text-orange-700">(Auto-filled)</span>
                           </span>
                         </div>
                       )}
@@ -1639,17 +1675,17 @@ export default function BookingFunnelPage() {
                     </button>
 
                     <div className="flex items-center justify-between pt-2 text-xs">
-                      <span className="text-slate-500">Didn't receive the SMS?</span>
+                      <span className="text-slate-500">Didn&apos;t receive the SMS?</span>
                       {resendTimer > 0 ? (
                         <span className="font-semibold text-slate-400">
-                          Resend in <span className="text-amber-600 font-mono">{resendTimer}s</span>
+                          Resend in <span className="text-orange-600 font-mono">{resendTimer}s</span>
                         </span>
                       ) : (
                         <button
                           type="button"
                           disabled={isAuthLoading}
                           onClick={handleSendOtp}
-                          className="font-bold text-amber-600 hover:text-amber-800 transition"
+                          className="font-bold text-orange-600 hover:text-orange-800 transition"
                         >
                           Resend OTP
                         </button>
