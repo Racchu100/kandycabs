@@ -25,7 +25,9 @@
       "package": "com.kandycabs.customer",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "plugins": [
@@ -43,9 +45,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "ed0ed930-9fcd-4481-9393-539f0fd06809"
+        "projectId": "fd1ef234-8454-439f-a6bb-b38ad5ee4376"
       }
     },
-    "owner": "rakshithm"
+    "owner": "graphitex"
   }
 }

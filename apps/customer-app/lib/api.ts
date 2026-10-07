@@ -54,33 +54,10 @@ export const customerTokenStorage = new MobileTokenStorage();
 import Constants from 'expo-constants';
 
 export function getDynamicBaseUrl(): string {
-  // 1. Web Browser context
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const hostname = window.location.hostname;
-    return `http://${hostname}:3000`;
-  }
-
-  // 2. Extract host IP dynamically from Expo hostUri (physical phones & emulators connected to Metro)
-  const hostUri =
-    Constants.expoConfig?.hostUri ||
-    (Constants as any).manifest?.debuggerHost ||
-    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ||
-    (Constants as any).manifest2?.extra?.expoClient?.hostUri;
-
-  if (hostUri) {
-    const hostIp = hostUri.split(':')[0];
-    if (hostIp && hostIp !== 'localhost' && hostIp !== '127.0.0.1') {
-      return `http://${hostIp}:3000`;
-    }
-  }
-
-  // 3. Explicitly configured API URL
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
   }
-
-  // 4. Fallback to current LAN IP
-  return 'http://10.210.115.146:3000';
+  return 'https://web-rgwp.vercel.app';
 }
 
 export const customerApiClient = new KandyApiClient({

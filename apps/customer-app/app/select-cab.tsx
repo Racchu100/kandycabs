@@ -284,7 +284,7 @@ const DEFAULT_FLEET_DATA: FleetItem[] = [
     badge: 'LUXURY VAN',
     badgeColor: '#1e293b',
     badgeBg: '#f1f5f9',
-    image: require('../assets/images/fleet-urbania.png'),
+    image: require('../assets/images/vehicle-urbania.jpg'),
     purpose: 'Executive group trips, corporate delegates & VIP tours',
     passengers: 17,
     luggage: 10,

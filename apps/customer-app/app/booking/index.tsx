@@ -131,7 +131,7 @@ const FLEET_INFO: Record<
     passengers: 17,
     luggage: 10,
     badge: 'LUXURY VAN',
-    image: require('../../assets/images/fleet-urbania.png'),
+    image: require('../../assets/images/vehicle-urbania.jpg'),
     color: '#475569',
     category: VehicleCategory.TEMPO_TRAVELER,
   },

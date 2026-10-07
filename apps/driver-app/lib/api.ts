@@ -64,32 +64,10 @@ class MobileTokenStorage implements TokenStorage {
 export const driverTokenStorage = new MobileTokenStorage();
 
 export function getDynamicBaseUrl(): string {
-  // 1. Web Browser context (e.g. running on http://localhost:8081 or http://10.73.0.146:8081)
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const hostname = window.location.hostname;
-    return `http://${hostname}:3000`;
-  }
-
-  // 2. Extract host IP from Expo hostUri (works automatically on physical phones over Wi-Fi and emulators)
-  const hostUri =
-    Constants.expoConfig?.hostUri ||
-    (Constants as any).manifest?.debuggerHost ||
-    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost;
-
-  if (hostUri) {
-    const hostIp = hostUri.split(':')[0];
-    if (hostIp && hostIp !== 'localhost' && hostIp !== '127.0.0.1') {
-      return `http://${hostIp}:3000`;
-    }
-  }
-
-  // 3. Explicitly configured API URL (e.g. Vercel production or local LAN)
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
   }
-
-  // 4. Fallback to current LAN IP
-  return 'http://10.210.115.146:3000';
+  return 'https://web-rgwp.vercel.app';
 }
 
 export const driverApiClient = new KandyApiClient({
