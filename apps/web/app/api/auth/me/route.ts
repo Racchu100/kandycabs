@@ -63,10 +63,12 @@ export async function GET(req: NextRequest) {
       return setCorsHeaders(res);
     }
 
+    const cleanFullName = (user.fullName === 'Kandy Customer' ? '' : (user.fullName || ''));
+
     const userProfile = {
       id: user.id,
       phone: user.phone,
-      fullName: user.fullName,
+      fullName: cleanFullName,
       roles: user.roles as UserRole[],
       createdAt: user.createdAt,
       customer: user.customer
@@ -88,7 +90,10 @@ export async function GET(req: NextRequest) {
         : null,
     };
 
-    const res = NextResponse.json({ user: userProfile }, { status: 200 });
+    const res = NextResponse.json({ 
+      user: userProfile,
+      hasRegisteredName: Boolean(cleanFullName.trim().length > 0),
+    }, { status: 200 });
     return setCorsHeaders(res);
   } catch (error: any) {
     console.error('Error in GET /api/auth/me:', error);

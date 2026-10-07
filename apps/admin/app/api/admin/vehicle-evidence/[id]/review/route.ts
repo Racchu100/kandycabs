@@ -29,17 +29,27 @@ export async function POST(
       return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
     }
 
-    // Atomically update Driver status and write AuditLog
-    await prisma.$transaction(async (tx) => {
-      await tx.driver.update({
-        where: { id: driverId },
-        data: {
-          verificationStatus: status as DriverVerificationStatus,
-          adminNotes: adminNotes || null,
-        },
-      });
+    let finalNotes = driver.adminNotes;
+    if (adminNotes !== undefined && adminNotes !== null && String(adminNotes).trim()) {
+      // If admin provided a specific note (e.g., rejection feedback), preserve vehicle tags while updating note
+      const carModelMatch = driver.adminNotes?.match(/\[Car Model:\s*([^\]]+)\]/);
+      const carriageMatch = driver.adminNotes?.match(/\[Luggage\/Carriage:\s*([^\]]+)\]/);
+      const tags = [carModelMatch ? carModelMatch[0] : '', carriageMatch ? carriageMatch[0] : ''].filter(Boolean).join(' ');
+      finalNotes = tags ? `${adminNotes.trim()} ${tags}` : adminNotes.trim();
+    }
 
-      await tx.auditLog.create({
+    // Update Driver verification status
+    await prisma.driver.update({
+      where: { id: driverId },
+      data: {
+        verificationStatus: status as DriverVerificationStatus,
+        adminNotes: finalNotes,
+      },
+    });
+
+    // Write Audit Log non-blockingly
+    try {
+      await prisma.auditLog.create({
         data: {
           action: status === 'APPROVED' ? 'DRIVER_KYC_APPROVED' : 'DRIVER_KYC_REJECTED',
           entityType: 'Driver',
@@ -47,7 +57,9 @@ export async function POST(
           reason: adminNotes || `Driver KYC ${status.toLowerCase()} by admin`,
         },
       });
-    });
+    } catch (auditErr) {
+      console.warn('Failed to record audit log:', auditErr);
+    }
 
     return NextResponse.json({
       success: true,

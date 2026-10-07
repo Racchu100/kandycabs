@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Find or create User
-    let user = await prisma.user.findUnique({
+    const existingUser = await prisma.user.findUnique({
       where: { phone: normalizedPhone },
       include: {
         customer: true,
@@ -86,11 +86,20 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const isNewUser = !existingUser;
+    const hasRegisteredName = !!(
+      existingUser?.fullName &&
+      existingUser.fullName !== 'Kandy Customer' &&
+      existingUser.fullName.trim().length > 0
+    );
+
+    let user = existingUser;
+
     if (!user) {
       user = await prisma.user.create({
         data: {
           phone: normalizedPhone,
-          fullName: fullName?.trim() || 'Kandy Customer',
+          fullName: fullName?.trim() || '',
           roles: [UserRole.CUSTOMER],
           customer: {
             create: {},
@@ -101,15 +110,35 @@ export async function POST(req: NextRequest) {
           driver: true,
         },
       });
-    } else if (!user.customer && user.roles.includes(UserRole.CUSTOMER)) {
-      // Ensure customer record exists
-      await prisma.customer.create({
-        data: { userId: user.id },
-      });
-      user = await prisma.user.findUnique({
-        where: { id: user.id },
-        include: { customer: true, driver: true },
-      });
+    } else {
+      const updateData: any = {};
+      if (fullName && typeof fullName === 'string' && fullName.trim().length > 0) {
+        updateData.fullName = fullName.trim();
+      }
+
+      // If logging into customer app or user has no customer profile, ensure CUSTOMER role is added
+      if (body.role !== 'DRIVER' && !user.roles.includes(UserRole.CUSTOMER)) {
+        updateData.roles = [...user.roles, UserRole.CUSTOMER];
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+          include: { customer: true, driver: true },
+        });
+      }
+
+      // Ensure customer record exists if logging in as customer or has CUSTOMER role
+      if (!user.customer && (body.role !== 'DRIVER' || user.roles.includes(UserRole.CUSTOMER))) {
+        await prisma.customer.create({
+          data: { userId: user.id },
+        });
+        user = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: { customer: true, driver: true },
+        });
+      }
     }
 
     if (!user) {
@@ -118,6 +147,20 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
       return setCorsHeaders(res);
+    }
+
+    // If logging into the Driver App, ensure active driver record exists
+    if (body.role === 'DRIVER') {
+      if (!user.driver || user.driver.deletedAt || user.deletedAt) {
+        const res = NextResponse.json(
+          {
+            success: false,
+            message: 'Your driver account has been deactivated or removed by Admin. Please contact support.',
+          },
+          { status: 403 }
+        );
+        return setCorsHeaders(res);
+      }
     }
 
     // Generate JWT token
@@ -129,10 +172,12 @@ export async function POST(req: NextRequest) {
       driverId: user.driver?.id || null,
     });
 
+    const cleanFullName = (user.fullName === 'Kandy Customer' ? '' : (user.fullName || ''));
+
     const userProfile = {
       id: user.id,
       phone: user.phone,
-      fullName: user.fullName,
+      fullName: cleanFullName,
       roles: user.roles as UserRole[],
       createdAt: user.createdAt,
       customer: user.customer
@@ -154,25 +199,38 @@ export async function POST(req: NextRequest) {
         : null,
     };
 
+    const isNameActuallyRegistered = Boolean(cleanFullName.trim().length > 0);
+
     const response = NextResponse.json(
       {
         success: true,
         token,
         user: userProfile,
+        isNewUser,
+        hasRegisteredName: isNameActuallyRegistered,
       },
       { status: 200 }
     );
 
-    // Set httpOnly session cookie
-    response.cookies.set({
-      name: 'kandy_session',
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-    });
+    // Set httpOnly session cookie safely
+    if (response.cookies && typeof response.cookies.set === 'function') {
+      response.cookies.set({
+        name: 'kandy_session',
+        value: token,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+      });
+    } else {
+      response.headers.set(
+        'Set-Cookie',
+        `kandy_session=${token}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Lax${
+          process.env.NODE_ENV === 'production' ? '; Secure' : ''
+        }`
+      );
+    }
 
     return setCorsHeaders(response);
   } catch (error: any) {

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AdminNavbar } from '@/components/AdminNavbar';
 import { reverseGeocodeLocation } from '@/lib/geocoding';
+import { resolveImageUrl } from '@/lib/resolveImageUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -315,7 +316,7 @@ export default function AdminOdometerEvidencePage() {
                   </div>
                   {lightboxItem.startingOdometerImagePath && !lightboxItem.startingOdometerImagePath.startsWith('file://') ? (
                     <img
-                      src={lightboxItem.startingOdometerImagePath}
+                      src={resolveImageUrl(lightboxItem.startingOdometerImagePath)}
                       alt="Starting Odometer"
                       className="w-full h-72 object-contain bg-slate-900 rounded-lg border border-slate-200"
                       onError={(e) => {
@@ -377,7 +378,7 @@ export default function AdminOdometerEvidencePage() {
                   </div>
                   {lightboxItem.finalOdometerImagePath && !lightboxItem.finalOdometerImagePath.startsWith('file://') ? (
                     <img
-                      src={lightboxItem.finalOdometerImagePath}
+                      src={resolveImageUrl(lightboxItem.finalOdometerImagePath)}
                       alt="Final Odometer"
                       className="w-full h-72 object-contain bg-slate-900 rounded-lg border border-slate-200"
                       onError={(e) => {
@@ -425,6 +426,67 @@ export default function AdminOdometerEvidencePage() {
                       </span>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Trip Start Vehicle Inspection Photos (4 Angles) */}
+              <div className="bg-sky-50/50 border border-sky-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📸</span>
+                    <span className="text-xs font-bold text-sky-950 uppercase tracking-wider">
+                      Trip Start Vehicle Inspection Photos (4 Angles)
+                    </span>
+                  </div>
+                  <span className="text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-md border border-sky-200">
+                    {Array.isArray(lightboxItem.vehicleInspectionPhotos) && lightboxItem.vehicleInspectionPhotos.length > 0
+                      ? `${lightboxItem.vehicleInspectionPhotos.filter(Boolean).length}/4 Attached`
+                      : 'None Attached'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Front Photo', sub: 'Bumper & Plate', idx: 0 },
+                    { label: 'Rear Photo', sub: 'Tail & Boot', idx: 1 },
+                    { label: 'Side Photo', sub: 'Doors & Body', idx: 2 },
+                    { label: 'Inside Photo', sub: 'Interior Cabin', idx: 3 },
+                  ].map((angle) => {
+                    const photoUrl = Array.isArray(lightboxItem.vehicleInspectionPhotos)
+                      ? lightboxItem.vehicleInspectionPhotos[angle.idx]
+                      : null;
+                    return (
+                      <div
+                        key={angle.label}
+                        className="bg-white border border-slate-200 rounded-lg p-2.5 flex flex-col items-center text-center shadow-2xs"
+                      >
+                        <span className="text-[11px] font-bold text-slate-800">{angle.label}</span>
+                        <span className="text-[9px] text-slate-500 mb-1.5">{angle.sub}</span>
+                        {photoUrl ? (
+                          <div className="w-full h-28 bg-slate-900 rounded border border-emerald-300 overflow-hidden relative group">
+                            <img
+                              src={photoUrl}
+                              alt={angle.label}
+                              className="w-full h-full object-cover group-hover:scale-105 transition"
+                            />
+                            <a
+                              href={photoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-[10px] font-bold"
+                            >
+                              Open Full HD ↗
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="w-full h-28 bg-slate-100 rounded border border-dashed border-slate-300 flex flex-col items-center justify-center text-[10px] text-slate-400 p-2">
+                            <span className="text-xl mb-1">📷</span>
+                            <span>Not Captured</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

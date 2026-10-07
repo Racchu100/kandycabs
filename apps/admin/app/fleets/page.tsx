@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { AdminNavbar } from '@/components/AdminNavbar';
-import { VehicleCategory } from '@kandy-cabs/shared';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +11,7 @@ export default function AdminFleetsPage() {
   const [loading, setLoading] = useState(true);
   const [editingFleet, setEditingFleet] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   const fetchFleets = useCallback(async () => {
     setLoading(true);
@@ -58,8 +59,6 @@ export default function AdminFleetsPage() {
     }
   };
 
-  const [search, setSearch] = useState('');
-
   const displayedFleets = React.useMemo(() => {
     if (!fleets || fleets.length === 0) return [];
     if (!search.trim()) return fleets;
@@ -81,19 +80,25 @@ export default function AdminFleetsPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              <span>🚐</span> Fleet Vehicle Categories Management
+              <span>🚐</span> Fleet Vehicle Categories & Specs
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Configure vehicle classes, seat capacities, base rates across fuel types, and driver allowances
+              Configure vehicle classes, seating, boot luggage, supported fuels (CNG, Petrol, Diesel), and roof carrier availability/exclusions.
             </p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Link
+              href="/pricing"
+              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-xs"
+            >
+              <span>🏷️</span> Go to Pricing Rules
+            </Link>
             <div className="relative flex-1 sm:w-64">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Quick search fleet categories..."
+                placeholder="Search fleets..."
                 className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition shadow-2xs"
               />
               <span className="absolute left-2.5 top-2 text-xs text-slate-400">🔍</span>
@@ -104,6 +109,20 @@ export default function AdminFleetsPage() {
             >
               <span>🔄</span> Refresh
             </button>
+          </div>
+        </div>
+
+        {/* Informational Callout */}
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <span className="text-lg">ℹ️</span>
+            <div>
+              <span className="font-bold">Pure Vehicle Specs & Carrier Rules:</span> Fare calculations and rates are in{' '}
+              <Link href="/pricing" className="underline font-bold text-amber-950 hover:text-amber-700">
+                Pricing Rules
+              </Link>
+              . You can explicitly mark roof carriers as available for remaining cars while excluding specific models like <strong>Tata Tiago</strong>.
+            </div>
           </div>
         </div>
 
@@ -132,7 +151,7 @@ export default function AdminFleetsPage() {
                         {fleet.category}
                       </span>
                       <h3 className="text-lg font-bold text-slate-900 mt-1">{fleet.name}</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">{fleet.description}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{fleet.description || 'No description provided'}</p>
                     </div>
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
@@ -143,74 +162,145 @@ export default function AdminFleetsPage() {
                     </span>
                   </div>
 
-                  {/* Vehicle Capacity Badges */}
-                  <div className="flex gap-4 py-2 border-y border-slate-100 text-xs text-slate-600">
-                    <div>👥 Seats: <span className="font-bold text-slate-900">{fleet.seatCount}</span></div>
-                    <div>🧳 Luggage: <span className="font-bold text-slate-900">{fleet.luggageCount} bags</span></div>
+                  {/* Vehicle Physical Capacities */}
+                  <div className="grid grid-cols-2 gap-2 py-2.5 px-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                    <div>
+                      <span className="text-slate-500 block text-[11px] font-semibold">👥 Seating Capacity:</span>
+                      <span className="font-bold text-slate-900 text-sm">{fleet.seatCount} Passengers</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[11px] font-semibold">🧳 Boot Luggage:</span>
+                      <span className="font-bold text-slate-900 text-sm">
+                        {fleet.luggageCount > 0 ? `${fleet.luggageCount} Standard Bags` : 'No Boot Space'}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Fuel Rates Grid */}
+                  {/* Fuel Types Enablement */}
                   <div>
-                    <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                      Base Rates per Km:
+                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                      Supported Fuel Types:
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                      <div className={`p-2 rounded-lg border ${fleet.cngEnabled !== false ? 'bg-slate-50 border-slate-200' : 'bg-slate-50/50 border-slate-200 opacity-60'}`}>
-                        <div className="text-[10px] text-slate-500 font-bold flex items-center justify-center gap-1">
-                          <span>CNG</span>
-                          {fleet.cngEnabled === false && <span className="text-[8px] text-rose-600">OFF</span>}
-                        </div>
-                        <div className={`font-black mt-0.5 ${fleet.cngEnabled !== false ? 'text-emerald-700' : 'text-slate-400'}`}>
-                          {fleet.cngEnabled !== false ? `₹${fleet.cngRate}/km` : 'Disabled'}
-                        </div>
+                      {/* CNG */}
+                      <div
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center ${
+                          fleet.cngEnabled
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                            : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                        }`}
+                      >
+                        <span className="font-bold text-xs">CNG</span>
+                        <span className={`text-[10px] font-black mt-0.5 ${fleet.cngEnabled ? 'text-emerald-700' : 'text-slate-400'}`}>
+                          {fleet.cngEnabled ? 'ENABLED' : 'DISABLED'}
+                        </span>
                       </div>
-                      <div className={`p-2 rounded-lg border ${fleet.petrolEnabled !== false ? 'bg-slate-50 border-slate-200' : 'bg-slate-50/50 border-slate-200 opacity-60'}`}>
-                        <div className="text-[10px] text-slate-500 font-bold flex items-center justify-center gap-1">
-                          <span>PETROL</span>
-                          {fleet.petrolEnabled === false && <span className="text-[8px] text-rose-600">OFF</span>}
-                        </div>
-                        <div className={`font-black mt-0.5 ${fleet.petrolEnabled !== false ? 'text-amber-700' : 'text-slate-400'}`}>
-                          {fleet.petrolEnabled !== false ? `₹${fleet.petrolRate}/km` : 'Disabled'}
-                        </div>
+
+                      {/* Petrol */}
+                      <div
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center ${
+                          fleet.petrolEnabled
+                            ? 'bg-amber-50 border-amber-200 text-amber-900'
+                            : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                        }`}
+                      >
+                        <span className="font-bold text-xs">PETROL</span>
+                        <span className={`text-[10px] font-black mt-0.5 ${fleet.petrolEnabled ? 'text-amber-700' : 'text-slate-400'}`}>
+                          {fleet.petrolEnabled ? 'ENABLED' : 'DISABLED'}
+                        </span>
                       </div>
-                      <div className={`p-2 rounded-lg border ${fleet.dieselEnabled !== false ? 'bg-slate-50 border-slate-200' : 'bg-slate-50/50 border-slate-200 opacity-60'}`}>
-                        <div className="text-[10px] text-slate-500 font-bold flex items-center justify-center gap-1">
-                          <span>DIESEL</span>
-                          {fleet.dieselEnabled === false && <span className="text-[8px] text-rose-600">OFF</span>}
-                        </div>
-                        <div className={`font-black mt-0.5 ${fleet.dieselEnabled !== false ? 'text-blue-700' : 'text-slate-400'}`}>
-                          {fleet.dieselEnabled !== false ? `₹${fleet.dieselRate}/km` : 'Disabled'}
-                        </div>
+
+                      {/* Diesel */}
+                      <div
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center ${
+                          fleet.dieselEnabled
+                            ? 'bg-blue-50 border-blue-200 text-blue-900'
+                            : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                        }`}
+                      >
+                        <span className="font-bold text-xs">DIESEL</span>
+                        <span className={`text-[10px] font-black mt-0.5 ${fleet.dieselEnabled ? 'text-blue-700' : 'text-slate-400'}`}>
+                          {fleet.dieselEnabled ? 'ENABLED' : 'DISABLED'}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Allowances & Rules */}
-                  <div className="space-y-1.5 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Extra Km Rate:</span>
-                      <span className="font-bold text-slate-900">₹{fleet.extraKmRate}/km</span>
+                  {/* Wheelbase & Seater Variants for Urbania / Van Fleets */}
+                  {(fleet.category === 'TEMPO_TRAVELER' || fleet.category === 'URBANIA' || fleet.name?.toLowerCase().includes('urbania') || fleet.name?.toLowerCase().includes('traveller')) && (
+                    <div className="space-y-2 text-xs rounded-xl border p-3 bg-amber-50/50 border-amber-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-amber-900 font-bold uppercase text-[10px] flex items-center gap-1">
+                          <span>🚐</span> Wheelbase & Seater Variants:
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[9.5px] font-bold bg-amber-200/80 text-amber-950 border border-amber-300">
+                          3 Wheelbases • 6 Seater Types
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 pt-1">
+                        <div className="bg-white p-2 rounded-lg border border-amber-200 flex items-center justify-between">
+                          <div>
+                            <span className="font-bold text-slate-900 text-[11px] block">📏 Short Wheelbase (3350 mm)</span>
+                            <span className="text-[10px] text-slate-500">10-Seater (10 + Driver) • 8 Bags</span>
+                          </div>
+                          <span className="font-black text-emerald-700 text-xs bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">₹28/km</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-amber-200 flex items-center justify-between">
+                          <div>
+                            <span className="font-bold text-slate-900 text-[11px] block">📏 Medium Wheelbase (3615 mm)</span>
+                            <span className="text-[10px] text-slate-500">12, 13 & 14-Seater (plus driver) • 10 Bags</span>
+                          </div>
+                          <span className="font-black text-emerald-700 text-xs bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">₹30-34/km</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-amber-200 flex items-center justify-between">
+                          <div>
+                            <span className="font-bold text-slate-900 text-[11px] block">📏 Long Wheelbase (4400 mm)</span>
+                            <span className="text-[10px] text-slate-500">16 & 17-Seater (plus driver) • 12 Bags</span>
+                          </div>
+                          <span className="font-black text-emerald-700 text-xs bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">₹36-38/km</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Driver Allowance:</span>
-                      <span className="font-bold text-slate-900">₹{fleet.driverAllowance}/day</span>
+                  )}
+
+                  {/* Roof Carrier / Luggage Carriage Status */}
+                  <div className="space-y-2 text-xs rounded-xl border p-3 bg-slate-50 border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-bold uppercase text-[10px]">Roof Carrier / Carriage:</span>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                          fleet.hasCarrier
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : 'bg-rose-100 text-rose-800 border-rose-300'
+                        }`}
+                      >
+                        {fleet.hasCarrier ? '✓ Carrier Available' : '🚫 Carrier Excluded / No Carrier'}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Night Surcharge:</span>
-                      <span className="font-bold text-slate-900">₹{fleet.nightCharge}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Min Base (Outstation):</span>
-                      <span className="font-bold text-slate-900">{fleet.minRoundTripKmPerDay} km/day</span>
-                    </div>
-                    <div className="pt-2 border-t border-slate-200 flex justify-between text-[11px]">
-                      <span className="text-slate-500">Local 4 Hr / 40 KM:</span>
-                      <span className="font-bold text-amber-700">₹{fleet.localPackage4hrBase ?? 1200}</span>
-                    </div>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-500">Local 8 Hr / 80 KM:</span>
-                      <span className="font-bold text-amber-700">₹{fleet.localPackage8hrBase ?? 2200}</span>
-                    </div>
+
+                    {fleet.hasCarrier ? (
+                      <div className="space-y-1.5 mt-1">
+                        <div className="text-[11px] text-emerald-800 font-semibold flex items-center gap-1.5 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                          <span>📦</span>
+                          <span>{fleet.carrierCapacityText || 'Up to 50 kg space'}</span>
+                        </div>
+
+                        {fleet.carrierExcludedCars ? (
+                          <div className="text-[11px] text-amber-900 font-semibold flex items-start gap-1.5 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                            <span className="mt-0.5">⚠️</span>
+                            <div>
+                              <span className="font-bold text-amber-950">Excluded Models (No Carrier): </span>
+                              <span>{fleet.carrierExcludedCars}</span>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-rose-800 font-semibold mt-1 flex items-center gap-1.5 bg-rose-50 p-2 rounded-lg border border-rose-200">
+                        <span>⚠️</span>
+                        <span>{fleet.carrierExcludedReason || 'No Roof Carrier Allowed (Boot luggage only)'}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -220,7 +310,7 @@ export default function AdminFleetsPage() {
                     onClick={() => setEditingFleet({ ...fleet })}
                     className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 transition shadow-2xs"
                   >
-                    ✏️ Edit Category Rates & Specs
+                    ✏️ Edit Fleet Specs & Carrier
                   </button>
                 </div>
               </div>
@@ -232,10 +322,10 @@ export default function AdminFleetsPage() {
       {/* Edit Fleet Modal */}
       {editingFleet && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-xl">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-xl">
             <div className="flex justify-between items-center pb-3 border-b border-slate-200">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <span>✏️</span> Edit Fleet Category: {editingFleet.category}
+                <span>✏️</span> Edit Fleet: {editingFleet.category}
               </h3>
               <button
                 onClick={() => setEditingFleet(null)}
@@ -246,6 +336,7 @@ export default function AdminFleetsPage() {
             </div>
 
             <form onSubmit={handleSaveFleet} className="space-y-4 text-xs">
+              {/* Name & Models */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">Display Name</label>
@@ -258,7 +349,7 @@ export default function AdminFleetsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Description</label>
+                  <label className="block text-slate-700 font-semibold mb-1">Description / Models</label>
                   <input
                     type="text"
                     value={editingFleet.description || ''}
@@ -268,11 +359,14 @@ export default function AdminFleetsPage() {
                 </div>
               </div>
 
+              {/* Physical Capacities */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Seat Count</label>
+                  <label className="block text-slate-700 font-semibold mb-1">👥 Passenger Seats</label>
                   <input
                     type="number"
+                    min="1"
+                    max="50"
                     value={editingFleet.seatCount}
                     onChange={(e) => setEditingFleet({ ...editingFleet, seatCount: parseInt(e.target.value) || 4 })}
                     className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
@@ -280,167 +374,121 @@ export default function AdminFleetsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Luggage Bags</label>
+                  <label className="block text-slate-700 font-semibold mb-1">🧳 Boot Luggage Bags</label>
                   <input
                     type="number"
+                    min="0"
+                    max="50"
                     value={editingFleet.luggageCount}
-                    onChange={(e) => setEditingFleet({ ...editingFleet, luggageCount: parseInt(e.target.value) || 2 })}
+                    onChange={(e) => setEditingFleet({ ...editingFleet, luggageCount: parseInt(e.target.value) || 0 })}
                     className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     required
                   />
                 </div>
               </div>
 
-              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-                <div className="font-bold text-amber-800 uppercase text-xs">Per-Km Rates by Fuel (₹/km) & Enablement</div>
-                <div className="grid grid-cols-3 gap-3">
+              {/* Fuel Type Enablement */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <div className="font-bold text-slate-800 uppercase text-xs">Supported Fuel Types</div>
+                <p className="text-[11px] text-slate-500">Enable or disable specific fuels for this category. Disabled fuels will not be shown to customers.</p>
+                <div className="grid grid-cols-3 gap-2.5 pt-1">
                   {/* CNG */}
-                  <div className={`p-2.5 rounded-xl border ${editingFleet.cngEnabled !== false ? 'bg-white border-slate-300' : 'bg-slate-100 border-slate-200 opacity-60'}`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-slate-700 font-bold text-[11px]">CNG Rate</label>
-                      <label className="flex items-center gap-1 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={editingFleet.cngEnabled !== false}
-                          onChange={(e) => setEditingFleet({ ...editingFleet, cngEnabled: e.target.checked })}
-                          className="w-3.5 h-3.5 accent-emerald-500 rounded"
-                        />
-                        <span className="text-[10px] text-emerald-700 font-semibold">Active</span>
-                      </label>
-                    </div>
+                  <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${editingFleet.cngEnabled ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-white border-slate-300 text-slate-500'}`}>
                     <input
-                      type="number"
-                      step="0.5"
-                      disabled={editingFleet.cngEnabled === false}
-                      value={editingFleet.cngRate}
-                      onChange={(e) => setEditingFleet({ ...editingFleet, cngRate: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 font-bold disabled:opacity-50 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                      required
+                      type="checkbox"
+                      checked={editingFleet.cngEnabled}
+                      onChange={(e) => setEditingFleet({ ...editingFleet, cngEnabled: e.target.checked })}
+                      className="w-4 h-4 accent-emerald-600 rounded"
                     />
-                  </div>
+                    <span className="font-bold text-xs">CNG</span>
+                  </label>
 
                   {/* Petrol */}
-                  <div className={`p-2.5 rounded-xl border ${editingFleet.petrolEnabled !== false ? 'bg-white border-slate-300' : 'bg-slate-100 border-slate-200 opacity-60'}`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-slate-700 font-bold text-[11px]">Petrol Rate</label>
-                      <label className="flex items-center gap-1 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={editingFleet.petrolEnabled !== false}
-                          onChange={(e) => setEditingFleet({ ...editingFleet, petrolEnabled: e.target.checked })}
-                          className="w-3.5 h-3.5 accent-amber-500 rounded"
-                        />
-                        <span className="text-[10px] text-amber-700 font-semibold">Active</span>
-                      </label>
-                    </div>
+                  <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${editingFleet.petrolEnabled ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-white border-slate-300 text-slate-500'}`}>
                     <input
-                      type="number"
-                      step="0.5"
-                      disabled={editingFleet.petrolEnabled === false}
-                      value={editingFleet.petrolRate}
-                      onChange={(e) => setEditingFleet({ ...editingFleet, petrolRate: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 font-bold disabled:opacity-50 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                      required
+                      type="checkbox"
+                      checked={editingFleet.petrolEnabled}
+                      onChange={(e) => setEditingFleet({ ...editingFleet, petrolEnabled: e.target.checked })}
+                      className="w-4 h-4 accent-amber-600 rounded"
                     />
-                  </div>
+                    <span className="font-bold text-xs">Petrol</span>
+                  </label>
 
                   {/* Diesel */}
-                  <div className={`p-2.5 rounded-xl border ${editingFleet.dieselEnabled !== false ? 'bg-white border-slate-300' : 'bg-slate-100 border-slate-200 opacity-60'}`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-slate-700 font-bold text-[11px]">Diesel Rate</label>
-                      <label className="flex items-center gap-1 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={editingFleet.dieselEnabled !== false}
-                          onChange={(e) => setEditingFleet({ ...editingFleet, dieselEnabled: e.target.checked })}
-                          className="w-3.5 h-3.5 accent-blue-500 rounded"
-                        />
-                        <span className="text-[10px] text-blue-700 font-semibold">Active</span>
-                      </label>
+                  <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${editingFleet.dieselEnabled ? 'bg-blue-50 border-blue-300 text-blue-900' : 'bg-white border-slate-300 text-slate-500'}`}>
+                    <input
+                      type="checkbox"
+                      checked={editingFleet.dieselEnabled}
+                      onChange={(e) => setEditingFleet({ ...editingFleet, dieselEnabled: e.target.checked })}
+                      className="w-4 h-4 accent-blue-600 rounded"
+                    />
+                    <span className="font-bold text-xs">Diesel</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Roof Carrier & Excluded Cars Controls */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="font-bold text-slate-800 uppercase text-xs">Roof Carrier / Luggage Carriage</div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingFleet.hasCarrier}
+                      onChange={(e) => setEditingFleet({ ...editingFleet, hasCarrier: e.target.checked })}
+                      className="w-4 h-4 accent-emerald-600 rounded"
+                    />
+                    <span className="font-bold text-xs text-emerald-800">Carrier Available</span>
+                  </label>
+                </div>
+
+                {editingFleet.hasCarrier ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1">Carrier Capacity & Available Models</label>
+                      <input
+                        type="text"
+                        value={editingFleet.carrierCapacityText || ''}
+                        onChange={(e) => setEditingFleet({ ...editingFleet, carrierCapacityText: e.target.value })}
+                        placeholder="e.g. Up to 50 kg space (Available on WagonR, Swift, etc.)"
+                        className="w-full bg-white border border-emerald-300 rounded-lg p-2 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                      <span className="text-[10px] text-emerald-700 mt-1 block">Visible to customers as an available luggage carrier feature.</span>
                     </div>
-                    <input
-                      type="number"
-                      step="0.5"
-                      disabled={editingFleet.dieselEnabled === false}
-                      value={editingFleet.dieselRate}
-                      onChange={(e) => setEditingFleet({ ...editingFleet, dieselRate: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 font-bold disabled:opacity-50 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
 
-              {/* Local Packages Base Rates */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                <div className="font-bold text-amber-800 uppercase flex items-center gap-1.5">
-                  <span>🏷️</span> Local Hourly Packages (Base Fare)
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-amber-900 font-bold mb-1">
+                        ⚠️ Excluded Cars / Models for Carrier (No Carrier)
+                      </label>
+                      <input
+                        type="text"
+                        value={editingFleet.carrierExcludedCars || ''}
+                        onChange={(e) => setEditingFleet({ ...editingFleet, carrierExcludedCars: e.target.value })}
+                        placeholder="e.g. Tata Tiago (No Roof Carrier - Boot space only)"
+                        className="w-full bg-white border border-amber-300 rounded-lg p-2 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
+                      <span className="text-[10px] text-amber-800 mt-1 block">
+                        Specify models like <strong>Tata Tiago</strong> where carrier is excluded. Remaining cars in category remain available with carrier.
+                      </span>
+                    </div>
+                  </div>
+                ) : (
                   <div>
-                    <label className="block text-slate-700 mb-1 font-semibold">4 Hours / 40 KM Base (₹)</label>
+                    <label className="block text-slate-700 font-semibold mb-1">Carrier Exclusion Reason / Note</label>
                     <input
-                      type="number"
-                      value={editingFleet.localPackage4hrBase ?? 1200}
-                      onChange={(e) => setEditingFleet({ ...editingFleet, localPackage4hrBase: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      type="text"
+                      value={editingFleet.carrierExcludedReason || ''}
+                      onChange={(e) => setEditingFleet({ ...editingFleet, carrierExcludedReason: e.target.value })}
+                      placeholder="e.g. No Roof Carrier Allowed (Boot Space Only)"
+                      className="w-full bg-white border border-rose-300 rounded-lg p-2 text-slate-900 focus:ring-2 focus:ring-rose-500 focus:outline-none"
                     />
-                    <span className="text-[10px] text-slate-500 mt-0.5 block">Extra KM charged at ₹{editingFleet.extraKmRate}/km after 40 km</span>
+                    <span className="text-[10px] text-rose-700 mt-1 block">Displayed to customers explaining why carrier is excluded for this category.</span>
                   </div>
-                  <div>
-                    <label className="block text-slate-700 mb-1 font-semibold">8 Hours / 80 KM Base (₹)</label>
-                    <input
-                      type="number"
-                      value={editingFleet.localPackage8hrBase ?? 2200}
-                      onChange={(e) => setEditingFleet({ ...editingFleet, localPackage8hrBase: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                    />
-                    <span className="text-[10px] text-slate-500 mt-0.5 block">Extra KM charged at ₹{editingFleet.extraKmRate}/km after 80 km</span>
-                  </div>
-                </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-slate-700 mb-1">Extra Km Rate (₹)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={editingFleet.extraKmRate}
-                    onChange={(e) => setEditingFleet({ ...editingFleet, extraKmRate: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 mb-1">Driver Allowance (₹)</label>
-                  <input
-                    type="number"
-                    value={editingFleet.driverAllowance}
-                    onChange={(e) => setEditingFleet({ ...editingFleet, driverAllowance: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 mb-1">Night Charge (₹)</label>
-                  <input
-                    type="number"
-                    value={editingFleet.nightCharge}
-                    onChange={(e) => setEditingFleet({ ...editingFleet, nightCharge: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 mb-1">Min Base Km / Day</label>
-                  <input
-                    type="number"
-                    value={editingFleet.minRoundTripKmPerDay}
-                    onChange={(e) => setEditingFleet({ ...editingFleet, minRoundTripKmPerDay: parseFloat(e.target.value) || 250 })}
-                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
+              {/* Active Toggle */}
+              <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
                   id="isActive"
@@ -449,10 +497,11 @@ export default function AdminFleetsPage() {
                   className="w-4 h-4 accent-amber-500 rounded"
                 />
                 <label htmlFor="isActive" className="text-slate-700 font-semibold cursor-pointer">
-                  Category Active for Public Bookings
+                  Vehicle Category Active for Customer Bookings
                 </label>
               </div>
 
+              {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
                 <button
                   type="button"
@@ -467,7 +516,7 @@ export default function AdminFleetsPage() {
                   disabled={saving}
                   className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg shadow-xs"
                 >
-                  {saving ? 'Saving...' : 'Save Category'}
+                  {saving ? 'Saving...' : 'Save Fleet Specs'}
                 </button>
               </div>
             </form>

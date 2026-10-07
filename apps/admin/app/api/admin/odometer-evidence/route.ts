@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@kandy-cabs/db';
+import { resolveImageUrl } from '@/lib/resolveImageUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,9 +119,12 @@ export async function GET(req: NextRequest) {
         driverCurrentLng: b.assignedDriver?.currentLng ?? null,
         driverLastPingAt: b.assignedDriver?.lastPingAt?.toISOString() ?? null,
         startingOdometer: b.startingOdometer,
-        startingOdometerImagePath: b.startingOdometerImagePath,
+        startingOdometerImagePath: resolveImageUrl(b.startingOdometerImagePath) || null,
+        vehicleInspectionPhotos: Array.isArray(b.vehicleInspectionPhotos)
+          ? b.vehicleInspectionPhotos.map((p) => resolveImageUrl(p)).filter(Boolean)
+          : [],
         finalOdometer: b.finalOdometer,
-        finalOdometerImagePath: b.finalOdometerImagePath,
+        finalOdometerImagePath: resolveImageUrl(b.finalOdometerImagePath) || null,
         odometerDistanceKm,
         gpsTrackedDistanceKm: gpsTrackedDistanceKm > 0 ? gpsTrackedDistanceKm : null,
         breadcrumbPointsCount: trackings.length,

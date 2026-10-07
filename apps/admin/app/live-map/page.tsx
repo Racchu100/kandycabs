@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { BookingStatus, getSupabaseClient } from '@kandy-cabs/shared';
 import { AdminNavbar } from '@/components/AdminNavbar';
 import { reverseGeocodeLocation } from '@/lib/geocoding';
+import { parseIntermediateStops } from '@/lib/bookingHelpers';
 import type { DriverMapMarker } from '@/components/LiveLeafletMap';
 
 // Dynamically import LiveLeafletMap with SSR disabled (Leaflet requires browser DOM)
@@ -72,16 +73,26 @@ export default function AdminLiveMapPage() {
     fetchOnlineDrivers();
   }, [fetchOnlineDrivers]);
 
-  // Realtime subscription on Driver table with 5s polling fallback
+  // Primary: Supabase Realtime subscription on Driver table
+  // Fallback: Polling only when Realtime is disconnected or during low-frequency background sync
   useEffect(() => {
     const supabase = getSupabaseClient();
     let channel: any = null;
-    let pollInterval: any = null;
+    let pollInterval: NodeJS.Timeout | null = null;
+
+    const startFallbackPolling = (intervalMs = 5000) => {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          fetchOnlineDrivers(true);
+        }
+      }, intervalMs);
+    };
 
     if (supabase) {
       try {
         channel = supabase
-          .channel('admin-live-map-drivers')
+          .channel(`admin-live-map-drivers-${Date.now()}`)
           .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'Driver' },
@@ -115,6 +126,8 @@ export default function AdminLiveMapPage() {
                       }
                     : curr
                 );
+              } else {
+                fetchOnlineDrivers(true);
               }
             }
           )
@@ -122,25 +135,34 @@ export default function AdminLiveMapPage() {
             if (status === 'SUBSCRIBED') {
               setRealtimeConnected(true);
               setIsReconnecting(false);
+              // Relax polling to 30s when Realtime is healthy
+              startFallbackPolling(30000);
             } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
               setRealtimeConnected(false);
               setIsReconnecting(true);
+              // Fallback to 5s polling when Realtime is disconnected
+              startFallbackPolling(5000);
             }
           });
       } catch (e) {
         setRealtimeConnected(false);
         setIsReconnecting(true);
+        startFallbackPolling(5000);
       }
+    } else {
+      setRealtimeConnected(false);
+      startFallbackPolling(5000);
     }
 
-    // 1.5-second polling fallback for fast real-time tracking
-    pollInterval = setInterval(() => {
-      fetchOnlineDrivers(true);
-    }, 1500);
-
     return () => {
-      if (channel) channel.unsubscribe();
-      if (pollInterval) clearInterval(pollInterval);
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      } else if (channel) {
+        channel.unsubscribe();
+      }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     };
   }, [fetchOnlineDrivers]);
 
@@ -357,16 +379,28 @@ export default function AdminLiveMapPage() {
                     <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700">
                       Active Trip Assignment
                     </span>
-                    {selectedDriver.assignedBookings.map((b) => (
-                      <div key={b.id} className="text-xs space-y-1">
-                        <div className="flex justify-between">
-                          <span className="font-bold text-slate-900">{b.humanReadableRef}</span>
-                          <span className="text-blue-700 font-semibold">{b.status}</span>
+                    {selectedDriver.assignedBookings.map((b) => {
+                      const stops = parseIntermediateStops(b);
+                      return (
+                        <div key={b.id} className="text-xs space-y-1">
+                          <div className="flex justify-between">
+                            <span className="font-bold text-slate-900">{b.humanReadableRef}</span>
+                            <span className="text-blue-700 font-semibold">{b.status}</span>
+                          </div>
+                          <p className="text-slate-700 truncate font-medium">📍 Pickup: {b.pickupAddress}</p>
+                          {stops.length > 0 && (
+                            <div className="pl-3 border-l-2 border-amber-300 ml-1 py-0.5 space-y-0.5">
+                              {stops.map((s, idx) => (
+                                <p key={idx} className="text-amber-900 text-[11px] font-semibold truncate">
+                                  🟡 Stop {idx + 1}: {s}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-slate-600 truncate">🏁 Drop: {b.dropAddress}</p>
                         </div>
-                        <p className="text-slate-600 truncate">📍 Pickup: {b.pickupAddress}</p>
-                        <p className="text-slate-600 truncate">🏁 Drop: {b.dropAddress}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 text-center">
@@ -479,8 +513,14 @@ export default function AdminLiveMapPage() {
                               </div>
                             )}
                             {isOnTrip && (
-                              <div className="mt-1 pt-1 border-t border-slate-100 text-[10px] text-blue-700 truncate">
-                                📍 {d.assignedBookings[0].pickupAddress} → {d.assignedBookings[0].dropAddress}
+                              <div className="mt-1 pt-1 border-t border-slate-100 text-[10px] text-blue-700 truncate" title={`${d.assignedBookings[0].pickupAddress} ${parseIntermediateStops(d.assignedBookings[0]).length > 0 ? `➔ Via: ${parseIntermediateStops(d.assignedBookings[0]).join(' ➔ ')}` : ''} ➔ ${d.assignedBookings[0].dropAddress}`}>
+                                📍 {d.assignedBookings[0].pickupAddress}
+                                {parseIntermediateStops(d.assignedBookings[0]).length > 0 && (
+                                  <span className="text-amber-800 font-bold">
+                                    {' '}➔ 🟡 Via {parseIntermediateStops(d.assignedBookings[0]).join(', ')}
+                                  </span>
+                                )}
+                                {' '}→ 🏁 {d.assignedBookings[0].dropAddress}
                               </div>
                             )}
                           </div>

@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BookingStatus, getSupabaseClient } from '@kandy-cabs/shared';
 import { BroadcastDispatchModal } from '@/components/BroadcastDispatchModal';
 import { OtpOverrideModal } from '@/components/OtpOverrideModal';
 import { BookingDetailDrawer } from '@/components/BookingDetailDrawer';
 import { AdminNavbar } from '@/components/AdminNavbar';
+import { parseIntermediateStops, getBookingMetadata } from '@/lib/bookingHelpers';
+import { resolveImageUrl } from '@/lib/resolveImageUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +25,7 @@ const STATUS_FILTERS = [
 ];
 
 export default function AdminBookingsPage() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -41,35 +45,30 @@ export default function AdminBookingsPage() {
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [otpBooking, setOtpBooking] = useState<{ id: string; ref: string } | null>(null);
 
+  // Quick View All Images Gallery Modal State
+  const [galleryBooking, setGalleryBooking] = useState<any | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const abortControllerRef = useRef<AbortController | null>(null);
   const inFlightRef = useRef(false);
 
-  // Debounce search input by 350ms
+  // Debounce search input by 300ms
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1);
-    }, 350);
+    }, 300);
     return () => clearTimeout(handler);
   }, [search]);
 
   const fetchBookings = useCallback(
     async (isBackground: boolean = false) => {
-      // If a background fetch is requested while a fetch is already in flight, skip to prevent queuing
-      if (isBackground && inFlightRef.current) return;
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
 
-      // Abort previous in-flight user request if starting a new foreground request
-      if (!isBackground && abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      const controller = new AbortController();
       if (!isBackground) {
-        abortControllerRef.current = controller;
         setLoading(true);
       }
-      inFlightRef.current = true;
 
       try {
         const queryParams = new URLSearchParams({
@@ -80,8 +79,13 @@ export default function AdminBookingsPage() {
         });
 
         const res = await fetch(`/api/admin/bookings?${queryParams}`, {
-          signal: controller.signal,
+          cache: 'no-store',
         });
+
+        if (res.status === 401) {
+          router.push('/login');
+          return;
+        }
 
         if (res.ok) {
           const data = await res.json();
@@ -94,16 +98,14 @@ export default function AdminBookingsPage() {
           if (!isBackground) setIsReconnecting(true);
         }
       } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.error('Fetch bookings error:', err);
-          if (!isBackground) setIsReconnecting(true);
-        }
+        console.error('Fetch bookings error:', err);
+        if (!isBackground) setIsReconnecting(true);
       } finally {
         inFlightRef.current = false;
         if (!isBackground) setLoading(false);
       }
     },
-    [page, statusFilter, debouncedSearch]
+    [page, statusFilter, debouncedSearch, router]
   );
 
   // Initial fetch and on filter/page change
@@ -111,68 +113,72 @@ export default function AdminBookingsPage() {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Realtime subscription with Supabase + 20-second polling fallback
+  // Primary: Supabase Realtime subscription
+  // Fallback: HTTP polling only when Realtime is disconnected or during low-frequency background sync
   useEffect(() => {
     const supabase = getSupabaseClient();
     let channel: any = null;
-    let pollInterval: any = null;
+    let fallbackPollInterval: NodeJS.Timeout | null = null;
+    let isSubscribed = false;
+
+    const startFallbackPolling = (intervalMs = 10000) => {
+      if (fallbackPollInterval) clearInterval(fallbackPollInterval);
+      fallbackPollInterval = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          fetchBookings(true);
+        }
+      }, intervalMs);
+    };
 
     if (supabase) {
       try {
         channel = supabase
-          .channel('admin-bookings-realtime')
+          .channel(`admin-bookings-realtime-${Date.now()}`)
           .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'Booking' },
-            (payload: any) => {
+            () => {
               setRealtimeActive(true);
               setIsReconnecting(false);
-
-              if (payload.eventType === 'INSERT') {
-                // Prepend new booking to in-memory state
-                setBookings((prev) => [payload.new, ...prev]);
-                setPagination((p) => ({ ...p, totalCount: p.totalCount + 1 }));
-              } else if (payload.eventType === 'UPDATE') {
-                // Patch updated booking in-memory
-                setBookings((prev) =>
-                  prev.map((b) => (b.id === payload.new.id ? { ...b, ...payload.new } : b))
-                );
-              } else if (payload.eventType === 'DELETE') {
-                setBookings((prev) => prev.filter((b) => b.id !== payload.old.id));
-              }
+              fetchBookings(true);
             }
           )
           .subscribe((status: string) => {
             if (status === 'SUBSCRIBED') {
+              isSubscribed = true;
               setRealtimeActive(true);
               setIsReconnecting(false);
+              // Relax polling to low-frequency background sync (60s) when Realtime is healthy
+              startFallbackPolling(60000);
             } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+              isSubscribed = false;
               setRealtimeActive(false);
-              setIsReconnecting(true);
+              // Activate aggressive 10s fallback polling when Realtime is disconnected
+              startFallbackPolling(10000);
             }
           });
       } catch (e) {
         setRealtimeActive(false);
-        setIsReconnecting(true);
+        startFallbackPolling(10000);
       }
     } else {
-      setIsReconnecting(false);
+      setRealtimeActive(false);
+      startFallbackPolling(10000);
     }
 
-    // Fallback 20-second polling for guaranteed background sync
-    pollInterval = setInterval(() => {
-      fetchBookings(true);
-    }, 20000);
+    // Default initial fallback until SUBSCRIBED confirmation arrives
+    if (!isSubscribed) {
+      startFallbackPolling(10000);
+    }
 
     return () => {
-      if (channel) {
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      } else if (channel) {
         channel.unsubscribe();
       }
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (fallbackPollInterval) {
+        clearInterval(fallbackPollInterval);
       }
     };
   }, [fetchBookings]);
@@ -192,8 +198,12 @@ export default function AdminBookingsPage() {
           b.customer?.user?.phone?.includes(q);
         const addrMatch =
           b.pickupAddress?.toLowerCase().includes(q) ||
-          b.dropAddress?.toLowerCase().includes(q);
-        return refMatch || custMatch || addrMatch;
+          b.dropAddress?.toLowerCase().includes(q) ||
+          b.actualPickupAddress?.toLowerCase().includes(q) ||
+          b.actualDropAddress?.toLowerCase().includes(q);
+        const stops = parseIntermediateStops(b);
+        const stopsMatch = stops.some((s: string) => s.toLowerCase().includes(q));
+        return refMatch || custMatch || addrMatch || stopsMatch;
       }
       return true;
     });
@@ -221,17 +231,29 @@ export default function AdminBookingsPage() {
       case BookingStatus.DISPATCHED:
         return 'bg-blue-100 text-blue-800 border-blue-300';
       case BookingStatus.DRIVER_ACCEPTED:
-      case BookingStatus.DRIVER_EN_ROUTE:
         return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+      case BookingStatus.DRIVER_EN_ROUTE:
       case BookingStatus.TRIP_STARTED:
-        return 'bg-purple-100 text-purple-800 border-purple-300';
-      case BookingStatus.TRIP_COMPLETED:
         return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      case BookingStatus.TRIP_COMPLETED:
+        return 'bg-slate-100 text-slate-800 border-slate-300';
       case BookingStatus.CANCELLED:
         return 'bg-rose-100 text-rose-800 border-rose-300';
       default:
         return 'bg-slate-100 text-slate-800 border-slate-300';
     }
+  };
+
+  const getStatusLabel = (status: BookingStatus | string) => {
+    if (
+      status === BookingStatus.DRIVER_EN_ROUTE ||
+      status === BookingStatus.TRIP_STARTED ||
+      status === 'ON_TRIP' ||
+      status === 'ON TRIP'
+    ) {
+      return 'ON TRIP';
+    }
+    return String(status).replace(/_/g, ' ');
   };
 
   return (
@@ -410,16 +432,92 @@ export default function AdminBookingsPage() {
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 max-w-xs">
-                        <div className="truncate text-slate-700 font-medium" title={b.pickupAddress}>
-                          📍 {b.pickupAddress}
+                      <td className="px-5 py-4 max-w-sm">
+                        {/* Pickup Location Display */}
+                        {b.status === BookingStatus.TRIP_STARTED || b.status === BookingStatus.TRIP_COMPLETED ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                📍 OTP Start Location
+                              </span>
+                            </div>
+                            <div className="truncate text-slate-900 font-bold text-[12px] flex items-center gap-1.5" title={b.actualPickupAddress || b.pickupAddress}>
+                              <span className="text-emerald-600 shrink-0 font-bold">📍</span>
+                              <span className="truncate">{b.actualPickupAddress || b.pickupAddress}</span>
+                            </div>
+                            {b.actualPickupAddress && b.actualPickupAddress !== b.pickupAddress && (
+                              <div className="text-[10px] text-slate-500 truncate pl-4" title={`Booked: ${b.pickupAddress}`}>
+                                Booked: {b.pickupAddress}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="truncate text-slate-800 font-semibold flex items-center gap-1.5" title={b.pickupAddress}>
+                            <span className="text-emerald-600 shrink-0 font-bold">📍</span>
+                            <span className="truncate">{b.pickupAddress}</span>
+                          </div>
+                        )}
+
+                        {/* Intermediate Drops / Via Stops */}
+                        {(() => {
+                          const viaStops = parseIntermediateStops(b);
+                          if (viaStops.length === 0) return null;
+                          return (
+                            <div className="my-1.5 pl-3 border-l-2 border-amber-300 ml-1.5 space-y-1">
+                              {viaStops.map((stop, idx) => (
+                                <div key={idx} className="flex items-center gap-1.5 text-[11px] text-amber-950 font-medium" title={`Via Drop ${idx + 1}: ${stop}`}>
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 font-extrabold text-amber-900 shrink-0">
+                                    Stop {idx + 1}
+                                  </span>
+                                  <span className="truncate font-semibold text-amber-900">{stop}</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Drop Location Display */}
+                        {b.status === BookingStatus.TRIP_COMPLETED ? (
+                          <div className="space-y-0.5 mt-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-300">
+                                🏁 Final Reached Drop
+                              </span>
+                            </div>
+                            <div className="truncate text-slate-900 font-bold text-[12px] flex items-center gap-1.5" title={b.actualDropAddress || b.dropAddress}>
+                              <span className="text-rose-600 shrink-0 font-bold">🏁</span>
+                              <span className="truncate">{b.actualDropAddress || b.dropAddress}</span>
+                            </div>
+                            {b.actualDropAddress && b.actualDropAddress !== b.dropAddress && (
+                              <div className="text-[10px] text-slate-500 truncate pl-4" title={`Booked: ${b.dropAddress}`}>
+                                Booked: {b.dropAddress}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="truncate text-slate-600 text-[11px] flex items-center gap-1.5 mt-0.5" title={b.dropAddress}>
+                            <span className="text-rose-600 shrink-0 font-bold">🏁</span>
+                            <span className="truncate">{b.dropAddress}</span>
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                          <span className="text-[10px] text-indigo-700 font-bold px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-200">
+                            {b.tripType} • {b.distanceKm} km
+                          </span>
+                          {parseIntermediateStops(b).length > 0 && (
+                            <span className="text-[10px] text-amber-800 font-black px-1.5 py-0.5 rounded bg-amber-50 border border-amber-300 flex items-center gap-1">
+                              <span>⚡</span>
+                              <span>{parseIntermediateStops(b).length} Via Drops</span>
+                            </span>
+                          )}
+                          {getBookingMetadata(b).hasCarrier && (
+                            <span className="text-[10px] text-emerald-900 font-extrabold px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-300 flex items-center gap-1">
+                              <span>📦</span>
+                              <span>Roof Carrier</span>
+                            </span>
+                          )}
                         </div>
-                        <div className="truncate text-slate-500 text-[11px]" title={b.dropAddress}>
-                          🏁 {b.dropAddress}
-                        </div>
-                        <span className="text-[10px] text-indigo-600 font-semibold mt-0.5 inline-block">
-                          {b.tripType} • {b.distanceKm} km
-                        </span>
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap">
@@ -428,7 +526,7 @@ export default function AdminBookingsPage() {
                             b.status
                           )}`}
                         >
-                          {b.status}
+                          {getStatusLabel(b.status)}
                         </span>
                         {hasOverrideRequest && (
                           <span className="block mt-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse text-center">
@@ -506,6 +604,42 @@ export default function AdminBookingsPage() {
                             Re-dispatch
                           </button>
                         )}
+                        {/* Quick 1-Click Approve OTP Override Button if requested by driver */}
+                        {b.tripEvents?.some((e: any) => e.type === 'OVERRIDE_REQUESTED') &&
+                          (b.status === BookingStatus.DRIVER_ACCEPTED || b.status === BookingStatus.DRIVER_EN_ROUTE) && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenOtpOverride(b.id, b.humanReadableRef)}
+                              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-[11px] shadow-xs inline-flex items-center gap-1 animate-pulse"
+                              title="Driver requested manual OTP override - click to approve"
+                            >
+                              <span>⚠️</span>
+                              <span>Override Req</span>
+                            </button>
+                        )}
+
+                        {/* Quick View Photos Button */}
+                        <button
+                          type="button"
+                          onClick={() => setGalleryBooking(b)}
+                          className={`px-2.5 py-1 font-bold rounded-lg text-[11px] inline-flex items-center gap-1 transition ${
+                            Array.isArray(b.vehicleInspectionPhotos) && b.vehicleInspectionPhotos.filter(Boolean).length > 0
+                              ? 'bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 shadow-2xs'
+                              : b.startingOdometerImagePath || b.finalOdometerImagePath
+                              ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 shadow-2xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-500'
+                          }`}
+                          title="View all vehicle inspection photos & odometer evidence"
+                        >
+                          <span>📸</span>
+                          <span>
+                            {Array.isArray(b.vehicleInspectionPhotos) && b.vehicleInspectionPhotos.filter(Boolean).length > 0
+                              ? `Photos (${b.vehicleInspectionPhotos.filter(Boolean).length + (b.startingOdometerImagePath ? 1 : 0) + (b.finalOdometerImagePath ? 1 : 0)})`
+                              : b.startingOdometerImagePath || b.finalOdometerImagePath
+                              ? 'Odometer'
+                              : 'Photos'}
+                          </span>
+                        </button>
 
                         <button
                           type="button"
@@ -551,6 +685,243 @@ export default function AdminBookingsPage() {
           )}
         </div>
       </div>
+
+      {/* Quick View All Images Gallery Modal */}
+      {galleryBooking && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setGalleryBooking(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-200 bg-slate-900 text-white flex justify-between items-center">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">📸</span>
+                  <h3 className="font-extrabold text-base tracking-tight">
+                    Ride Evidence & Inspection Photos
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-md bg-indigo-500/30 border border-indigo-400 text-indigo-200 font-mono font-bold text-xs">
+                    {galleryBooking.humanReadableRef}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Customer: {galleryBooking.customer?.user?.fullName || 'Customer'} • Driver: {galleryBooking.assignedDriver?.user?.fullName || 'Unassigned'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGalleryBooking(null)}
+                className="text-slate-400 hover:text-white p-2 rounded-xl text-sm font-bold bg-slate-800 hover:bg-slate-700 transition"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+              {/* 1. Pre-Trip Vehicle Inspection (4 Angles) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-base">🚗</span>
+                    <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                      Pre-Trip Vehicle Condition Photos (4 Angles)
+                    </h4>
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    {Array.isArray(galleryBooking.vehicleInspectionPhotos)
+                      ? `${galleryBooking.vehicleInspectionPhotos.filter(Boolean).length} of 4 Uploaded`
+                      : '0 of 4 Uploaded'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Front Angle', sub: 'Front Bumper & Plate', idx: 0 },
+                    { label: 'Rear Angle', sub: 'Rear Boot & Tail Lights', idx: 1 },
+                    { label: 'Side Profile', sub: 'Side Panels & Doors', idx: 2 },
+                    { label: 'Inside / Back Seat', sub: 'Clean Passenger Seats', idx: 3 },
+                  ].map((angle) => {
+                    const photoUrl = Array.isArray(galleryBooking.vehicleInspectionPhotos)
+                      ? galleryBooking.vehicleInspectionPhotos[angle.idx]
+                      : null;
+                    return (
+                      <div
+                        key={angle.label}
+                        className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center text-center shadow-2xs"
+                      >
+                        <span className="text-xs font-bold text-slate-800">{angle.label}</span>
+                        <span className="text-[10px] text-slate-500 mb-2">{angle.sub}</span>
+                        {photoUrl ? (
+                          <div
+                            onClick={() =>
+                              setPreviewImage({
+                                url: resolveImageUrl(photoUrl),
+                                title: `${galleryBooking.humanReadableRef} — ${angle.label}`,
+                              })
+                            }
+                            className="w-full h-32 bg-slate-200 rounded-lg border border-emerald-300 overflow-hidden cursor-pointer relative group shadow-inner"
+                          >
+                            <img
+                              src={resolveImageUrl(photoUrl)}
+                              alt={angle.label}
+                              className="w-full h-full object-cover group-hover:scale-105 transition"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-xs font-bold">
+                              🔍 Click to Zoom
+                            </div>
+                            <div className="absolute bottom-1 right-1 bg-emerald-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                              ✓ Verified
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-full h-32 bg-slate-100 rounded-lg border border-dashed border-slate-300 flex flex-col items-center justify-center text-xs text-slate-400 p-2">
+                            <span className="text-lg mb-1">📷</span>
+                            <span>Not Captured</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Odometer Readings & Verification */}
+              <div className="space-y-3 pt-4 border-t border-slate-200">
+                <div className="flex items-center space-x-2">
+                  <span className="text-base">⏱️</span>
+                  <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                    Odometer Verification Evidence
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Starting Odometer */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 shadow-2xs">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold text-slate-700">Starting Odometer</span>
+                      <span className="text-sm font-mono font-black text-emerald-700">
+                        {galleryBooking.startingOdometer ? `${galleryBooking.startingOdometer} KM` : 'N/A'}
+                      </span>
+                    </div>
+                    {galleryBooking.startingOdometerImagePath ? (
+                      <div
+                        onClick={() =>
+                          setPreviewImage({
+                            url: resolveImageUrl(galleryBooking.startingOdometerImagePath),
+                            title: `${galleryBooking.humanReadableRef} — Starting Odometer (${galleryBooking.startingOdometer || 'N/A'} KM)`,
+                          })
+                        }
+                        className="w-full h-40 bg-slate-200 rounded-lg border border-slate-300 overflow-hidden cursor-pointer relative group"
+                      >
+                        <img
+                          src={resolveImageUrl(galleryBooking.startingOdometerImagePath)}
+                          alt="Starting Odometer"
+                          className="w-full h-full object-cover group-hover:scale-105 transition"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-xs font-bold">
+                          🔍 Click to Zoom
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-28 bg-slate-100 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400">
+                        No Starting Photo Uploaded
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Final Odometer */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 shadow-2xs">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold text-slate-700">Final Odometer</span>
+                      <span className="text-sm font-mono font-black text-indigo-700">
+                        {galleryBooking.finalOdometer ? `${galleryBooking.finalOdometer} KM` : 'N/A'}
+                      </span>
+                    </div>
+                    {galleryBooking.finalOdometerImagePath ? (
+                      <div
+                        onClick={() =>
+                          setPreviewImage({
+                            url: resolveImageUrl(galleryBooking.finalOdometerImagePath),
+                            title: `${galleryBooking.humanReadableRef} — Final Odometer (${galleryBooking.finalOdometer || 'N/A'} KM)`,
+                          })
+                        }
+                        className="w-full h-40 bg-slate-200 rounded-lg border border-slate-300 overflow-hidden cursor-pointer relative group"
+                      >
+                        <img
+                          src={resolveImageUrl(galleryBooking.finalOdometerImagePath)}
+                          alt="Final Odometer"
+                          className="w-full h-full object-cover group-hover:scale-105 transition"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-xs font-bold">
+                          🔍 Click to Zoom
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-28 bg-slate-100 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400">
+                        No Final Photo Uploaded
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+              <span className="text-xs text-slate-500">
+                All photos are timestamped and geotagged for audit security.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const id = galleryBooking.id;
+                  setGalleryBooking(null);
+                  handleOpenDrawer(id);
+                }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+              >
+                Open Full Ride Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Photo Lightbox Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-60 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-800 flex justify-between items-center text-white">
+              <span className="font-bold text-sm">📸 {previewImage.title}</span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg text-sm bg-slate-800 hover:bg-slate-700"
+              >
+                ✕ Close
+              </button>
+            </div>
+            <div className="p-4 bg-black flex items-center justify-center max-h-[80vh]">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="max-h-[75vh] w-auto max-w-full object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals & Slide-out Drawers */}
       <BookingDetailDrawer

@@ -30,9 +30,9 @@ export const BroadcastCard = memo(function BroadcastCard({
           <Text style={styles.tripTypeBadge}>{b.tripType || 'ONEWAY'}</Text>
         </View>
         <View style={styles.priceTag}>
-          <Text style={styles.priceLabel}>EST. EARNINGS</Text>
+          <Text style={styles.priceLabel}>DISTANCE</Text>
           <Text style={styles.priceValue}>
-            ₹{Number(b.driverAllowance || 0) + Number(b.driverPayeeAmount || 0)}
+            {b.distanceKm || '--'} km
           </Text>
         </View>
       </View>

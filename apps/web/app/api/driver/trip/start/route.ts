@@ -4,6 +4,7 @@ import { getDriverSession } from '@/lib/driver-auth';
 import { BookingStatus, verifyOtp } from '@kandy-cabs/shared';
 import { setCorsHeaders, handleOptions } from '@/lib/cors';
 import { RealtimeEvents } from '@/lib/realtime-events';
+import { uploadTripPhoto, uploadInspectionPhotos } from '@/lib/supabase-storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,11 +29,23 @@ export async function POST(req: NextRequest) {
       pickupOtp,
       startingOdometer,
       startingOdometerImagePath,
+      vehicleInspectionPhotos = [],
+      actualPickupLat,
+      actualPickupLng,
+      actualPickupAddress,
     } = body;
 
     if (!bookingId || !pickupOtp) {
       const res = NextResponse.json(
         { success: false, message: 'Booking ID and Pickup OTP are required' },
+        { status: 400 }
+      );
+      return setCorsHeaders(res);
+    }
+
+    if (!startingOdometer || !startingOdometerImagePath) {
+      const res = NextResponse.json(
+        { success: false, message: 'Starting odometer reading and photo evidence are mandatory to start trip' },
         { status: 400 }
       );
       return setCorsHeaders(res);
@@ -53,15 +66,53 @@ export async function POST(req: NextRequest) {
       return setCorsHeaders(res);
     }
 
+    const now = new Date();
+    const resolvedPickupLat = typeof actualPickupLat === 'number' ? actualPickupLat : null;
+    const resolvedPickupLng = typeof actualPickupLng === 'number' ? actualPickupLng : null;
+    const resolvedPickupAddress = actualPickupAddress ? String(actualPickupAddress).trim() : null;
+
+    // Upload starting odometer photo & inspection photos to Supabase Storage (offloads Base64 from PostgreSQL)
+    let storedOdometerPath: string | null = null;
+    if (startingOdometerImagePath) {
+      storedOdometerPath = await uploadTripPhoto({
+        bookingId,
+        category: 'start',
+        imageBase64OrUri: startingOdometerImagePath,
+        customName: 'starting_odometer',
+      });
+    }
+
+    let storedInspectionPhotos: string[] = [];
+    if (Array.isArray(vehicleInspectionPhotos) && vehicleInspectionPhotos.length > 0) {
+      storedInspectionPhotos = await uploadInspectionPhotos(bookingId, vehicleInspectionPhotos);
+    }
+
     // If trip was already authorized/started by Admin override
     if (booking.status === BookingStatus.TRIP_STARTED) {
+      const updateData: any = {};
       if (startingOdometer) {
+        updateData.startingOdometer = parseFloat(String(startingOdometer));
+        updateData.startingOdometerImagePath = storedOdometerPath || null;
+      }
+      if (storedInspectionPhotos.length > 0) {
+        updateData.vehicleInspectionPhotos = storedInspectionPhotos;
+      }
+      if (resolvedPickupLat != null) {
+        updateData.actualPickupLat = resolvedPickupLat;
+      }
+      if (resolvedPickupLng != null) {
+        updateData.actualPickupLng = resolvedPickupLng;
+      }
+      if (resolvedPickupAddress) {
+        updateData.actualPickupAddress = resolvedPickupAddress;
+      }
+      if (!booking.actualStartedAt) {
+        updateData.actualStartedAt = now;
+      }
+      if (Object.keys(updateData).length > 0) {
         await prisma.booking.update({
           where: { id: bookingId },
-          data: {
-            startingOdometer: parseFloat(String(startingOdometer)),
-            startingOdometerImagePath: startingOdometerImagePath || null,
-          },
+          data: updateData,
         });
       }
       const res = NextResponse.json(
@@ -85,7 +136,7 @@ export async function POST(req: NextRequest) {
       return setCorsHeaders(res);
     }
 
-    // Atomic Transaction: update status, record odometer, clear Flow B customer location
+    // Atomic Transaction: update status, record odometer, record verified driver pickup point, clear Flow B customer location
     const updated = await prisma.$transaction(
       async (tx) => {
         const updatedBooking = await tx.booking.update({
@@ -93,7 +144,12 @@ export async function POST(req: NextRequest) {
           data: {
             status: BookingStatus.TRIP_STARTED,
             startingOdometer: startingOdometer ? parseFloat(String(startingOdometer)) : null,
-            startingOdometerImagePath: startingOdometerImagePath || null,
+            startingOdometerImagePath: storedOdometerPath || null,
+            vehicleInspectionPhotos: storedInspectionPhotos,
+            actualPickupAddress: resolvedPickupAddress || booking.pickupAddress,
+            actualPickupLat: resolvedPickupLat ?? booking.pickupLat,
+            actualPickupLng: resolvedPickupLng ?? booking.pickupLng,
+            actualStartedAt: now,
             // Clear Flow B customer pickup coordinates on trip start
             customerCurrentLat: null,
             customerCurrentLng: null,
@@ -108,8 +164,12 @@ export async function POST(req: NextRequest) {
             payloadJson: {
               driverId: session.driverId,
               startingOdometer,
-              hasImage: !!startingOdometerImagePath,
-              timestamp: new Date().toISOString(),
+              hasImage: !!storedOdometerPath,
+              vehicleInspectionPhotosCount: storedInspectionPhotos.length,
+              actualPickupAddress: resolvedPickupAddress || booking.pickupAddress,
+              actualPickupLat: resolvedPickupLat ?? booking.pickupLat,
+              actualPickupLng: resolvedPickupLng ?? booking.pickupLng,
+              timestamp: now.toISOString(),
             },
           },
         });
@@ -120,7 +180,7 @@ export async function POST(req: NextRequest) {
             action: 'DRIVER_START_TRIP',
             entityType: 'Booking',
             entityId: bookingId,
-            reason: `Driver started trip with verified OTP and starting odometer ${startingOdometer || 'N/A'}`,
+            reason: `Driver started trip with verified OTP at [${resolvedPickupAddress || 'driver GPS location'}], starting odometer ${startingOdometer || 'N/A'}, and ${storedInspectionPhotos.length} inspection photos stored`,
           },
         });
 
@@ -132,11 +192,15 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    // Realtime SSE: Notify customer and driver
+    // Realtime SSE: Notify customer, admin and driver
     RealtimeEvents.emitToBooking(bookingId, 'BOOKING_STATUS', {
       bookingId,
       status: BookingStatus.TRIP_STARTED,
       startingOdometer,
+      actualPickupAddress: updated.actualPickupAddress,
+      actualPickupLat: updated.actualPickupLat,
+      actualPickupLng: updated.actualPickupLng,
+      actualStartedAt: updated.actualStartedAt,
     });
 
     const res = NextResponse.json(

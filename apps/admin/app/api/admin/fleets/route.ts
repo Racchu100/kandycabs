@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@kandy-cabs/db';
-import { VehicleCategory, VEHICLE_RATES, FuelType } from '@kandy-cabs/shared';
+import { VehicleCategory, VEHICLE_RATES } from '@kandy-cabs/shared';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,39 +10,50 @@ export async function GET() {
       orderBy: { createdAt: 'asc' },
     });
 
-    // If database table is empty, seed defaults from VEHICLE_RATES
+    // If database table is empty, seed defaults from VEHICLE_RATES with carrier metadata
     if (fleetCategories.length === 0) {
       const defaults = Object.values(VehicleCategory).map((cat) => {
         const conf = VEHICLE_RATES[cat];
+        const isCarrierSuited =
+          cat === VehicleCategory.HATCHBACK ||
+          cat === VehicleCategory.SUV ||
+          cat === VehicleCategory.SUV_PREMIUM ||
+          cat === VehicleCategory.TEMPO_TRAVELER;
+
         return {
           category: cat,
           name: conf.name,
           description: conf.description,
           seatCount: conf.seats,
           luggageCount: conf.luggage,
-          cngRate: conf.perKmRate[FuelType.CNG] || 11.0,
-          cngEnabled: true,
-          petrolRate: conf.perKmRate[FuelType.PETROL] || 12.0,
+          cngEnabled: cat === VehicleCategory.HATCHBACK || cat === VehicleCategory.SEDAN || cat === VehicleCategory.SUV,
           petrolEnabled: true,
-          dieselRate: conf.perKmRate[FuelType.DIESEL] || 13.0,
           dieselEnabled: true,
-          extraKmRate: conf.extraKmRate,
-          driverAllowance: conf.driverAllowancePerDay,
-          nightCharge: conf.nightCharge,
-          minRoundTripKmPerDay: conf.minRoundTripKmPerDay,
-          localPackage4hrBase: conf.localPackages?.[0]?.basePrice || 1200,
-          localPackage8hrBase: conf.localPackages?.[1]?.basePrice || 2200,
+          hasCarrier: isCarrierSuited,
+          carrierCapacityText:
+            cat === VehicleCategory.TEMPO_TRAVELER
+              ? 'Heavy Roof Carrier Available (Up to 150 kg space)'
+              : cat === VehicleCategory.SUV_PREMIUM || cat === VehicleCategory.SUV
+              ? 'Roof Carrier Available (Up to 60 kg space)'
+              : 'Roof Carrier Available on WagonR & Swift (Up to 45 kg space)',
+          carrierExcludedCars:
+            cat === VehicleCategory.HATCHBACK
+              ? 'Tata Tiago (No Roof Carrier - Boot space only)'
+              : cat === VehicleCategory.SEDAN
+              ? 'Sedan Class (Boot Trunk Space Only - No Roof Carrier)'
+              : null,
+          carrierExcludedReason:
+            cat === VehicleCategory.SEDAN
+              ? 'Sedan trunks provide large boot space (No roof carrier needed)'
+              : null,
           isActive: true,
         };
       });
 
-      for (const d of defaults) {
-        await prisma.fleetCategory.upsert({
-          where: { category: d.category },
-          update: {},
-          create: d,
-        });
-      }
+      await prisma.fleetCategory.createMany({
+        data: defaults,
+        skipDuplicates: true,
+      });
 
       fleetCategories = await prisma.fleetCategory.findMany({
         orderBy: { createdAt: 'asc' },
@@ -56,18 +67,13 @@ export async function GET() {
       description: f.description,
       seatCount: f.seatCount,
       luggageCount: f.luggageCount,
-      cngRate: Number(f.cngRate),
       cngEnabled: f.cngEnabled ?? true,
-      petrolRate: Number(f.petrolRate),
       petrolEnabled: f.petrolEnabled ?? true,
-      dieselRate: Number(f.dieselRate),
       dieselEnabled: f.dieselEnabled ?? true,
-      extraKmRate: Number(f.extraKmRate),
-      driverAllowance: Number(f.driverAllowance),
-      nightCharge: Number(f.nightCharge),
-      minRoundTripKmPerDay: f.minRoundTripKmPerDay,
-      localPackage4hrBase: Number(f.localPackage4hrBase ?? 1200),
-      localPackage8hrBase: Number(f.localPackage8hrBase ?? 2200),
+      hasCarrier: Boolean(f.hasCarrier),
+      carrierCapacityText: f.carrierCapacityText || 'Up to 50 kg / 2 extra bags',
+      carrierExcludedCars: f.carrierExcludedCars || (f.category === 'HATCHBACK' ? 'Tata Tiago (No Carrier / Boot Space Only)' : ''),
+      carrierExcludedReason: f.carrierExcludedReason || 'No Roof Carrier Allowed (Boot Space Only)',
       imageUrl: f.imageUrl,
       isActive: f.isActive,
     }));
@@ -91,18 +97,13 @@ export async function POST(req: NextRequest) {
       description,
       seatCount = 4,
       luggageCount = 2,
-      cngRate = 12,
       cngEnabled = true,
-      petrolRate = 13,
       petrolEnabled = true,
-      dieselRate = 14,
       dieselEnabled = true,
-      extraKmRate = 15,
-      driverAllowance = 350,
-      nightCharge = 250,
-      minRoundTripKmPerDay = 250,
-      localPackage4hrBase = 1200,
-      localPackage8hrBase = 2200,
+      hasCarrier = false,
+      carrierCapacityText,
+      carrierExcludedCars,
+      carrierExcludedReason,
       imageUrl,
       isActive = true,
     } = body;
@@ -114,18 +115,13 @@ export async function POST(req: NextRequest) {
         description,
         seatCount: Number(seatCount),
         luggageCount: Number(luggageCount),
-        cngRate: Number(cngRate),
         cngEnabled: Boolean(cngEnabled),
-        petrolRate: Number(petrolRate),
         petrolEnabled: Boolean(petrolEnabled),
-        dieselRate: Number(dieselRate),
         dieselEnabled: Boolean(dieselEnabled),
-        extraKmRate: Number(extraKmRate),
-        driverAllowance: Number(driverAllowance),
-        nightCharge: Number(nightCharge),
-        minRoundTripKmPerDay: Number(minRoundTripKmPerDay),
-        localPackage4hrBase: Number(localPackage4hrBase),
-        localPackage8hrBase: Number(localPackage8hrBase),
+        hasCarrier: Boolean(hasCarrier),
+        carrierCapacityText: hasCarrier ? carrierCapacityText || 'Up to 50 kg / 2 extra bags' : null,
+        carrierExcludedCars: carrierExcludedCars ? carrierExcludedCars.trim() : null,
+        carrierExcludedReason: !hasCarrier ? carrierExcludedReason || 'No Roof Carrier Allowed (Boot Space Only)' : null,
         imageUrl,
         isActive: Boolean(isActive),
       },
@@ -135,18 +131,13 @@ export async function POST(req: NextRequest) {
         description,
         seatCount: Number(seatCount),
         luggageCount: Number(luggageCount),
-        cngRate: Number(cngRate),
         cngEnabled: Boolean(cngEnabled),
-        petrolRate: Number(petrolRate),
         petrolEnabled: Boolean(petrolEnabled),
-        dieselRate: Number(dieselRate),
         dieselEnabled: Boolean(dieselEnabled),
-        extraKmRate: Number(extraKmRate),
-        driverAllowance: Number(driverAllowance),
-        nightCharge: Number(nightCharge),
-        minRoundTripKmPerDay: Number(minRoundTripKmPerDay),
-        localPackage4hrBase: Number(localPackage4hrBase),
-        localPackage8hrBase: Number(localPackage8hrBase),
+        hasCarrier: Boolean(hasCarrier),
+        carrierCapacityText: hasCarrier ? carrierCapacityText || 'Up to 50 kg / 2 extra bags' : null,
+        carrierExcludedCars: carrierExcludedCars ? carrierExcludedCars.trim() : null,
+        carrierExcludedReason: !hasCarrier ? carrierExcludedReason || 'No Roof Carrier Allowed (Boot Space Only)' : null,
         imageUrl,
         isActive: Boolean(isActive),
       },
@@ -157,7 +148,7 @@ export async function POST(req: NextRequest) {
         action: 'FLEET_CATEGORY_UPDATED',
         entityType: 'FleetCategory',
         entityId: fleet.id,
-        reason: `Admin configured fleet rates for ${category}`,
+        reason: `Admin updated fleet specs for ${category}: Seats=${seatCount}, BootLuggage=${luggageCount}, Carrier=${hasCarrier ? 'YES' : 'NO/EXCLUDED'}, ExcludedCars=${carrierExcludedCars || 'None'}, CNG=${cngEnabled}, Petrol=${petrolEnabled}, Diesel=${dieselEnabled}`,
       },
     });
 

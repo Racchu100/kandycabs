@@ -10,10 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { driverApiClient } from '../lib/api';
-import { DriverVerificationStatus } from '@kandy-cabs/shared';
 
 export default function DriverLoginScreen() {
   const router = useRouter();
@@ -60,7 +60,7 @@ export default function DriverLoginScreen() {
     setError('');
     setLoading(true);
     try {
-      const res = await driverApiClient.auth.verifyOtp(phone, otp);
+      const res = await driverApiClient.auth.verifyOtp(phone, otp, undefined, 'DRIVER');
       if (res.success && res.token) {
         router.replace('/dashboard');
       } else {
@@ -75,17 +75,20 @@ export default function DriverLoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" translucent={false} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.inner}
       >
         <View style={styles.header}>
           <Image
-            source={require('../assets/images/logo-white.png')}
+            source={require('../assets/images/logo.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.badge}>DRIVER PARTNER</Text>
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badge}>DRIVER PARTNER NETWORK</Text>
+          </View>
           <Text style={styles.subtitle}>Sign in to accept rides and manage your trips</Text>
         </View>
 
@@ -99,7 +102,7 @@ export default function DriverLoginScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="9876543210"
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#94a3b8"
                 keyboardType="phone-pad"
                 maxLength={10}
                 value={phone}
@@ -111,6 +114,7 @@ export default function DriverLoginScreen() {
               style={styles.button}
               onPress={handleSendOtp}
               disabled={loading}
+              activeOpacity={0.88}
             >
               {loading ? (
                 <ActivityIndicator color="#ffffff" />
@@ -120,22 +124,12 @@ export default function DriverLoginScreen() {
             </TouchableOpacity>
 
             {/* Quick Demo Driver Logins */}
-            <View style={{ marginTop: 24, borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 16 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 10, textAlign: 'center', letterSpacing: 0.5 }}>
+            <View style={styles.demoSection}>
+              <Text style={styles.demoHeading}>
                 ⚡ Quick Demo Driver Logins
               </Text>
               <TouchableOpacity
-                style={{
-                  backgroundColor: '#0f172a',
-                  borderWidth: 1,
-                  borderColor: '#f59e0b',
-                  borderRadius: 12,
-                  padding: 12,
-                  marginBottom: 10,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
+                style={styles.demoCardOrange}
                 onPress={async () => {
                   setPhone('9587425635');
                   setLoading(true);
@@ -156,26 +150,19 @@ export default function DriverLoginScreen() {
                   }
                 }}
                 disabled={loading}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
                 <View>
-                  <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 14 }}>👨🏽‍✈️ Mukesh (Driver)</Text>
-                  <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: '600', marginTop: 2 }}>KA 01 MJ 2023 • +91 9587425635</Text>
+                  <Text style={styles.demoName}>👨🏽‍✈️ Mukesh (Driver)</Text>
+                  <Text style={styles.demoSubtitleOrange}>KA 01 MJ 2023 • +91 9587425635</Text>
                 </View>
-                <Text style={{ color: '#f59e0b', fontWeight: '800', fontSize: 13 }}>LOGIN →</Text>
+                <View style={styles.demoActionPillOrange}>
+                  <Text style={styles.demoActionTextOrange}>LOGIN →</Text>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={{
-                  backgroundColor: '#0f172a',
-                  borderWidth: 1,
-                  borderColor: '#38bdf8',
-                  borderRadius: 12,
-                  padding: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
+                style={styles.demoCardBlue}
                 onPress={async () => {
                   setPhone('8888888888');
                   setLoading(true);
@@ -196,13 +183,15 @@ export default function DriverLoginScreen() {
                   }
                 }}
                 disabled={loading}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
                 <View>
-                  <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 14 }}>👨🏽‍✈️ Ramesh Kumar (Driver)</Text>
-                  <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '600', marginTop: 2 }}>KA-01-SD-2002 • +91 8888888888</Text>
+                  <Text style={styles.demoName}>👨🏽‍✈️ Ramesh Kumar (Driver)</Text>
+                  <Text style={styles.demoSubtitleBlue}>KA-01-SD-2002 • +91 8888888888</Text>
                 </View>
-                <Text style={{ color: '#38bdf8', fontWeight: '800', fontSize: 13 }}>LOGIN →</Text>
+                <View style={styles.demoActionPillBlue}>
+                  <Text style={styles.demoActionTextBlue}>LOGIN →</Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -212,21 +201,25 @@ export default function DriverLoginScreen() {
             <TextInput
               style={styles.otpInput}
               placeholder="••••"
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#cbd5e1"
               keyboardType="number-pad"
               maxLength={4}
               value={otp}
               onChangeText={setOtp}
+              autoFocus
             />
 
             {debugOtp ? (
-              <Text style={styles.debugText}>Dev OTP: {debugOtp}</Text>
+              <View style={styles.debugBox}>
+                <Text style={styles.debugText}>Dev OTP: {debugOtp}</Text>
+              </View>
             ) : null}
 
             <TouchableOpacity
               style={[styles.button, { backgroundColor: '#10b981' }]}
               onPress={handleVerifyOtp}
               disabled={loading}
+              activeOpacity={0.88}
             >
               {loading ? (
                 <ActivityIndicator color="#ffffff" />
@@ -238,8 +231,9 @@ export default function DriverLoginScreen() {
             <TouchableOpacity
               onPress={() => setStep('PHONE')}
               style={styles.backButton}
+              activeOpacity={0.7}
             >
-              <Text style={styles.backButtonText}>Change Mobile Number</Text>
+              <Text style={styles.backButtonText}>← Change Mobile Number</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -251,56 +245,60 @@ export default function DriverLoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   inner: {
     flex: 1,
-    padding: 24,
+    padding: 22,
     justifyContent: 'center',
   },
   header: {
-    marginBottom: 28,
+    marginBottom: 24,
     alignItems: 'center',
   },
   logoImage: {
-    width: 220,
-    height: 70,
-    marginBottom: 12,
+    width: 240,
+    height: 75,
+    marginBottom: 10,
+  },
+  badgeContainer: {
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 14,
+    marginBottom: 8,
   },
   badge: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
-    color: '#f59e0b',
-    backgroundColor: '#3b2505',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 8,
-    letterSpacing: 1,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#ffffff',
-    textAlign: 'center',
+    color: '#ea580c',
+    letterSpacing: 0.8,
   },
   subtitle: {
     fontSize: 13,
-    color: '#94a3b8',
-    marginTop: 6,
+    color: '#64748b',
+    marginTop: 4,
     textAlign: 'center',
+    fontWeight: '500',
   },
   form: {
-    backgroundColor: '#1e293b',
-    padding: 24,
+    backgroundColor: '#ffffff',
+    padding: 22,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#cbd5e1',
+    color: '#334155',
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -308,73 +306,167 @@ const styles = StyleSheet.create({
   phoneInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#475569',
-    marginBottom: 20,
-    paddingHorizontal: 12,
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    marginBottom: 18,
+    paddingHorizontal: 14,
   },
   prefix: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#94a3b8',
+    color: '#475569',
     marginRight: 8,
   },
   input: {
     flex: 1,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#ffffff',
-    fontWeight: '600',
+    color: '#0f172a',
+    fontWeight: '700',
   },
   otpInput: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#475569',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
     paddingVertical: 14,
-    fontSize: 24,
-    color: '#ffffff',
+    fontSize: 26,
+    color: '#0f172a',
     fontWeight: '900',
     textAlign: 'center',
-    letterSpacing: 8,
+    letterSpacing: 10,
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#f59e0b',
-    paddingVertical: 16,
+    backgroundColor: '#ea580c',
+    paddingVertical: 15,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#ea580c',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   buttonText: {
     fontSize: 15,
     fontWeight: '800',
     color: '#ffffff',
+    letterSpacing: 0.3,
   },
   errorText: {
-    color: '#f87171',
+    color: '#dc2626',
     fontSize: 13,
     textAlign: 'center',
     marginBottom: 16,
-    backgroundColor: '#450a0a',
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
     padding: 10,
+    borderRadius: 10,
+    fontWeight: '600',
+  },
+  debugBox: {
+    backgroundColor: '#fef3c7',
+    borderWidth: 1,
+    borderColor: '#fde68a',
     borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 14,
+    alignItems: 'center',
   },
   debugText: {
-    color: '#fbbf24',
-    fontSize: 12,
-    textAlign: 'center',
-    marginBottom: 12,
-    fontWeight: '600',
+    color: '#b45309',
+    fontSize: 12.5,
+    fontWeight: '700',
   },
   backButton: {
     marginTop: 16,
     alignItems: 'center',
+    paddingVertical: 4,
   },
   backButtonText: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 13,
+    fontWeight: '700',
+  },
+  demoSection: {
+    marginTop: 22,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    paddingTop: 16,
+  },
+  demoHeading: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    marginBottom: 10,
+    textAlign: 'center',
+    letterSpacing: 0.6,
+  },
+  demoCardOrange: {
+    backgroundColor: '#fffbeb',
+    borderWidth: 1,
+    borderColor: '#fde68a',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  demoCardBlue: {
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  demoName: {
+    color: '#0f172a',
+    fontWeight: '800',
+    fontSize: 13.5,
+  },
+  demoSubtitleOrange: {
+    color: '#b45309',
+    fontSize: 11.5,
     fontWeight: '600',
+    marginTop: 2,
+  },
+  demoSubtitleBlue: {
+    color: '#0284c7',
+    fontSize: 11.5,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  demoActionPillOrange: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  demoActionTextOrange: {
+    color: '#b45309',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  demoActionPillBlue: {
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  demoActionTextBlue: {
+    color: '#0284c7',
+    fontWeight: '800',
+    fontSize: 12,
   },
 });
+

@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
         user: { select: { fullName: true, phone: true } },
         vehicles: {
           where: { deletedAt: null },
-          select: { id: true, category: true, plateNumber: true, fuelType: true },
+          select: { id: true, category: true, plateNumber: true, fuelType: true, seatCount: true },
         },
       },
     });
@@ -38,6 +38,16 @@ export async function GET(req: NextRequest) {
         { status: 404 }
       );
       return setCorsHeaders(res);
+    }
+
+    let carModel: string | null = null;
+    let carriageCapacity: string | null = null;
+    if (driver.adminNotes) {
+      const modelMatch = driver.adminNotes.match(/\[Car Model:\s*([^\]]+)\]/);
+      if (modelMatch && modelMatch[1]) carModel = modelMatch[1].trim();
+
+      const carriageMatch = driver.adminNotes.match(/\[Luggage\/Carriage:\s*([^\]]+)\]/);
+      if (carriageMatch && carriageMatch[1]) carriageCapacity = carriageMatch[1].trim();
     }
 
     const response = NextResponse.json(
@@ -52,6 +62,8 @@ export async function GET(req: NextRequest) {
           vehiclePhotos: driver.vehiclePhotos || [],
           verificationStatus: driver.verificationStatus,
           adminNotes: driver.adminNotes,
+          carModel,
+          carriageCapacity,
           vehicle: driver.vehicles[0] || null,
         },
       },
@@ -88,6 +100,10 @@ export async function POST(req: NextRequest) {
       insuranceDocUrl,
       vehiclePhotos = [],
       plateNumber,
+      category,
+      carModel,
+      fuelType,
+      carriageCapacity,
     } = body;
 
     const dataToUpdate: any = {
@@ -113,19 +129,74 @@ export async function POST(req: NextRequest) {
       dataToUpdate.vehiclePhotos = vehiclePhotos;
     }
 
+    let notesToUpdate = session.driver.adminNotes || '';
+    if (carModel !== undefined && carModel !== null && String(carModel).trim()) {
+      const modelTag = `[Car Model: ${String(carModel).trim()}]`;
+      notesToUpdate = notesToUpdate.replace(/\[Car Model:[^\]]+\]/g, '').trim();
+      notesToUpdate = notesToUpdate ? `${notesToUpdate} ${modelTag}` : modelTag;
+      dataToUpdate.adminNotes = notesToUpdate;
+    }
+    if (carriageCapacity !== undefined && carriageCapacity !== null && String(carriageCapacity).trim()) {
+      const carriageTag = `[Luggage/Carriage: ${String(carriageCapacity).trim()}]`;
+      notesToUpdate = notesToUpdate.replace(/\[Luggage\/Carriage:[^\]]+\]/g, '').trim();
+      notesToUpdate = notesToUpdate ? `${notesToUpdate} ${carriageTag}` : carriageTag;
+      dataToUpdate.adminNotes = notesToUpdate;
+    }
+
     const updatedDriver = await prisma.driver.update({
       where: { id: session.driverId },
       data: dataToUpdate,
       include: {
         user: { select: { fullName: true, phone: true } },
-        vehicles: true,
+        vehicles: { where: { deletedAt: null } },
       },
     });
 
-    if (plateNumber && updatedDriver.vehicles.length > 0) {
-      await prisma.vehicle.update({
-        where: { id: updatedDriver.vehicles[0].id },
-        data: { plateNumber: String(plateNumber).trim().toUpperCase() },
+    const getSeatCountForCategory = (cat: string) => {
+      switch (cat) {
+        case 'TEMPO_TRAVELER':
+          return 12;
+        case 'SUV_PREMIUM':
+          return 7;
+        case 'SUV':
+          return 6;
+        case 'SEDAN':
+        case 'HATCHBACK':
+        default:
+          return 4;
+      }
+    };
+
+    if (updatedDriver.vehicles.length > 0) {
+      const vId = updatedDriver.vehicles[0].id;
+      const vehicleData: any = {};
+      if (plateNumber) vehicleData.plateNumber = String(plateNumber).trim().toUpperCase();
+      if (category) {
+        vehicleData.category = category;
+        vehicleData.seatCount = getSeatCountForCategory(category);
+      }
+      if (fuelType) vehicleData.fuelType = fuelType;
+
+      if (Object.keys(vehicleData).length > 0) {
+        await prisma.vehicle.update({
+          where: { id: vId },
+          data: vehicleData,
+        });
+      }
+    } else if (category || plateNumber || fuelType) {
+      const selectedCategory = category || 'SEDAN';
+      const selectedFuelType = fuelType || 'DIESEL';
+      await prisma.vehicle.create({
+        data: {
+          driverId: session.driverId,
+          category: selectedCategory,
+          fuelType: selectedFuelType,
+          seatCount: getSeatCountForCategory(selectedCategory),
+          plateNumber: plateNumber ? String(plateNumber).trim().toUpperCase() : 'PENDING',
+          baseFarePerKm: 14.0,
+          extraKmRate: 14.0,
+          driverAllowance: 300.0,
+        },
       });
     }
 
@@ -136,15 +207,23 @@ export async function POST(req: NextRequest) {
         action: 'DRIVER_DOCUMENTS_UPLOADED',
         entityType: 'Driver',
         entityId: session.driverId,
-        reason: `Driver uploaded KYC documents & vehicle inspection photos`,
+        reason: `Driver uploaded KYC documents, vehicle specs (${category || 'N/A'}, ${plateNumber || 'N/A'}, ${fuelType || 'N/A'}) & carriage details`,
+      },
+    });
+
+    const refreshedDriver = await prisma.driver.findUnique({
+      where: { id: session.driverId },
+      include: {
+        user: { select: { fullName: true, phone: true } },
+        vehicles: { where: { deletedAt: null } },
       },
     });
 
     const response = NextResponse.json(
       {
         success: true,
-        message: 'Documents and inspection photos saved successfully. Sent for Admin Verification.',
-        driver: updatedDriver,
+        message: 'Driver documents, vehicle details, and carriage info saved successfully. Sent for Admin Verification.',
+        driver: refreshedDriver,
       },
       { status: 200 }
     );

@@ -18,37 +18,99 @@ import * as ImagePicker from 'expo-image-picker';
 import { driverApiClient } from '../lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
+type VehicleCategoryType = 'HATCHBACK' | 'SEDAN' | 'SUV' | 'SUV_PREMIUM' | 'TEMPO_TRAVELER';
+type FuelTypeVal = 'DIESEL' | 'PETROL' | 'CNG';
+
+const VEHICLE_CATEGORIES: Array<{
+  id: VehicleCategoryType;
+  title: string;
+  defaultModel: string;
+  models: string;
+  seats: string;
+  icon: string;
+}> = [
+  {
+    id: 'HATCHBACK',
+    title: 'Hatchback',
+    defaultModel: 'Maruti Suzuki WagonR',
+    models: 'WagonR, Swift, Tiago, i10',
+    seats: '4 Seats',
+    icon: '🚗',
+  },
+  {
+    id: 'SEDAN',
+    title: 'Sedan',
+    defaultModel: 'Maruti Suzuki Dzire',
+    models: 'Dzire, Etios, Aura, Amaze',
+    seats: '4 Seats',
+    icon: '🚘',
+  },
+  {
+    id: 'SUV',
+    title: 'SUV 6+1',
+    defaultModel: 'Maruti Suzuki Ertiga',
+    models: 'Ertiga, Carens, Triber, XL6',
+    seats: '6 Seats',
+    icon: '🚙',
+  },
+  {
+    id: 'SUV_PREMIUM',
+    title: 'SUV Premium 7+1',
+    defaultModel: 'Toyota Innova Crysta',
+    models: 'Innova Crysta, Hycross, XUV700',
+    seats: '7 Seats',
+    icon: '🚐',
+  },
+  {
+    id: 'TEMPO_TRAVELER',
+    title: 'Tempo Traveller',
+    defaultModel: 'Force Traveller 12 Seater',
+    models: 'Force Traveller, Winger, Urbania',
+    seats: '12 Seats',
+    icon: '🚌',
+  },
+];
+
+const FUEL_TYPES: Array<{ id: FuelTypeVal; label: string; icon: string }> = [
+  { id: 'DIESEL', label: 'Diesel', icon: '⛽' },
+  { id: 'PETROL', label: 'Petrol', icon: '⛽' },
+  { id: 'CNG', label: 'CNG (Green)', icon: '🟢' },
+];
+
+const CARRIAGE_OPTIONS = [
+  'None (No Carriage / Luggage Space)',
+  '2 Large Bags (Standard Boot)',
+  '3 Large Bags (Spacious Boot)',
+  '4 Large Bags (SUV Boot Space)',
+  '5+ Large Bags (Max Cargo)',
+  'Roof Carrier Included 🧳 (Heavy Luggage / Hill Trips)',
+];
+
 export default function DriverDocumentsUploadScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // KYC Fields
+  // Driver Identity & License
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [licenseNumber, setLicenseNumber] = useState('');
   const [licenseDocUrl, setLicenseDocUrl] = useState<string | null>(null);
   const [rcDocUrl, setRcDocUrl] = useState<string | null>(null);
   const [insuranceDocUrl, setInsuranceDocUrl] = useState<string | null>(null);
 
-  // 5 Vehicle Inspection Angles: [Front, Rear, Left, Right, Interior]
-  const [vehiclePhotos, setVehiclePhotos] = useState<(string | null)[]>([
-    null,
-    null,
-    null,
-    null,
-    null,
-  ]);
+  // Vehicle & Carriage Specs (Starts completely empty / unselected)
+  const [plateNumber, setPlateNumber] = useState('');
+  const [category, setCategory] = useState<VehicleCategoryType | null>(null);
+  const [carModel, setCarModel] = useState('');
+  const [fuelType, setFuelType] = useState<FuelTypeVal | null>(null);
+  const [carriageCapacity, setCarriageCapacity] = useState<string | null>(null);
+
+  // Dropdown States
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [carriageDropdownOpen, setCarriageDropdownOpen] = useState(false);
 
   const [verificationStatus, setVerificationStatus] = useState('PENDING');
   const [adminNotes, setAdminNotes] = useState<string | null>(null);
-
-  const angleNames = [
-    { title: 'Front Angle', desc: 'Front bumper & number plate visible' },
-    { title: 'Rear Angle', desc: 'Rear bumper, tail lights & boot visible' },
-    { title: 'Left Side Angle', desc: 'Full left profile & door panels' },
-    { title: 'Right Side Angle', desc: 'Full right profile & door panels' },
-    { title: 'Interior View', desc: 'Clean dashboard, seats & seatbelts' },
-  ];
 
   useEffect(() => {
     fetchDocuments();
@@ -61,18 +123,58 @@ export default function DriverDocumentsUploadScreen() {
       if (res.success && res.documents) {
         const d = res.documents;
         setProfilePhotoUrl(d.profilePhotoUrl || null);
-        setLicenseNumber(d.licenseNumber || '');
+        setLicenseNumber(d.licenseNumber && d.licenseNumber !== 'PENDING' ? d.licenseNumber : '');
         setLicenseDocUrl(d.licenseDocUrl || null);
         setRcDocUrl(d.rcDocUrl || null);
         setInsuranceDocUrl(d.insuranceDocUrl || null);
-
-        const photos = Array.isArray(d.vehiclePhotos) && d.vehiclePhotos.length === 5
-          ? d.vehiclePhotos
-          : [null, null, null, null, null];
-        setVehiclePhotos(photos);
-
         setVerificationStatus(d.verificationStatus || 'PENDING');
         setAdminNotes(d.adminNotes || null);
+
+        if (d.vehicle) {
+          if (
+            d.vehicle.plateNumber &&
+            d.vehicle.plateNumber !== 'PENDING' &&
+            !d.vehicle.plateNumber.startsWith('KA 01 TR 0000')
+          ) {
+            setPlateNumber(d.vehicle.plateNumber);
+            if (d.vehicle.category) {
+              setCategory(d.vehicle.category as VehicleCategoryType);
+            }
+            if (d.vehicle.fuelType) {
+              setFuelType(d.vehicle.fuelType as FuelTypeVal);
+            }
+          } else {
+            setPlateNumber('');
+            setCategory(null);
+            setFuelType(null);
+          }
+        } else {
+          setPlateNumber('');
+          setCategory(null);
+          setFuelType(null);
+        }
+
+        if (d.carModel) {
+          setCarModel(d.carModel);
+        } else if (d.adminNotes) {
+          const matchModel = d.adminNotes.match(/\[Car Model:\s*([^\]]+)\]/);
+          if (matchModel && matchModel[1]) {
+            setCarModel(matchModel[1].trim());
+          } else {
+            setCarModel('');
+          }
+        } else {
+          setCarModel('');
+        }
+
+        if (d.carriageCapacity) {
+          setCarriageCapacity(d.carriageCapacity);
+        } else if (d.adminNotes) {
+          const match = d.adminNotes.match(/\[Luggage\/Carriage:\s*([^\]]+)\]/);
+          if (match && match[1]) {
+            setCarriageCapacity(match[1].trim());
+          }
+        }
       }
     } catch (err: any) {
       console.error('Failed to load documents:', err);
@@ -83,7 +185,7 @@ export default function DriverDocumentsUploadScreen() {
 
   // Image Picker Helper
   const pickImage = async (
-    target: 'profile' | 'license' | 'rc' | 'insurance' | number,
+    target: 'profile' | 'license' | 'rc' | 'insurance',
     mode: 'camera' | 'library'
   ) => {
     try {
@@ -115,7 +217,6 @@ export default function DriverDocumentsUploadScreen() {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        // Create base64 data uri or uri
         const uri = asset.base64
           ? `data:image/jpeg;base64,${asset.base64}`
           : asset.uri;
@@ -128,12 +229,6 @@ export default function DriverDocumentsUploadScreen() {
           setRcDocUrl(uri);
         } else if (target === 'insurance') {
           setInsuranceDocUrl(uri);
-        } else if (typeof target === 'number') {
-          setVehiclePhotos((prev) => {
-            const next = [...prev];
-            next[target] = uri;
-            return next;
-          });
         }
       }
     } catch (err: any) {
@@ -142,7 +237,7 @@ export default function DriverDocumentsUploadScreen() {
     }
   };
 
-  const handleSelectOptions = (target: 'profile' | 'license' | 'rc' | 'insurance' | number) => {
+  const handleSelectOptions = (target: 'profile' | 'license' | 'rc' | 'insurance') => {
     const title = target === 'profile' ? 'Upload Driver Profile Photo' : 'Upload Document Photo';
     Alert.alert(
       title,
@@ -160,33 +255,42 @@ export default function DriverDocumentsUploadScreen() {
     setLicenseDocUrl('https://images.unsplash.com/photo-1584433144859-1fc3ab64a957?w=800&auto=format&fit=crop&q=80');
     setRcDocUrl('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop&q=80');
     setInsuranceDocUrl('https://images.unsplash.com/photo-1450133064473-71024230f91b?w=800&auto=format&fit=crop&q=80');
-    setVehiclePhotos([
-      'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop&q=80', // Front
-      'https://images.unsplash.com/photo-1502877338535-766e1452684a?w=800&auto=format&fit=crop&q=80', // Rear
-      'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&auto=format&fit=crop&q=80', // Left
-      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=80', // Right
-      'https://images.unsplash.com/photo-1563720223185-11003d516935?w=800&auto=format&fit=crop&q=80', // Interior
-    ]);
-    Alert.alert('Demo Photos Loaded', 'Loaded driver profile portrait, 3 verified sample KYC documents and 5-angle vehicle photos. You can now tap Submit!');
+    if (!licenseNumber) setLicenseNumber('KA 01 2023 0089745');
+    if (!plateNumber) setPlateNumber('KA 01 MJ 2023');
+    setCategory('SEDAN');
+    setCarModel('Maruti Suzuki Dzire VXI');
+    setFuelType('DIESEL');
+    setCarriageCapacity('3 Large Bags (Spacious Boot)');
+    Alert.alert('Demo Details Loaded', 'Loaded sample verified KYC documents, vehicle specs (KA 01 MJ 2023 Maruti Suzuki Dzire) and carriage capacity. You can now tap Save & Submit!');
   };
 
   const handleSubmit = async () => {
-    if (!licenseNumber.trim()) {
-      Alert.alert('Required Field', 'Please enter your Driving License (DL) number.');
+    if (!plateNumber.trim()) {
+      Alert.alert('Required Field', 'Please enter your Vehicle Plate / Registration number (e.g. KA 01 MJ 2023).');
       return;
     }
 
-    if (!licenseDocUrl || !rcDocUrl || !insuranceDocUrl) {
-      Alert.alert(
-        'Incomplete Documents',
-        'Please upload all 3 official KYC documents (Driving License, RC Certificate, and Insurance).',
-        [
-          { text: 'OK' },
-          { text: '⚡ Use Demo Images', onPress: handleFillDemoPhotos },
-        ]
-      );
+    if (!category) {
+      Alert.alert('Required Field', 'Please select your Vehicle Category (Segment).');
       return;
     }
+
+    if (!carModel.trim()) {
+      Alert.alert('Required Field', 'Please enter which car make & model you drive (e.g. Maruti Suzuki Dzire / Toyota Innova).');
+      return;
+    }
+
+    if (!fuelType) {
+      Alert.alert('Required Field', 'Please select your Vehicle Fuel Type (Diesel, Petrol, or CNG).');
+      return;
+    }
+
+    if (!carriageCapacity) {
+      Alert.alert('Required Field', 'Please select your Vehicle Carriage / Luggage capacity.');
+      return;
+    }
+
+    const allDocsAttached = !!(licenseDocUrl && rcDocUrl && insuranceDocUrl);
 
     setSubmitting(true);
     try {
@@ -194,25 +298,47 @@ export default function DriverDocumentsUploadScreen() {
         method: 'POST',
         body: JSON.stringify({
           profilePhotoUrl,
-          licenseNumber: licenseNumber.trim().toUpperCase(),
+          licenseNumber: licenseNumber ? licenseNumber.trim().toUpperCase() : 'PENDING',
+          plateNumber: plateNumber ? plateNumber.trim().toUpperCase() : null,
+          category,
+          carModel: carModel.trim(),
+          fuelType,
+          carriageCapacity: carriageCapacity ? carriageCapacity.trim() : 'None',
           licenseDocUrl,
           rcDocUrl,
           insuranceDocUrl,
-          vehiclePhotos: vehiclePhotos.map((p) => p || 'https://placehold.co/800x600/png?text=Vehicle+Inspection+Photo'),
         }),
       });
 
       if (res.success) {
-        Alert.alert(
-          '✓ Documents Submitted',
-          'Your profile photo, KYC documents, and 5-angle vehicle photos have been saved to the database. The admin panel will review and verify your profile.',
-          [
-            {
-              text: 'Back to Dashboard',
-              onPress: () => router.replace('/dashboard'),
-            },
-          ]
-        );
+        await fetchDocuments();
+        if (allDocsAttached) {
+          Alert.alert(
+            '✓ Submitted to Admin',
+            'Your vehicle specifications and all KYC documents have been saved and sent for Admin Verification.',
+            [
+              {
+                text: 'Back to Dashboard',
+                onPress: () => router.replace('/dashboard'),
+              },
+            ]
+          );
+        } else {
+          Alert.alert(
+            '✓ Vehicle Details Saved',
+            'Your vehicle specifications and plate have been updated. Remember to upload all 3 KYC certificates (DL, RC, Insurance) for final approval.',
+            [
+              {
+                text: 'Back to Dashboard',
+                onPress: () => router.replace('/dashboard'),
+              },
+              {
+                text: 'Stay on Page',
+                style: 'cancel',
+              },
+            ]
+          );
+        }
       } else {
         Alert.alert('Submission Error', res.message || 'Failed to submit documents');
       }
@@ -223,11 +349,20 @@ export default function DriverDocumentsUploadScreen() {
     }
   };
 
+  const selectedCategoryObj = VEHICLE_CATEGORIES.find((c) => c.id === category);
+
+  const cleanFeedback = adminNotes
+    ? adminNotes
+        .replace(/\[Car Model:[^\]]+\]/g, '')
+        .replace(/\[Luggage\/Carriage:[^\]]+\]/g, '')
+        .trim()
+    : '';
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#ea580c" />
-        <Text style={{ color: '#0f172a', marginTop: 12, fontWeight: '700' }}>Loading Documents...</Text>
+        <Text style={{ color: '#0f172a', marginTop: 12, fontWeight: '700' }}>Loading Details...</Text>
       </View>
     );
   }
@@ -246,7 +381,7 @@ export default function DriverDocumentsUploadScreen() {
           <Ionicons name="arrow-back" size={20} color="#0f172a" />
           <Text style={styles.backBtnText}>Profile</Text>
         </TouchableOpacity>
-        <Text style={styles.navTitle}>Upload KYC Documents</Text>
+        <Text style={styles.navTitle}>Vehicle & KYC Registration</Text>
         <TouchableOpacity
           style={styles.quickFillBtn}
           onPress={handleFillDemoPhotos}
@@ -266,30 +401,294 @@ export default function DriverDocumentsUploadScreen() {
           <View style={styles.noticeTopRow}>
             <Text style={styles.noticeEmoji}>🛡️</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.noticeTitle}>KYC & Vehicle Evidence</Text>
+              <Text style={styles.noticeTitle}>Driver & Vehicle Profile Setup</Text>
               <Text style={styles.noticeSub}>
-                Upload clear photos of your official documents and all 5 angles of your cab for verification.
+                Select your vehicle category, input your car model, license number, carriage allowance, and KYC documents for admin approval.
               </Text>
             </View>
           </View>
 
-          {adminNotes ? (
+          {cleanFeedback ? (
             <View style={styles.adminFeedbackBox}>
               <Text style={styles.adminFeedbackTitle}>⚠️ Admin Feedback:</Text>
-              <Text style={styles.adminFeedbackText}>{adminNotes}</Text>
+              <Text style={styles.adminFeedbackText}>{cleanFeedback}</Text>
             </View>
           ) : null}
         </View>
 
         {/* ============================================================ */}
-        {/* SECTION 1: OFFICIAL KYC & PROFILE DOCUMENTS                  */}
+        {/* SECTION 1: VEHICLE & CARRIAGE DETAILS                        */}
         {/* ============================================================ */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeaderTitle}>1. OFFICIAL KYC & PROFILE DOCUMENTS</Text>
-          <Text style={styles.sectionHeaderSub}>4 Documents</Text>
+          <Text style={styles.sectionHeaderTitle}>1. VEHICLE & CARRIAGE DETAILS</Text>
+          <Text style={styles.sectionHeaderSub}>Car Specs</Text>
         </View>
 
-        {/* Doc 0: Driver Profile Photo (Circular 1:1 Avatar) */}
+        {/* Vehicle Plate / Reg Number */}
+        <View style={styles.inputCard}>
+          <View style={styles.inputLabelRow}>
+            <Text style={styles.inputLabel}>VEHICLE PLATE / REGISTRATION NUMBER:</Text>
+            <View style={[styles.badgePill, plateNumber ? styles.badgeGreen : styles.badgeAmber]}>
+              <Text style={plateNumber ? styles.badgeTextGreen : styles.badgeTextAmber}>
+                {plateNumber ? '✓ Filled' : 'Required'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.plateInputWrapper}>
+            <View style={styles.plateIndBadge}>
+              <Text style={styles.plateIndText}>IND</Text>
+            </View>
+            <TextInput
+              style={styles.plateTextInput}
+              value={plateNumber}
+              onChangeText={setPlateNumber}
+              placeholder="e.g. KA 01 MJ 2023"
+              placeholderTextColor="#94a3b8"
+              autoCapitalize="characters"
+            />
+          </View>
+        </View>
+
+        {/* Vehicle Category (Car Model) - DROPDOWN & EXACT CAR INPUT */}
+        <View style={styles.inputCard}>
+          <View style={styles.inputLabelRow}>
+            <Text style={styles.inputLabel}>VEHICLE CATEGORY (SEGMENT):</Text>
+            <View style={[styles.badgePill, selectedCategoryObj ? styles.badgeGreen : styles.badgeAmber]}>
+              <Text style={selectedCategoryObj ? styles.badgeTextGreen : styles.badgeTextAmber}>
+                {selectedCategoryObj ? selectedCategoryObj.seats : 'Required'}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.fieldSubHelp}>Tap to choose your vehicle category segment:</Text>
+
+          {/* Dropdown Trigger */}
+          <TouchableOpacity
+            style={[styles.dropdownTrigger, categoryDropdownOpen && styles.dropdownTriggerOpen]}
+            onPress={() => {
+              setCategoryDropdownOpen(!categoryDropdownOpen);
+              if (carriageDropdownOpen) setCarriageDropdownOpen(false);
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.dropdownTriggerIcon}>{selectedCategoryObj?.icon || '🚗'}</Text>
+            <View style={{ flex: 1, paddingHorizontal: 6 }}>
+              {selectedCategoryObj ? (
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.dropdownTriggerTitle}>{selectedCategoryObj.title}</Text>
+                    <View style={styles.dropdownSeatBadge}>
+                      <Text style={styles.dropdownSeatBadgeText}>{selectedCategoryObj.seats}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.dropdownTriggerSub} numberOfLines={1}>
+                    {selectedCategoryObj.models}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.dropdownTriggerTitle, { color: '#94a3b8' }]}>
+                    Select Vehicle Category
+                  </Text>
+                  <Text style={styles.dropdownTriggerSub}>
+                    Tap to select Hatchback, Sedan, SUV, TT
+                  </Text>
+                </>
+              )}
+            </View>
+            <Ionicons
+              name={categoryDropdownOpen ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={categoryDropdownOpen ? '#ea580c' : '#64748b'}
+            />
+          </TouchableOpacity>
+
+          {/* Dropdown Menu Items */}
+          {categoryDropdownOpen && (
+            <View style={styles.dropdownMenu}>
+              {VEHICLE_CATEGORIES.map((cat, idx) => {
+                const isSelected = category === cat.id;
+                const isLast = idx === VEHICLE_CATEGORIES.length - 1;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[
+                      styles.dropdownMenuItem,
+                      isSelected && styles.dropdownMenuItemSelected,
+                      !isLast && styles.dropdownMenuItemBorder,
+                    ]}
+                    onPress={() => {
+                      setCategory(cat.id);
+                      setCategoryDropdownOpen(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.dropdownItemIcon}>{cat.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={[styles.dropdownItemTitle, isSelected && styles.dropdownItemTitleSelected]}>
+                          {cat.title}
+                        </Text>
+                        <View style={[styles.dropdownItemSeatPill, isSelected && styles.dropdownItemSeatPillSelected]}>
+                          <Text style={[styles.dropdownItemSeatText, isSelected && styles.dropdownItemSeatTextSelected]}>
+                            {cat.seats}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.dropdownItemModels}>{cat.models}</Text>
+                    </View>
+                    <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
+                      {isSelected && <View style={styles.radioDot} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Exact Car Model Name Input (Which Car) */}
+          <View style={{ marginTop: 12 }}>
+            <View style={styles.inputLabelRow}>
+              <Text style={styles.inputLabel}>WHICH CAR (MAKE & MODEL NAME):</Text>
+              <View style={[styles.badgePill, carModel.trim() ? styles.badgeGreen : styles.badgeAmber]}>
+                <Text style={carModel.trim() ? styles.badgeTextGreen : styles.badgeTextAmber}>
+                  {carModel.trim() ? '✓ Filled' : 'Required'}
+                </Text>
+              </View>
+            </View>
+            <TextInput
+              style={styles.textInput}
+              value={carModel}
+              onChangeText={setCarModel}
+              placeholder="e.g. Maruti Suzuki Dzire / Toyota Innova Crysta / Tata Tiago"
+              placeholderTextColor="#94a3b8"
+            />
+          </View>
+        </View>
+
+        {/* Fuel Type */}
+        <View style={styles.inputCard}>
+          <View style={styles.inputLabelRow}>
+            <Text style={styles.inputLabel}>FUEL TYPE:</Text>
+            <View style={[styles.badgePill, fuelType ? styles.badgeGreen : styles.badgeAmber]}>
+              <Text style={fuelType ? styles.badgeTextGreen : styles.badgeTextAmber}>
+                {fuelType ? `✓ ${fuelType}` : 'Required'}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.fieldSubHelp}>Select the fuel engine type of your vehicle:</Text>
+          <View style={styles.pillsRow}>
+            {FUEL_TYPES.map((f) => {
+              const isSelected = fuelType === f.id;
+              return (
+                <TouchableOpacity
+                  key={f.id}
+                  style={[styles.fuelPill, isSelected && styles.fuelPillSelected]}
+                  onPress={() => setFuelType(f.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.fuelPillIcon}>{f.icon}</Text>
+                  <Text style={[styles.fuelPillLabel, isSelected && styles.fuelPillLabelSelected]}>
+                    {f.label}
+                  </Text>
+                  {isSelected && <Text style={styles.fuelPillCheck}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Carriage Included How Much - DROPDOWN */}
+        <View style={styles.inputCard}>
+          <View style={styles.inputLabelRow}>
+            <Text style={styles.inputLabel}>CARRIAGE / LUGGAGE CAPACITY (HOW MUCH):</Text>
+            <View style={[styles.badgePill, carriageCapacity ? styles.badgeGreen : styles.badgeAmber]}>
+              <Text style={carriageCapacity ? styles.badgeTextGreen : styles.badgeTextAmber}>
+                {carriageCapacity ? '✓ Selected' : 'Required'}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.fieldSubHelp}>Tap to select luggage boot / roof carrier allowance:</Text>
+
+          {/* Dropdown Trigger */}
+          <TouchableOpacity
+            style={[styles.dropdownTrigger, carriageDropdownOpen && styles.dropdownTriggerOpen]}
+            onPress={() => {
+              setCarriageDropdownOpen(!carriageDropdownOpen);
+              if (categoryDropdownOpen) setCategoryDropdownOpen(false);
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.dropdownTriggerIcon}>
+              {carriageCapacity?.startsWith('None') ? '🚫' : carriageCapacity?.includes('Roof') ? '🧳' : '👜'}
+            </Text>
+            <View style={{ flex: 1, paddingHorizontal: 6 }}>
+              <Text
+                style={[
+                  styles.dropdownTriggerTitle,
+                  !carriageCapacity && { color: '#94a3b8' },
+                ]}
+                numberOfLines={1}
+              >
+                {carriageCapacity || 'Select Luggage / Carriage Allowance'}
+              </Text>
+              <Text style={styles.dropdownTriggerSub}>
+                {carriageCapacity ? 'Boot space or luggage carrier capacity' : 'Tap to select allowance'}
+              </Text>
+            </View>
+            <Ionicons
+              name={carriageDropdownOpen ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={carriageDropdownOpen ? '#ea580c' : '#64748b'}
+            />
+          </TouchableOpacity>
+
+          {/* Dropdown Menu Items */}
+          {carriageDropdownOpen && (
+            <View style={styles.dropdownMenu}>
+              {CARRIAGE_OPTIONS.map((opt, idx) => {
+                const isSelected = carriageCapacity === opt;
+                const isLast = idx === CARRIAGE_OPTIONS.length - 1;
+                return (
+                  <TouchableOpacity
+                    key={opt}
+                    style={[
+                      styles.dropdownMenuItem,
+                      isSelected && styles.dropdownMenuItemSelected,
+                      !isLast && styles.dropdownMenuItemBorder,
+                    ]}
+                    onPress={() => {
+                      setCarriageCapacity(opt);
+                      setCarriageDropdownOpen(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.dropdownItemIcon}>
+                      {opt.startsWith('None') ? '🚫' : opt.includes('Roof') ? '🧳' : '👜'}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.dropdownItemTitle, isSelected && styles.dropdownItemTitleSelected]}>
+                        {opt}
+                      </Text>
+                    </View>
+                    <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
+                      {isSelected && <View style={styles.radioDot} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        {/* ============================================================ */}
+        {/* SECTION 2: DRIVER IDENTITY & OFFICIAL KYC DOCUMENTS          */}
+        {/* ============================================================ */}
+        <View style={[styles.sectionHeaderRow, { marginTop: 12 }]}>
+          <Text style={styles.sectionHeaderTitle}>2. DRIVER IDENTITY & KYC DOCUMENTS</Text>
+          <Text style={styles.sectionHeaderSub}>Verification</Text>
+        </View>
+
+        {/* Driver Profile Photo (Circular 1:1 Avatar) */}
         <View style={styles.docUploadCard}>
           <View style={styles.docCardHeader}>
             <View style={{ flex: 1, paddingRight: 8 }}>
@@ -339,14 +738,21 @@ export default function DriverDocumentsUploadScreen() {
           )}
         </View>
 
-        {/* License Number Input */}
+        {/* Driving License Number Input */}
         <View style={styles.inputCard}>
-          <Text style={styles.inputLabel}>DRIVING LICENSE NUMBER (DL):</Text>
+          <View style={styles.inputLabelRow}>
+            <Text style={styles.inputLabel}>DRIVING LICENSE NUMBER (DL):</Text>
+            <View style={[styles.badgePill, licenseNumber ? styles.badgeGreen : styles.badgeAmber]}>
+              <Text style={licenseNumber ? styles.badgeTextGreen : styles.badgeTextAmber}>
+                {licenseNumber ? '✓ Filled' : 'Required'}
+              </Text>
+            </View>
+          </View>
           <TextInput
             style={styles.textInput}
             value={licenseNumber}
             onChangeText={setLicenseNumber}
-            placeholder="e.g. KA 202612356"
+            placeholder="e.g. KA 01 2023 0012345"
             placeholderTextColor="#94a3b8"
             autoCapitalize="characters"
           />
@@ -478,59 +884,6 @@ export default function DriverDocumentsUploadScreen() {
           )}
         </View>
 
-        {/* ============================================================ */}
-        {/* SECTION 2: VEHICLE INSPECTION PHOTOS (5 ANGLES)              */}
-        {/* ============================================================ */}
-        <View style={[styles.sectionHeaderRow, { marginTop: 16 }]}>
-          <Text style={styles.sectionHeaderTitle}>2. VEHICLE INSPECTION PHOTOS (5 ANGLES)</Text>
-          <Text style={styles.sectionHeaderSub}>5 Angles</Text>
-        </View>
-
-        <View style={styles.anglesGrid}>
-          {angleNames.map((angle, idx) => {
-            const photoUrl = vehiclePhotos[idx];
-            return (
-              <View key={angle.title} style={styles.angleCard}>
-                <View style={styles.angleHeader}>
-                  <Text style={styles.angleTitle}>{angle.title}</Text>
-                  <View style={[styles.angleBadge, photoUrl ? styles.badgeGreen : styles.badgeAmber]}>
-                    <Text style={photoUrl ? styles.badgeTextGreen : styles.badgeTextAmber}>
-                      {photoUrl ? '✓ Attached' : '⏳ Pending'}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.angleDesc}>{angle.desc}</Text>
-
-                {photoUrl ? (
-                  <View style={styles.anglePreviewBox}>
-                    <Image
-                      source={{ uri: photoUrl }}
-                      style={styles.angleImage}
-                      resizeMode="cover"
-                    />
-                    <TouchableOpacity
-                      style={styles.angleChangeBtn}
-                      onPress={() => handleSelectOptions(idx)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.angleChangeText}>📷 Retake</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.anglePlaceholder}
-                    onPress={() => handleSelectOptions(idx)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={{ fontSize: 24 }}>📸</Text>
-                    <Text style={styles.anglePlaceholderText}>Upload {angle.title}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
-          })}
-        </View>
-
         {/* Submit Action */}
         <TouchableOpacity
           style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
@@ -549,7 +902,7 @@ export default function DriverDocumentsUploadScreen() {
         </TouchableOpacity>
 
         <Text style={styles.footerNote}>
-          Once submitted, your official documents and cab photos will be reviewed in the Kandy Cabs Admin Evidence Panel.
+          Once submitted, your vehicle specifications, license details, carriage capacity, and KYC documents will be reviewed in the Kandy Cabs Admin Panel.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -584,7 +937,7 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   navTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
     color: '#0f172a',
   },
@@ -675,11 +1028,21 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     marginBottom: 12,
   },
+  inputLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
   inputLabel: {
     fontSize: 10,
     fontWeight: '800',
     color: '#475569',
-    marginBottom: 6,
+  },
+  fieldSubHelp: {
+    fontSize: 11,
+    color: '#64748b',
+    marginBottom: 8,
   },
   textInput: {
     backgroundColor: '#f8fafc',
@@ -691,7 +1054,197 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#0f172a',
+  },
+  plateInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
+    borderColor: '#0f172a',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  plateIndBadge: {
+    backgroundColor: '#1e3a8a',
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plateIndText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  plateTextInput: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0f172a',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    letterSpacing: 1,
+  },
+
+  // Dropdown Styles
+  dropdownTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  dropdownTriggerOpen: {
+    borderColor: '#ea580c',
+    backgroundColor: '#fff7ed',
+  },
+  dropdownTriggerIcon: {
+    fontSize: 22,
+    marginRight: 4,
+  },
+  dropdownTriggerTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+  dropdownTriggerSub: {
+    fontSize: 10,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  dropdownSeatBadge: {
+    backgroundColor: '#ea580c',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  dropdownSeatBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  dropdownMenu: {
+    marginTop: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#ea580c',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  dropdownMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#ffffff',
+    gap: 8,
+  },
+  dropdownMenuItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  dropdownMenuItemSelected: {
+    backgroundColor: '#fff7ed',
+  },
+  dropdownItemIcon: {
+    fontSize: 18,
+  },
+  dropdownItemTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  dropdownItemTitleSelected: {
+    color: '#ea580c',
+    fontWeight: '900',
+  },
+  dropdownItemModels: {
+    fontSize: 10,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  dropdownItemSeatPill: {
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  dropdownItemSeatPillSelected: {
+    backgroundColor: '#ea580c',
+  },
+  dropdownItemSeatText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  dropdownItemSeatTextSelected: {
+    color: '#ffffff',
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioCircleSelected: {
+    borderColor: '#ea580c',
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ea580c',
+  },
+
+  pillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  fuelPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc',
+  },
+  fuelPillSelected: {
+    borderColor: '#ea580c',
+    backgroundColor: '#fff7ed',
+    borderWidth: 2,
+  },
+  fuelPillIcon: {
+    fontSize: 14,
+  },
+  fuelPillLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  fuelPillLabelSelected: {
+    color: '#ea580c',
+    fontWeight: '900',
+  },
+  fuelPillCheck: {
+    color: '#ea580c',
+    fontSize: 11,
+    fontWeight: '900',
   },
   docUploadCard: {
     backgroundColor: '#ffffff',
@@ -875,80 +1428,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#64748b',
     marginTop: 2,
-  },
-  anglesGrid: {
-    gap: 10,
-  },
-  angleCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  angleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  angleTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  angleBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  angleDesc: {
-    fontSize: 10,
-    color: '#64748b',
-    marginTop: 1,
-    marginBottom: 8,
-  },
-  anglePreviewBox: {
-    height: 120,
-    borderRadius: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    position: 'relative',
-    backgroundColor: '#0f172a',
-  },
-  angleImage: {
-    width: '100%',
-    height: '100%',
-  },
-  angleChangeBtn: {
-    position: 'absolute',
-    bottom: 6,
-    right: 6,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  angleChangeText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  anglePlaceholder: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    backgroundColor: '#f8fafc',
-    paddingVertical: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  anglePlaceholderText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
-    marginTop: 4,
   },
   submitBtn: {
     backgroundColor: '#ea580c',

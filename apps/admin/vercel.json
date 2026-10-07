@@ -1,0 +1,6 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "node ../../packages/db/src/generate.js && npx next build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install"
+}

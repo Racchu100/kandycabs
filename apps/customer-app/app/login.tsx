@@ -19,7 +19,8 @@ export default function CustomerLoginScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [name, setName] = useState('');
+  const [step, setStep] = useState<'PHONE' | 'OTP' | 'NAME'>('PHONE');
   const [loading, setLoading] = useState(false);
   const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
 
@@ -71,12 +72,40 @@ export default function CustomerLoginScreen() {
 
       if (res.success && res.token) {
         customerTokenStorage.setToken(res.token);
-        router.replace('/dashboard');
+        
+        // If user already has a registered name, go straight to dashboard
+        if (res.hasRegisteredName) {
+          router.replace('/dashboard');
+        } else {
+          // New customer or missing name -> prompt for name
+          setStep('NAME');
+        }
       } else {
         Alert.alert('Verification Failed', res.message || 'Incorrect OTP code.');
       }
     } catch (err: any) {
       Alert.alert('Error', err.message || 'OTP verification failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!name.trim()) {
+      Alert.alert('Name Required', 'Please enter your full name to complete your profile.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await customerApiClient.fetch('/api/auth/update-profile', {
+        method: 'POST',
+        body: JSON.stringify({ fullName: name.trim() }),
+      });
+      router.replace('/dashboard');
+    } catch (err: any) {
+      // Even if update failed, we are already logged in
+      router.replace('/dashboard');
     } finally {
       setLoading(false);
     }
@@ -99,15 +128,21 @@ export default function CustomerLoginScreen() {
 
         <View style={styles.card}>
           <Text style={styles.title}>
-            {step === 'PHONE' ? 'Enter Mobile Number' : 'Enter 4-Digit OTP'}
+            {step === 'PHONE'
+              ? 'Enter Mobile Number'
+              : step === 'OTP'
+              ? 'Enter 4-Digit OTP'
+              : 'Complete Your Profile'}
           </Text>
           <Text style={styles.subtitle}>
             {step === 'PHONE'
               ? "We'll send a one-time verification code"
-              : `Code sent to +91 ${phone}`}
+              : step === 'OTP'
+              ? `Code sent to +91 ${phone}`
+              : 'Please enter your full name to finish registration'}
           </Text>
 
-          {step === 'PHONE' ? (
+          {step === 'PHONE' && (
             <View style={styles.inputContainer}>
               <Text style={styles.prefix}>+91</Text>
               <TextInput
@@ -121,7 +156,9 @@ export default function CustomerLoginScreen() {
                 editable={!loading}
               />
             </View>
-          ) : (
+          )}
+
+          {step === 'OTP' && (
             <View style={styles.otpWrapper}>
               <TextInput
                 style={styles.otpInput}
@@ -145,16 +182,40 @@ export default function CustomerLoginScreen() {
             </View>
           )}
 
+          {step === 'NAME' && (
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Rachel Sharma"
+                placeholderTextColor="#64748b"
+                value={name}
+                onChangeText={setName}
+                editable={!loading}
+                autoFocus
+              />
+            </View>
+          )}
+
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={step === 'PHONE' ? handleSendOtp : handleVerifyOtp}
+            onPress={
+              step === 'PHONE'
+                ? handleSendOtp
+                : step === 'OTP'
+                ? handleVerifyOtp
+                : handleSaveName
+            }
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#020617" />
             ) : (
               <Text style={styles.buttonText}>
-                {step === 'PHONE' ? 'Get OTP' : 'Verify & Continue'}
+                {step === 'PHONE'
+                  ? 'Get OTP'
+                  : step === 'OTP'
+                  ? 'Verify OTP'
+                  : 'Save & Continue'}
               </Text>
             )}
           </TouchableOpacity>

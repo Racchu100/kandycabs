@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -17,9 +17,11 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { customerApiClient, customerTokenStorage } from '../lib/api';
 import { locationSharer } from '../lib/location-sharer';
+import { customerRealtimeTracker } from '../lib/realtime-client';
 import {
   BookingStatus,
   TripType,
@@ -161,9 +163,19 @@ export const DROP_DESTINATIONS: PlaceLocation[] = ALL_LOCATIONS;
 
 const VEHICLE_TYPES = [
   {
+    category: VehicleCategory.HATCHBACK,
+    name: 'WagonR or equivalent',
+    models: 'WagonR, Swift, Tiago, Celerio',
+    rate: '₹11/km',
+    capacity: '4 Pax',
+    luggage: '2 Bags',
+    badge: 'Budget Choice',
+    badgeColor: '#10b981',
+  },
+  {
     category: VehicleCategory.SEDAN,
-    name: 'Prime Sedan',
-    models: 'Dzire, Etios, Amaze',
+    name: 'Dzire or equivalent',
+    models: 'Dzire, Etios, Aura, Amaze',
     rate: '₹13/km',
     capacity: '4 Pax',
     luggage: '3 Bags',
@@ -172,9 +184,9 @@ const VEHICLE_TYPES = [
   },
   {
     category: VehicleCategory.SUV,
-    name: 'Prime SUV (6+1)',
-    models: 'Ertiga, Carens, Triber',
-    rate: '₹18/km',
+    name: 'Ertiga or equivalent',
+    models: 'Ertiga, Carens, XL6, Triber',
+    rate: '₹16/km',
     capacity: '6 Pax',
     luggage: '4 Bags',
     badge: 'Family Choice',
@@ -182,31 +194,21 @@ const VEHICLE_TYPES = [
   },
   {
     category: VehicleCategory.SUV_PREMIUM,
-    name: 'Innova Crysta',
-    models: 'Innova Crysta / Hycross',
-    rate: '₹23/km',
-    capacity: '6+1 Luxury',
+    name: 'Innova Crysta or equivalent',
+    models: 'Innova Crysta, Hycross, Safari',
+    rate: '₹20/km',
+    capacity: '7 Pax',
     luggage: '5 Bags',
     badge: 'VIP Luxury',
     badgeColor: '#a855f7',
   },
   {
-    category: VehicleCategory.HATCHBACK,
-    name: 'Hatchback',
-    models: 'WagonR, Tiago',
-    rate: '₹11/km',
-    capacity: '4 Pax',
-    luggage: '2 Bags',
-    badge: 'Budget',
-    badgeColor: '#10b981',
-  },
-  {
     category: VehicleCategory.TEMPO_TRAVELER,
-    name: 'Tempo Traveller',
+    name: 'Tempo Traveller or equivalent',
     models: 'Force 3350 AC (12+1)',
-    rate: '₹28/km',
+    rate: '₹26/km',
     capacity: '12-14 Pax',
-    luggage: 'Heavy Carrier',
+    luggage: 'Roof Carrier',
     badge: 'Group Tour',
     badgeColor: '#f97316',
   },
@@ -306,6 +308,54 @@ export default function CustomerDashboardScreen() {
   const [pickupTime, setPickupTime] = useState('09:00');
   const [selectedCategory, setSelectedCategory] = useState<VehicleCategory>(VehicleCategory.SEDAN);
   const [selectedFuelType, setSelectedFuelType] = useState<FuelType>(FuelType.DIESEL);
+  const [liveFleets, setLiveFleets] = useState<any[]>([]);
+
+  // Fetch live fleet categories from Admin Panel
+  useEffect(() => {
+    let isMounted = true;
+    async function loadFleets() {
+      try {
+        const res = await customerApiClient.fetch('/api/fleets');
+        if (isMounted && res && res.success && Array.isArray(res.fleets)) {
+          setLiveFleets(res.fleets);
+        }
+      } catch (err) {
+        // Fallback gracefully
+      }
+    }
+    loadFleets();
+    const iv = setInterval(loadFleets, 4000);
+    return () => {
+      isMounted = false;
+      clearInterval(iv);
+    };
+  }, []);
+
+  // Compute strictly enabled fuels for current selectedCategory configured in Admin Panel
+  const availableFuelsForCategory = useMemo(() => {
+    const fleet = liveFleets.find((f: any) => f.category === selectedCategory || f.id === selectedCategory);
+    if (fleet) {
+      if (Array.isArray(fleet.fuelTypes) && fleet.fuelTypes.length > 0) {
+        return fleet.fuelTypes as string[];
+      }
+      const fuels: string[] = [];
+      if (fleet.cngEnabled) fuels.push('CNG');
+      if (fleet.petrolEnabled) fuels.push('PETROL');
+      if (fleet.dieselEnabled) fuels.push('DIESEL');
+      if (fuels.length > 0) return fuels;
+    }
+    if (selectedCategory === VehicleCategory.HATCHBACK) return ['CNG', 'PETROL'];
+    if (selectedCategory === VehicleCategory.SUV_PREMIUM) return ['PETROL', 'DIESEL'];
+    if (selectedCategory === VehicleCategory.TEMPO_TRAVELER) return ['DIESEL'];
+    return ['CNG', 'PETROL', 'DIESEL'];
+  }, [liveFleets, selectedCategory]);
+
+  // Keep selectedFuelType synchronized with enabled fuels
+  useEffect(() => {
+    if (availableFuelsForCategory.length > 0 && !availableFuelsForCategory.includes(selectedFuelType)) {
+      setSelectedFuelType(availableFuelsForCategory[0] as FuelType);
+    }
+  }, [availableFuelsForCategory, selectedFuelType]);
 
   // Quote & Pricing
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -508,20 +558,47 @@ export default function CustomerDashboardScreen() {
     }
   }, []);
 
+  const alertedEventsRef = useRef<Set<string>>(new Set());
+
   const fetchBookings = useCallback(async (isBackground = false) => {
     if (!isBackground) setLoadingBookings(true);
     try {
       const res = await customerApiClient.fetch(`/api/customer/bookings/list?status=${statusFilter}`);
       if (res.success) {
-        setBookings(res.bookings || []);
+        const list = res.bookings || [];
+        setBookings(list);
 
-        const activeRide = res.bookings?.find(
+        // Check for real-time driver proximity & arrival events and alert the customer
+        list.forEach((b: any) => {
+          if (b.tripEvents && Array.isArray(b.tripEvents)) {
+            const arrivedEvt = b.tripEvents.find((e: any) => e.type === 'DRIVER_ARRIVED');
+            const nearEvt = b.tripEvents.find((e: any) => e.type === 'DRIVER_NEAR_PICKUP');
+
+            if (arrivedEvt && !alertedEventsRef.current.has(arrivedEvt.id)) {
+              alertedEventsRef.current.add(arrivedEvt.id);
+              const msg =
+                arrivedEvt.payloadJson?.message ||
+                `Your driver has arrived at the pickup location! Share your 4-digit OTP (${b.pickupOtp || '----'}) with your driver.`;
+              Alert.alert('📍 Driver Arrived!', msg, [{ text: 'OK, I am Ready' }]);
+            } else if (nearEvt && !arrivedEvt && !alertedEventsRef.current.has(nearEvt.id)) {
+              alertedEventsRef.current.add(nearEvt.id);
+              const msg =
+                nearEvt.payloadJson?.message ||
+                `Your driver is approaching your pickup location. Please be ready!`;
+              Alert.alert('🚕 Driver Approaching', msg, [{ text: 'Got It' }]);
+            }
+          }
+        });
+
+        const activeRide = list.find(
           (b: any) =>
             b.status === BookingStatus.DRIVER_ACCEPTED ||
-            b.status === BookingStatus.DRIVER_EN_ROUTE
+            b.status === BookingStatus.DRIVER_EN_ROUTE ||
+            b.status === BookingStatus.TRIP_STARTED
         );
 
         if (activeRide) {
+          customerRealtimeTracker.trackBooking(activeRide.id);
           const isEnabled = activeRide.customerLocationSharingEnabled !== false;
           setSharingEnabledMap((prev) => ({
             ...prev,
@@ -529,6 +606,7 @@ export default function CustomerDashboardScreen() {
           }));
           locationSharer.startSharing(activeRide.id, activeRide.status, isEnabled);
         } else {
+          customerRealtimeTracker.stop();
           locationSharer.stopSharing();
         }
       }
@@ -546,11 +624,21 @@ export default function CustomerDashboardScreen() {
   useEffect(() => {
     fetchProfile();
     fetchBookings();
+
+    // Listen for live Supabase Realtime booking status updates
+    const unsubStatus = customerRealtimeTracker.on('BOOKING_STATUS', () => {
+      fetchBookings(true);
+    });
+
+    // 20-second background polling fallback
     const interval = setInterval(() => {
       fetchBookings(true);
-    }, 5000);
+    }, 20000);
+
     return () => {
+      unsubStatus();
       clearInterval(interval);
+      customerRealtimeTracker.stop();
       locationSharer.stopSharing();
     };
   }, [fetchProfile, fetchBookings]);
@@ -1245,15 +1333,18 @@ export default function CustomerDashboardScreen() {
                 <View style={styles.fuelOptionsRow}>
                   {(() => {
                     const currentQuote = quoteResult?.allQuotes?.find((q: any) => q.category === selectedCategory) || quoteResult?.quote;
-                    const fuelOpts = currentQuote?.fuelOptions && currentQuote.fuelOptions.length > 0
-                      ? currentQuote.fuelOptions
-                      : [
-                          { fuelType: FuelType.CNG, ratePerKm: 11 },
-                          { fuelType: FuelType.PETROL, ratePerKm: 12 },
-                          { fuelType: FuelType.DIESEL, ratePerKm: 13 },
-                        ];
+                    
+                    // Filter fuel options strictly by enabled fuels configured in Admin Panel
+                    const fuelList = availableFuelsForCategory.map((fuelName: string) => {
+                      const quoteFuel = currentQuote?.fuelOptions?.find((f: any) => f.fuelType === fuelName);
+                      return {
+                        fuelType: fuelName as FuelType,
+                        ratePerKm: quoteFuel?.ratePerKm,
+                        pricing: quoteFuel?.pricing,
+                      };
+                    });
 
-                    return fuelOpts.map((f: any) => {
+                    return fuelList.map((f: any) => {
                       const isSelected = selectedFuelType === f.fuelType;
                       const icon = f.fuelType === FuelType.CNG ? '🟢' : f.fuelType === FuelType.PETROL ? '🟡' : '🔵';
                       const fareAmount = f.pricing?.totalFare ? `₹${Math.round(f.pricing.totalFare).toLocaleString()}` : (f.ratePerKm ? `₹${f.ratePerKm}/km` : '');
@@ -1473,6 +1564,40 @@ export default function CustomerDashboardScreen() {
                         />
                       </View>
                     )}
+
+                    {/* Driver Proximity & Arrival Live Banner */}
+                    {(() => {
+                      const arrivedEvt = booking.tripEvents?.find((e: any) => e.type === 'DRIVER_ARRIVED');
+                      const nearEvt = booking.tripEvents?.find((e: any) => e.type === 'DRIVER_NEAR_PICKUP');
+
+                      if (arrivedEvt && booking.status !== 'TRIP_COMPLETED' && booking.status !== 'CANCELLED') {
+                        return (
+                          <View style={styles.driverArrivedAlert}>
+                            <Ionicons name="checkmark-circle" size={26} color="#10b981" />
+                            <View style={{ flex: 1, marginLeft: 10 }}>
+                              <Text style={styles.driverAlertTitleGreen}>Driver Has Arrived! 📍</Text>
+                              <Text style={styles.driverAlertSub}>
+                                {arrivedEvt.payloadJson?.message || 'Your driver is waiting at your pickup location. Share your OTP below to start the ride.'}
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      }
+                      if (nearEvt && isPickupWindow && booking.status !== 'TRIP_STARTED') {
+                        return (
+                          <View style={styles.driverNearAlert}>
+                            <Ionicons name="navigate-circle" size={26} color="#38bdf8" />
+                            <View style={{ flex: 1, marginLeft: 10 }}>
+                              <Text style={styles.driverAlertTitleBlue}>Driver Approaching 🚕</Text>
+                              <Text style={styles.driverAlertSub}>
+                                {nearEvt.payloadJson?.message || 'Your driver is approaching your pickup location. Please be ready.'}
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     {/* Pickup OTP */}
                     {booking.pickupOtp &&
@@ -2981,6 +3106,42 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 10,
     marginTop: 2,
+  },
+  driverArrivedAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#064e3b',
+    borderWidth: 1.5,
+    borderColor: '#10b981',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  driverNearAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0c4a6e',
+    borderWidth: 1.5,
+    borderColor: '#38bdf8',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  driverAlertTitleGreen: {
+    color: '#6ee7b7',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  driverAlertTitleBlue: {
+    color: '#7dd3fc',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  driverAlertSub: {
+    color: '#f8fafc',
+    fontSize: 11,
+    marginTop: 2,
+    lineHeight: 15,
   },
   otpCard: {
     flexDirection: 'row',

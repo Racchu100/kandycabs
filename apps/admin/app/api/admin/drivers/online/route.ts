@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
             tripType: true,
             pickupAddress: true,
             dropAddress: true,
+            scheduledAt: true,
           },
         },
       },

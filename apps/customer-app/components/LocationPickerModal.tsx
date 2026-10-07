@@ -136,8 +136,9 @@ export function LocationPickerModal({
       const { latitude, longitude } = loc.coords;
 
       // 4. Reverse geocode coordinates using OpenStreetMap (OSM) Live Service
-      let label = 'Current GPS Location';
-      let sublabel = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      let label = '';
+      let sublabel = '';
+      let hasResolvedAddress = false;
 
       // Try OpenStreetMap Nominatim for exact street & locality
       try {
@@ -174,8 +175,10 @@ export function LocationPickerModal({
 
           if (labelParts.length > 0) {
             label = labelParts.join(', ');
+            hasResolvedAddress = true;
           } else if (data.display_name) {
             label = data.display_name.split(',').slice(0, 3).join(', ').trim();
+            hasResolvedAddress = true;
           }
 
           const subParts = [locality, city, addr.state, postcode].filter(Boolean);
@@ -184,7 +187,7 @@ export function LocationPickerModal({
           throw new Error('OSM Reverse failed');
         }
       } catch {
-        // Fallback to Native Expo Reverse Geocoder with clean formatting (stripping administrative division tags)
+        // Fallback to Native Expo Reverse Geocoder
         try {
           const addresses = await Location.reverseGeocodeAsync({
             latitude,
@@ -201,12 +204,23 @@ export function LocationPickerModal({
             const parts = [road, cleanDistrict, city].filter(Boolean);
             if (parts.length > 0) {
               label = parts.filter((v, i, a) => a.indexOf(v) === i).join(', ');
+              hasResolvedAddress = true;
             }
-            sublabel = [city, addr.region, addr.postalCode].filter(Boolean).join(', ') || sublabel;
+            sublabel = [city, addr.region, addr.postalCode].filter(Boolean).join(', ') || 'Detected via Live GPS';
           }
         } catch {
-          // Final fallback: keep clean coordinate tags
+          // Native reverse geocode failed (no network / offline)
         }
+      }
+
+      // If offline / no network, show 'No Network Connection' error instead of setting coordinates
+      if (!hasResolvedAddress || !label.trim()) {
+        Alert.alert(
+          'No Network Connection',
+          'Could not fetch location address because your device is offline or has no network connection. Please check your internet connection or pick a location from the list below.',
+          [{ text: 'OK' }]
+        );
+        return;
       }
 
       const placeLoc: PlaceLocation = {
@@ -221,8 +235,8 @@ export function LocationPickerModal({
       onClose();
     } catch (e: any) {
       Alert.alert(
-        'GPS Location',
-        'Could not get an accurate GPS fix. Please ensure GPS is enabled or select a nearby landmark from the list.',
+        'Location / Network Error',
+        'Could not obtain an accurate location address. Please ensure GPS and Internet connection are enabled, or select a landmark from the list below.',
         [{ text: 'OK' }]
       );
     } finally {

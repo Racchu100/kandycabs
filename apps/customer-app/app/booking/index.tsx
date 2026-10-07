@@ -18,6 +18,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AuthModal } from '../../components/AuthModal';
 import { customerApiClient, customerTokenStorage } from '../../lib/api';
 import { VehicleCategory, TripType, FuelType } from '@kandy-cabs/shared';
 
@@ -122,6 +123,18 @@ const FLEET_INFO: Record<
     color: '#b45309',
     category: VehicleCategory.TEMPO_TRAVELER,
   },
+  URBANIA: {
+    name: 'Force Urbania',
+    models: 'Force Urbania Luxury (10/13/17 Seater)',
+    ratePerKm: 32,
+    minKm: 150,
+    passengers: 17,
+    luggage: 10,
+    badge: 'LUXURY VAN',
+    image: require('../../assets/images/fleet-urbania.png'),
+    color: '#475569',
+    category: VehicleCategory.TEMPO_TRAVELER,
+  },
 };
 
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -157,6 +170,15 @@ export default function BookingFunnelScreen() {
   const localHours = Number(params.localHours) || 8;
   const rawCategory = (params.category as string) || 'SEDAN';
 
+  const viaStopsRaw = (params.viaStops as string) || '[]';
+  const viaStops: any[] = useMemo(() => {
+    try {
+      return JSON.parse(viaStopsRaw);
+    } catch {
+      return [];
+    }
+  }, [viaStopsRaw]);
+
   const pickupLat = Number(params.pickupLat) || 12.8634;
   const pickupLng = Number(params.pickupLng) || 74.8436;
   const dropLat = Number(params.dropLat) || 13.348;
@@ -169,39 +191,78 @@ export default function BookingFunnelScreen() {
     if (tripTypeParam === 'LOCAL') {
       return localHours === 4 ? 40 : localHours === 8 ? 80 : 120;
     }
+    if (viaStops && viaStops.length > 0) {
+      let total = 0;
+      let currLat = pickupLat;
+      let currLng = pickupLng;
+      for (const stop of viaStops) {
+        if (stop && stop.lat && stop.lng) {
+          total += calculateDistanceKm(currLat, currLng, stop.lat, stop.lng);
+          currLat = stop.lat;
+          currLng = stop.lng;
+        }
+      }
+      total += calculateDistanceKm(currLat, currLng, dropLat, dropLng);
+      return Math.max(15, total);
+    }
     return calculateDistanceKm(pickupLat, pickupLng, dropLat, dropLng);
-  }, [tripTypeParam, localHours, pickupLat, pickupLng, dropLat, dropLng]);
+  }, [tripTypeParam, localHours, pickupLat, pickupLng, dropLat, dropLng, viaStops]);
 
   const estimatedHours = useMemo(() => {
     if (tripTypeParam === 'LOCAL') return `${localHours} hrs`;
-    const h = (estimatedKm / 45).toFixed(1);
-    return `${h} hrs approx`;
+    const totalMinutes = Math.round((estimatedKm / 45) * 60);
+    if (totalMinutes < 60) {
+      return `${Math.max(5, totalMinutes)} mins approx`;
+    }
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    if (mins === 0) {
+      return `${hours} hr${hours > 1 ? 's' : ''} approx`;
+    }
+    return `${hours} hr${hours > 1 ? 's' : ''} ${mins} mins approx`;
   }, [tripTypeParam, localHours, estimatedKm]);
+
+  const customRatePerKm = Number(params.ratePerKm) || vehicleInfo.ratePerKm;
+  const customExtraKmRate = Number(params.extraKmRate) || customRatePerKm;
+  const customThreshold = params.extraKmThreshold && Number(params.extraKmThreshold) > 0 ? Number(params.extraKmThreshold) : 0;
+  const customMinKm = Number(params.minKm) || vehicleInfo.minKm;
+  const customVehicleName = (params.selectedVehicleName as string) || vehicleInfo.name;
 
   // Pricing Calculation
   const baseEstimatedFare = useMemo(() => {
-    const billableKm = Math.max(vehicleInfo.minKm, estimatedKm);
-    return Math.round(billableKm * vehicleInfo.ratePerKm);
-  }, [vehicleInfo, estimatedKm]);
+    if (customThreshold > 0 && estimatedKm > customThreshold) {
+      const basePart = customThreshold * customRatePerKm;
+      const extraPart = (estimatedKm - customThreshold) * customExtraKmRate;
+      return Math.round(basePart + extraPart);
+    }
+    const billableKm = Math.max(customMinKm, estimatedKm);
+    return Math.round(billableKm * customRatePerKm);
+  }, [customMinKm, customRatePerKm, customExtraKmRate, customThreshold, estimatedKm]);
 
   // Auth & User Profile State
   const [user, setUser] = useState<any | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
 
   // Guest Auth form state (if not logged in)
   const [authPhone, setAuthPhone] = useState('');
   const [authName, setAuthName] = useState('');
   const [authOtp, setAuthOtp] = useState('');
-  const [authStep, setAuthStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [authStep, setAuthStep] = useState<'PHONE' | 'OTP' | 'NAME'>('PHONE');
   const [authLoading, setAuthLoading] = useState(false);
   const [authDevOtp, setAuthDevOtp] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  const passengerCountParam = Number(params.passengers) || 4;
+  const luggageDetailsParam = (params.luggage as string) || 'Normal Luggage';
+  const requestCarrierParam = params.requestCarrier === 'true' || params.hasCarrier === 'true';
+  const specialReqParam = (params.specialRequirements as string) || '';
 
   // Step 1: Passenger Contact Info
   const [passengerName, setPassengerName] = useState('');
   const [passengerPhone, setPassengerPhone] = useState('');
   const [passengerEmail, setPassengerEmail] = useState('');
-  const [pickupNotes, setPickupNotes] = useState('');
+  const [pickupNotes, setPickupNotes] = useState(specialReqParam);
 
   // Step 2: Promo Coupon & Payment Mode
   const [couponCode, setCouponCode] = useState('');
@@ -219,20 +280,67 @@ export default function BookingFunnelScreen() {
     async function checkAuth() {
       setAuthChecking(true);
       try {
+        const token = customerTokenStorage.getToken();
+        if (!token) {
+          setUser(null);
+          setPassengerName('');
+          setPassengerPhone('');
+          setPassengerEmail('');
+          setAuthChecking(false);
+          return;
+        }
         const res = await customerApiClient.fetch('/api/auth/me');
-        if (res?.user) {
-          setUser(res.user);
-          setPassengerName(res.user.fullName || '');
-          setPassengerPhone(res.user.phone ? res.user.phone.replace(/\D/g, '').slice(-10) : '');
+        const rawName = res?.user?.fullName;
+        const registeredName = (rawName === 'Kandy Customer' ? '' : (rawName || '')).trim();
+        const cleanP = res?.user?.phone ? res.user.phone.replace(/^\+91/, '').replace(/\D/g, '').slice(-10) : '';
+
+        if (res?.user && registeredName.length > 0) {
+          const validUser = { ...res.user, fullName: registeredName };
+          customerTokenStorage.setUser(validUser);
+          setUser(validUser);
+          setPassengerName(registeredName);
+          setPassengerPhone(cleanP);
           setPassengerEmail(res.user.email || '');
+        } else {
+          setUser(null);
+          setPassengerName('');
+          if (cleanP) {
+            setAuthPhone(cleanP);
+            setPassengerPhone(cleanP);
+            setAuthStep('NAME');
+          } else {
+            setPassengerPhone('');
+            setAuthStep('PHONE');
+          }
+          setPassengerEmail('');
         }
       } catch {
         // Guest mode
+        setUser(null);
+        setPassengerName('');
+        setPassengerPhone('');
+        setPassengerEmail('');
       } finally {
         setAuthChecking(false);
       }
     }
     checkAuth();
+    const unsub = customerTokenStorage.subscribe(() => {
+      const current = customerTokenStorage.getUser();
+      const rawName = current?.fullName;
+      const currentName = (rawName === 'Kandy Customer' ? '' : (rawName || '')).trim();
+      if (!current || !currentName) {
+        setUser(null);
+      } else {
+        const validUser = { ...current, fullName: currentName };
+        setUser(validUser);
+        setPassengerName(currentName);
+        const cleanP = current.phone ? current.phone.replace(/^\+91/, '').replace(/\D/g, '').slice(-10) : '';
+        setPassengerPhone(cleanP);
+        setPassengerEmail(current.email || '');
+      }
+    });
+    return () => unsub();
   }, []);
 
   // Handle Send OTP for Guest Auth
@@ -282,7 +390,6 @@ export default function BookingFunnelScreen() {
         body: JSON.stringify({
           phone: cleaned,
           otp: authOtp.trim(),
-          fullName: authName.trim() || undefined,
         }),
       });
 
@@ -290,16 +397,70 @@ export default function BookingFunnelScreen() {
         if (res.token) {
           customerTokenStorage.setToken(res.token);
         }
-        setUser(res.user);
-        setPassengerName(res.user?.fullName || authName.trim() || 'Customer');
-        setPassengerPhone(cleaned);
-        setPassengerEmail(res.user?.email || '');
-        Alert.alert('Signed In Successfully! 👋', `Welcome, ${res.user?.fullName || 'Traveler'}!`);
+
+        const rawName = res.user?.fullName;
+        const registeredName = (rawName === 'Kandy Customer' ? '' : (rawName || '')).trim();
+        const hasName = Boolean(registeredName.length > 0 && res.hasRegisteredName !== false);
+
+        if (hasName) {
+          // Existing customer with registered name -> auto login
+          const validUser = { ...res.user, fullName: registeredName };
+          customerTokenStorage.setUser(validUser);
+          setUser(validUser);
+          setPassengerName(registeredName);
+          setPassengerPhone(cleaned);
+          setPassengerEmail(res.user.email || '');
+          Alert.alert('Signed In Successfully! 👋', `Welcome, ${registeredName}!`);
+        } else {
+          // New customer without name -> ask for name in step 2 (do NOT set user yet, keep auth card open)
+          setUser(null);
+          setPassengerPhone(cleaned);
+          setPassengerName('');
+          setAuthStep('NAME');
+        }
       } else {
         setAuthError(res?.message || 'Invalid verification code.');
       }
     } catch (err: any) {
       setAuthError(err.message || 'Verification failed. Please retry.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Handle Save Name for New Customer in Guest Auth
+  const handleSaveAuthName = async () => {
+    const trimmed = authName.trim();
+    if (!trimmed) {
+      setAuthError('Please enter your full name to proceed');
+      return;
+    }
+
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      const cleaned = authPhone.trim().replace(/\D/g, '') || passengerPhone;
+      const res = await customerApiClient.fetch('/api/auth/update-profile', {
+        method: 'POST',
+        body: JSON.stringify({ fullName: trimmed }),
+      });
+
+      const updatedUser = { ...(res?.user || user || {}), fullName: trimmed, phone: cleaned };
+      customerTokenStorage.setUser(updatedUser);
+      setUser(updatedUser);
+      setPassengerName(trimmed);
+      setPassengerPhone(cleaned);
+      setAuthStep('PHONE');
+      Alert.alert('Welcome to Kandy Cabs! 👋', `Glad to have you, ${trimmed}!`);
+    } catch {
+      const cleaned = authPhone.trim().replace(/\D/g, '') || passengerPhone;
+      const fallbackUser = { ...(user || {}), fullName: trimmed, phone: cleaned };
+      customerTokenStorage.setUser(fallbackUser);
+      setUser(fallbackUser);
+      setPassengerName(trimmed);
+      setPassengerPhone(cleaned);
+      setAuthStep('PHONE');
     } finally {
       setAuthLoading(false);
     }
@@ -339,6 +500,18 @@ export default function BookingFunnelScreen() {
 
   // Proceed to Step 2
   const handleProceedToStep2 = () => {
+    if (!user) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in with your mobile number to confirm your booking and get live driver tracking.',
+        [
+          { text: 'Sign In Now', onPress: () => setAuthModalVisible(true) },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
     if (!passengerName.trim()) {
       Alert.alert('Name Required', 'Please enter the passenger full name.');
       return;
@@ -348,11 +521,16 @@ export default function BookingFunnelScreen() {
       Alert.alert('Phone Required', 'Please enter a valid 10-digit mobile number.');
       return;
     }
+
     setStep(2);
   };
 
   // Step 2 -> Step 3: Create Booking
   const handleConfirmBooking = async () => {
+    if (!user) {
+      setAuthModalVisible(true);
+      return;
+    }
     setSubmitting(true);
     try {
       const idempotencyKey = `idemp_app_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -381,7 +559,22 @@ export default function BookingFunnelScreen() {
           passengerPhone: passengerPhone.trim(),
           passengerEmail: passengerEmail.trim() || undefined,
           paymentMode: paymentMode === 'PAY_ON_DROP' ? 'PAY_ON_DROP' : 'ADVANCE',
-          notes: pickupNotes.trim() || undefined,
+          requestCarrier: requestCarrierParam,
+          hasCarrier: requestCarrierParam,
+          notes: [
+            viaStops.length > 0 ? `Intermediate Stops: ${viaStops.map((s: any) => s.label).join(' ➔ ')}` : '',
+            requestCarrierParam ? 'Roof Luggage Carrier Requested' : '',
+            pickupNotes.trim(),
+            specialReqParam,
+          ].filter(Boolean).join(' | ') || undefined,
+          passengers: passengerCountParam,
+          luggage: luggageDetailsParam,
+          specialRequirements: [
+            viaStops.length > 0 ? `Via Stops (${viaStops.length}): ${viaStops.map((s: any) => s.label).join(' ➔ ')}` : '',
+            requestCarrierParam ? 'Roof Luggage Carrier: Requested (Cab Rooftop Carrier)' : '',
+            specialReqParam,
+            pickupNotes.trim(),
+          ].filter(Boolean).join(' | ') || undefined,
         }),
       });
 
@@ -499,15 +692,25 @@ export default function BookingFunnelScreen() {
               {!user && !authChecking && (
                 <View style={styles.authNoticeCard}>
                   <View style={styles.authNoticeHeader}>
-                    <Ionicons name="lock-closed" size={18} color="#ea580c" />
+                    <Ionicons 
+                      name={authStep === 'NAME' ? "person-circle" : "lock-closed"} 
+                      size={18} 
+                      color="#ea580c" 
+                    />
                     <Text style={styles.authNoticeTitle}>
-                      {authStep === 'PHONE' ? 'Sign In / Register First' : 'Enter 4-Digit OTP'}
+                      {authStep === 'PHONE'
+                        ? 'Sign In / Register First'
+                        : authStep === 'OTP'
+                        ? 'Enter 4-Digit OTP'
+                        : 'Complete Your Profile'}
                     </Text>
                   </View>
                   <Text style={styles.authNoticeSub}>
                     {authStep === 'PHONE'
                       ? 'Please enter your mobile number to receive driver updates and ride OTP.'
-                      : `Enter the code sent to +91 ${authPhone}`}
+                      : authStep === 'OTP'
+                      ? `Enter the 4-digit code sent to +91 ${authPhone}`
+                      : 'Please enter your full name to complete registration.'}
                   </Text>
 
                   {authError && (
@@ -517,7 +720,7 @@ export default function BookingFunnelScreen() {
                     </View>
                   )}
 
-                  {authStep === 'PHONE' ? (
+                  {authStep === 'PHONE' && (
                     <>
                       <View style={styles.phoneInputRow}>
                         <View style={styles.countryCodeBadge}>
@@ -552,19 +755,10 @@ export default function BookingFunnelScreen() {
                         )}
                       </TouchableOpacity>
                     </>
-                  ) : (
-                    <>
-                      <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>FULL NAME</Text>
-                        <TextInput
-                          style={styles.textInput}
-                          placeholder="e.g. Rachel Sharma"
-                          placeholderTextColor="#94a3b8"
-                          value={authName}
-                          onChangeText={setAuthName}
-                        />
-                      </View>
+                  )}
 
+                  {authStep === 'OTP' && (
+                    <>
                       <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>4-DIGIT OTP CODE</Text>
                         <TextInput
@@ -599,15 +793,50 @@ export default function BookingFunnelScreen() {
                         {authLoading ? (
                           <ActivityIndicator color="#ffffff" />
                         ) : (
-                          <Text style={styles.authActionBtnText}>Verify & Proceed</Text>
+                          <Text style={styles.authActionBtnText}>Verify OTP</Text>
                         )}
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         style={styles.changePhoneBtn}
-                        onPress={() => setAuthStep('PHONE')}
+                        onPress={() => {
+                          setAuthStep('PHONE');
+                          setAuthOtp('');
+                          setAuthError(null);
+                        }}
                       >
                         <Text style={styles.changePhoneText}>← Change Phone Number</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {authStep === 'NAME' && (
+                    <>
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>FULL NAME *</Text>
+                        <TextInput
+                          style={styles.textInput}
+                          placeholder="e.g. Rachel Sharma"
+                          placeholderTextColor="#94a3b8"
+                          value={authName}
+                          onChangeText={(t) => {
+                            setAuthName(t);
+                            setAuthError(null);
+                          }}
+                          autoFocus
+                        />
+                      </View>
+
+                      <TouchableOpacity
+                        style={[styles.authActionBtn, authLoading && { opacity: 0.6 }]}
+                        onPress={handleSaveAuthName}
+                        disabled={authLoading}
+                      >
+                        {authLoading ? (
+                          <ActivityIndicator color="#ffffff" />
+                        ) : (
+                          <Text style={styles.authActionBtnText}>Save & Proceed ➔</Text>
+                        )}
                       </TouchableOpacity>
                     </>
                   )}
@@ -629,8 +858,22 @@ export default function BookingFunnelScreen() {
                         <Text style={styles.greenBadgeText}>✓ Logged In</Text>
                       </View>
                     </View>
-                    <Text style={styles.verifiedPhone}>📞 +91 {user.phone}</Text>
+                    <Text style={styles.verifiedPhone}>
+                      📞 +91 {user.phone ? user.phone.replace(/^\+91/, '').replace(/\D/g, '').slice(-10) : ''}
+                    </Text>
                   </View>
+                  <TouchableOpacity
+                    style={styles.switchAccountBtn}
+                    onPress={() => {
+                      customerTokenStorage.removeToken();
+                      setUser(null);
+                      setPassengerName('');
+                      setPassengerPhone('');
+                      setPassengerEmail('');
+                    }}
+                  >
+                    <Text style={styles.switchAccountText}>Logout</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -711,7 +954,7 @@ export default function BookingFunnelScreen() {
                   <Text style={styles.vehiclePillName}>{vehicleInfo.name}</Text>
                   <Text style={styles.vehiclePillModels}>{vehicleInfo.models}</Text>
                   <Text style={styles.vehiclePillRate}>
-                    ₹{vehicleInfo.ratePerKm}/km • {vehicleInfo.passengers} Seats • {vehicleInfo.luggage} Bags
+                    ₹{vehicleInfo.ratePerKm}/km • {passengerCountParam} Pax • {luggageDetailsParam}
                   </Text>
                 </View>
                 <View style={styles.vehiclePillPrice}>
@@ -755,6 +998,12 @@ export default function BookingFunnelScreen() {
                   <View style={styles.routeIconColumn}>
                     <View style={[styles.routeDot, { backgroundColor: '#22c55e' }]} />
                     <View style={styles.routeLine} />
+                    {viaStops.map((_, i) => (
+                      <React.Fragment key={`b-vdot-${i}`}>
+                        <View style={[styles.routeDot, { backgroundColor: '#f59e0b', width: 8, height: 8, borderRadius: 4 }]} />
+                        <View style={styles.routeLine} />
+                      </React.Fragment>
+                    ))}
                     <View style={[styles.routeDot, { backgroundColor: '#ef4444' }]} />
                   </View>
                   <View style={styles.routeTextColumn}>
@@ -762,7 +1011,13 @@ export default function BookingFunnelScreen() {
                       <Text style={styles.pointSub}>PICKUP</Text>
                       <Text style={styles.pointMain} numberOfLines={1}>{pickup}</Text>
                     </View>
-                    <View style={{ marginTop: 10 }}>
+                    {viaStops.map((stop: any, i: number) => (
+                      <View key={`b-vtxt-${i}`} style={{ marginTop: 8 }}>
+                        <Text style={[styles.pointSub, { color: '#b45309' }]}>STOP {i + 1} (VIA)</Text>
+                        <Text style={styles.pointMain} numberOfLines={1}>{stop.label}</Text>
+                      </View>
+                    ))}
+                    <View style={{ marginTop: 8 }}>
                       <Text style={styles.pointSub}>DROP</Text>
                       <Text style={styles.pointMain} numberOfLines={1}>{drop}</Text>
                     </View>
@@ -1054,6 +1309,22 @@ export default function BookingFunnelScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <AuthModal
+        visible={authModalVisible}
+        onClose={() => setAuthModalVisible(false)}
+        onSuccess={(loggedInUser) => {
+          setUser(loggedInUser);
+          setPassengerName(loggedInUser.fullName || passengerName || 'Customer');
+          setPassengerPhone(
+            loggedInUser.phone
+              ? loggedInUser.phone.replace(/\D/g, '').slice(-10)
+              : passengerPhone
+          );
+          setPassengerEmail(loggedInUser.email || passengerEmail);
+          setStep(2);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -1344,6 +1615,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     marginTop: 2,
+  },
+  switchAccountBtn: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginLeft: 8,
+  },
+  switchAccountText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#ea580c',
   },
   formCard: {
     backgroundColor: '#ffffff',

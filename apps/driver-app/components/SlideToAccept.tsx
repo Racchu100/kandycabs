@@ -9,6 +9,7 @@ import {
   Platform,
   Vibration,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -146,44 +147,65 @@ export function SlideToAccept({
         }
       }}
     >
-      {/* Track Background */}
-      <View style={[styles.track, isAccepting && styles.trackAccepting]}>
-        {/* Animated Center Text & Chevrons */}
-        <Animated.View style={[styles.textWrapper, { opacity: isAccepting ? 0.3 : textOpacity }]}>
-          <Text style={styles.trackText}>{isAccepting ? acceptingTitle : title}</Text>
-          {!isAccepting && (
-            <Animated.View
-              style={[
-                styles.chevronsRow,
-                { transform: [{ translateX: shimmerTranslate }] },
-              ]}
-            >
-              <Ionicons name="chevron-forward" size={15} color="#ffffff" style={{ opacity: 0.5 }} />
-              <Ionicons name="chevron-forward" size={15} color="#ffffff" style={{ opacity: 0.8, marginLeft: -6 }} />
-              <Ionicons name="chevron-forward" size={15} color="#ffffff" style={{ marginLeft: -6 }} />
-            </Animated.View>
-          )}
-        </Animated.View>
-
-        {/* Sliding Knob (Incoming Call / Accept Slider Button) */}
-        <Animated.View
-          style={[
-            styles.knob,
-            {
-              transform: [{ translateX: pan }],
-            },
-          ]}
-          {...panResponder.panHandlers}
+      {disabled ? (
+        <TouchableOpacity
+          style={[styles.track, styles.trackDisabled]}
+          activeOpacity={0.85}
+          onPress={() => {
+            Alert.alert(
+              'Trip in Progress',
+              'You already have an active trip. Please complete your ongoing trip before starting or accepting another ride.'
+            );
+          }}
         >
-          {isAccepting ? (
-            <ActivityIndicator size="small" color="#059669" />
-          ) : (
-            <View style={styles.knobInner}>
-              <Ionicons name="arrow-forward" size={24} color="#059669" />
-            </View>
-          )}
-        </Animated.View>
-      </View>
+          <View style={[styles.textWrapper, { paddingLeft: 30, justifyContent: 'center' }]}>
+            <Ionicons name="lock-closed" size={14} color="#ffffff" style={{ marginRight: 4 }} />
+            <Text style={styles.trackTextDisabled} numberOfLines={1}>{title}</Text>
+          </View>
+          <View style={[styles.knob, styles.knobDisabled]}>
+            <Ionicons name="lock-closed" size={20} color="#64748b" />
+          </View>
+        </TouchableOpacity>
+      ) : (
+        /* Track Background */
+        <View style={[styles.track, isAccepting && styles.trackAccepting]}>
+          {/* Animated Center Text & Chevrons */}
+          <Animated.View style={[styles.textWrapper, { opacity: isAccepting ? 0.3 : textOpacity }]}>
+            <Text style={styles.trackText}>{isAccepting ? acceptingTitle : title}</Text>
+            {!isAccepting && (
+              <Animated.View
+                style={[
+                  styles.chevronsRow,
+                  { transform: [{ translateX: shimmerTranslate }] },
+                ]}
+              >
+                <Ionicons name="chevron-forward" size={15} color="#ffffff" style={{ opacity: 0.5 }} />
+                <Ionicons name="chevron-forward" size={15} color="#ffffff" style={{ opacity: 0.8, marginLeft: -6 }} />
+                <Ionicons name="chevron-forward" size={15} color="#ffffff" style={{ marginLeft: -6 }} />
+              </Animated.View>
+            )}
+          </Animated.View>
+
+          {/* Sliding Knob (Incoming Call / Accept Slider Button) */}
+          <Animated.View
+            style={[
+              styles.knob,
+              {
+                transform: [{ translateX: pan }],
+              },
+            ]}
+            {...panResponder.panHandlers}
+          >
+            {isAccepting ? (
+              <ActivityIndicator size="small" color="#059669" />
+            ) : (
+              <View style={styles.knobInner}>
+                <Ionicons name="arrow-forward" size={24} color="#059669" />
+              </View>
+            )}
+          </Animated.View>
+        </View>
+      )}
     </View>
   );
 }
@@ -213,6 +235,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#047857',
     borderColor: '#059669',
   },
+  trackDisabled: {
+    backgroundColor: '#64748b',
+    borderColor: '#94a3b8',
+    shadowColor: '#000000',
+    shadowOpacity: 0.15,
+  },
   textWrapper: {
     position: 'absolute',
     left: 0,
@@ -228,6 +256,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.8,
+  },
+  trackTextDisabled: {
+    color: '#f1f5f9',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   chevronsRow: {
     flexDirection: 'row',
@@ -246,6 +280,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
     zIndex: 10,
+  },
+  knobDisabled: {
+    backgroundColor: '#f1f5f9',
   },
   knobInner: {
     alignItems: 'center',

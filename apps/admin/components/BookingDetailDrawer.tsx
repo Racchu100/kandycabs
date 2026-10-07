@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { BookingStatus } from '@kandy-cabs/shared';
 import { reverseGeocodeLocation } from '@/lib/geocoding';
+import { parseIntermediateStops, getBookingMetadata } from '@/lib/bookingHelpers';
+import { resolveImageUrl } from '@/lib/resolveImageUrl';
 
 interface BookingDetailDrawerProps {
   bookingId: string | null;
@@ -30,6 +32,7 @@ export function BookingDetailDrawer({
   const [driverPayeeVal, setDriverPayeeVal] = useState<string>('0');
   const [driverPayStatus, setDriverPayStatus] = useState<string>('PENDING');
   const [savingDriverPay, setSavingDriverPay] = useState<boolean>(false);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
   const fetchDetail = async (id: string) => {
     setLoading(true);
@@ -113,19 +116,58 @@ export function BookingDetailDrawer({
 
   const handleTogglePhoneRelease = async () => {
     if (!booking) return;
+    const targetState = !booking.customerPhoneReleased;
+
+    // Instant optimistic UI update (0ms response)
+    setData((prev: any) =>
+      prev
+        ? {
+            ...prev,
+            booking: {
+              ...prev.booking,
+              customerPhoneReleased: targetState,
+            },
+          }
+        : prev
+    );
+
     setTogglingPhone(true);
     try {
       const res = await fetch(`/api/admin/bookings/${booking.id}/release-phone`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ released: !booking.customerPhoneReleased }),
+        body: JSON.stringify({ released: targetState }),
       });
       if (res.ok) {
-        await fetchDetail(booking.id);
         onRefresh();
+      } else {
+        // Rollback if failed
+        setData((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                booking: {
+                  ...prev.booking,
+                  customerPhoneReleased: !targetState,
+                },
+              }
+            : prev
+        );
       }
     } catch (err) {
       console.error('Failed to toggle phone release:', err);
+      // Rollback on network error
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              booking: {
+                ...prev.booking,
+                customerPhoneReleased: !targetState,
+              },
+            }
+          : prev
+      );
     } finally {
       setTogglingPhone(false);
     }
@@ -142,8 +184,20 @@ export function BookingDetailDrawer({
                 {booking?.humanReadableRef || 'Loading...'}
               </h2>
               {booking && (
-                <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-50 text-indigo-700">
-                  {booking.status}
+                <span
+                  className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                    booking.status === BookingStatus.DRIVER_EN_ROUTE ||
+                    booking.status === BookingStatus.TRIP_STARTED
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : booking.status === BookingStatus.DRIVER_ACCEPTED
+                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                      : 'bg-slate-100 text-slate-700 border border-slate-200'
+                  }`}
+                >
+                  {booking.status === BookingStatus.DRIVER_EN_ROUTE ||
+                  booking.status === BookingStatus.TRIP_STARTED
+                    ? 'ON TRIP'
+                    : String(booking.status).replace(/_/g, ' ')}
                 </span>
               )}
             </div>
@@ -307,6 +361,157 @@ export function BookingDetailDrawer({
               </div>
             </div>
 
+            {/* Route & Multi-Drop Itinerary Card */}
+            {(() => {
+              const meta = getBookingMetadata(booking);
+              const stops = meta.intermediateStops;
+              return (
+                <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-base">📍</span>
+                      <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                        Trip Route & Itinerary
+                      </h4>
+                    </div>
+                    <div className="flex items-center space-x-1.5 flex-wrap gap-1">
+                      <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md border border-indigo-200">
+                        {booking.tripType} • {booking.distanceKm} KM
+                      </span>
+                      {stops.length > 0 && (
+                        <span className="text-[10px] bg-amber-100 text-amber-900 font-extrabold px-2 py-0.5 rounded-md border border-amber-300">
+                          ⚡ {stops.length} Intermediate Drop{stops.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {meta.hasCarrier && (
+                        <span className="text-[10px] bg-emerald-100 text-emerald-900 font-extrabold px-2 py-0.5 rounded-md border border-emerald-300 flex items-center gap-1">
+                          <span>📦</span>
+                          <span>Roof Carrier Requested</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Multi-Drop Warning / Info Alert */}
+                  {stops.length > 0 && (
+                    <div className="p-2.5 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                      <span className="text-sm">ℹ️</span>
+                      <div>
+                        <span className="font-bold block">Customer Selected Multiple Drops / Intermediate Stops:</span>
+                        <span className="text-[11px] text-amber-800">
+                          This trip requires the driver to stop at intermediate destination(s) before reaching final drop-off.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Roof Carrier Alert */}
+                  {meta.hasCarrier && (
+                    <div className="p-2.5 bg-emerald-50/90 border border-emerald-300 rounded-lg text-xs text-emerald-950 flex items-start gap-2 shadow-2xs">
+                      <span className="text-base">📦</span>
+                      <div>
+                        <span className="font-extrabold block text-emerald-900">Roof Luggage Carrier Requested:</span>
+                        <span className="text-[11px] text-emerald-800">
+                          Customer selected rooftop luggage carrier on cab for extra luggage capacity (Up to 45-60 kg rooftop space). Ensure assigned cab has a roof carrier.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Route Timeline / Stepper */}
+                  <div className="space-y-3 pt-1">
+                    {/* 1. Pickup */}
+                    <div className="flex items-start gap-3 relative">
+                      <div className="flex flex-col items-center">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center text-xs font-bold text-emerald-800 shrink-0">
+                          1
+                        </div>
+                        <div className="w-0.5 h-full min-h-[28px] bg-slate-200 my-0.5" />
+                      </div>
+                      <div className="flex-1 pb-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Pickup Location</span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">Start</span>
+                        </div>
+                        <p className="text-xs font-bold text-slate-900 mt-0.5">{booking.pickupAddress}</p>
+                      </div>
+                    </div>
+
+                    {/* Intermediate Stops */}
+                    {stops.map((stopName, idx) => (
+                      <div key={idx} className="flex items-start gap-3 relative">
+                        <div className="flex flex-col items-center">
+                          <div className="w-6 h-6 rounded-full bg-amber-100 border-2 border-amber-500 flex items-center justify-center text-xs font-extrabold text-amber-900 shrink-0">
+                            {idx + 2}
+                          </div>
+                          <div className="w-0.5 h-full min-h-[28px] bg-slate-200 my-0.5" />
+                        </div>
+                        <div className="flex-1 pb-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wide">
+                              Intermediate Drop #{idx + 1}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 font-extrabold">
+                              Via Stop
+                            </span>
+                          </div>
+                          <p className="text-xs font-bold text-amber-950 mt-0.5 bg-amber-50/50 p-1.5 rounded border border-amber-200">
+                            {stopName}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Final Drop */}
+                    <div className="flex items-start gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className="w-6 h-6 rounded-full bg-rose-100 border-2 border-rose-500 flex items-center justify-center text-xs font-bold text-rose-800 shrink-0">
+                          {stops.length + 2}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wide">Final Destination</span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200 font-semibold">Dropoff</span>
+                        </div>
+                        <p className="text-xs font-bold text-slate-900 mt-0.5">{booking.dropAddress}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Customer Additional Notes / Luggage / Passengers / Carrier */}
+                  {(meta.passengers || meta.luggage || meta.hasCarrier || meta.notes || meta.specialRequirements) && (
+                    <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                      {meta.passengers ? (
+                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                          <span className="text-[10px] text-slate-500 block font-semibold">👥 Passengers</span>
+                          <span className="font-bold text-slate-800">{meta.passengers} Persons</span>
+                        </div>
+                      ) : null}
+                      {meta.luggage ? (
+                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                          <span className="text-[10px] text-slate-500 block font-semibold">🧳 Luggage</span>
+                          <span className="font-bold text-slate-800">{meta.luggage}</span>
+                        </div>
+                      ) : null}
+                      {meta.hasCarrier ? (
+                        <div className="bg-emerald-50/90 p-2.5 rounded-lg border border-emerald-300">
+                          <span className="text-[10px] text-emerald-800 block font-bold">📦 Roof Carrier</span>
+                          <span className="font-black text-emerald-950">✓ Requested (Rooftop)</span>
+                        </div>
+                      ) : null}
+                      {(meta.notes || meta.specialRequirements) ? (
+                        <div className="sm:col-span-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                          <span className="text-[10px] text-slate-500 block font-semibold">📝 Special Instructions / Notes</span>
+                          <span className="font-medium text-slate-800">{meta.notes || meta.specialRequirements}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Customer & Route Details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 rounded-xl border border-slate-200 bg-white">
@@ -329,6 +534,140 @@ export function BookingDetailDrawer({
                 ) : (
                   <p className="text-xs text-slate-400 italic">Not yet assigned</p>
                 )}
+              </div>
+            </div>
+
+            {/* Vehicle Inspection Photos (Trip Start 4 Angles) & Odometer Evidence */}
+            <div className="p-4 rounded-xl border border-sky-200 bg-sky-50/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="text-base">📸</span>
+                  <h4 className="font-bold text-sky-950 text-xs uppercase tracking-wider">
+                    Vehicle Inspection & Odometer Evidence (Trip Start)
+                  </h4>
+                </div>
+                <span className="text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-md border border-sky-200">
+                  {Array.isArray(booking.vehicleInspectionPhotos) && booking.vehicleInspectionPhotos.length > 0
+                    ? `${booking.vehicleInspectionPhotos.filter(Boolean).length}/4 Photos Attached`
+                    : 'Pending Trip Start'}
+                </span>
+              </div>
+
+              {/* 4 Inspection Angles */}
+              <div>
+                <span className="text-[11px] font-bold text-slate-700 block mb-1.5">
+                  Cab Inspection Photos (4 Angles):
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { label: 'Front Photo', sub: 'Bumper & Plate', idx: 0 },
+                    { label: 'Rear Photo', sub: 'Tail & Boot', idx: 1 },
+                    { label: 'Side Photo', sub: 'Doors & Body', idx: 2 },
+                    { label: 'Inside Photo', sub: 'Interior Cabin', idx: 3 },
+                  ].map((angle) => {
+                    const photoUrl = Array.isArray(booking.vehicleInspectionPhotos)
+                      ? booking.vehicleInspectionPhotos[angle.idx]
+                      : null;
+                    return (
+                      <div
+                        key={angle.label}
+                        className="bg-white border border-slate-200 rounded-lg p-2 flex flex-col items-center text-center shadow-2xs"
+                      >
+                        <span className="text-[11px] font-bold text-slate-800">{angle.label}</span>
+                        <span className="text-[9px] text-slate-500 mb-1.5">{angle.sub}</span>
+                        {photoUrl ? (
+                          <div
+                            onClick={() => setPreviewImage({ url: resolveImageUrl(photoUrl), title: angle.label })}
+                            className="w-full h-20 bg-slate-100 rounded border border-emerald-300 overflow-hidden cursor-pointer relative group"
+                          >
+                            <img
+                              src={resolveImageUrl(photoUrl)}
+                              alt={angle.label}
+                              className="w-full h-full object-cover group-hover:scale-105 transition"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-[10px] font-bold">
+                              🔍 View Full
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-full h-20 bg-slate-100 rounded border border-dashed border-slate-300 flex flex-col items-center justify-center text-[10px] text-slate-400 p-1">
+                            <span>📷</span>
+                            <span>Not Captured</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Odometer Evidence Comparison */}
+              <div className="pt-2 border-t border-sky-100 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-white border border-slate-200 rounded-lg p-2.5 shadow-2xs">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[11px] font-bold text-slate-700">Starting Odometer</span>
+                    <span className="text-xs font-mono font-black text-emerald-700">
+                      {booking.startingOdometer ? `${booking.startingOdometer} KM` : 'N/A'}
+                    </span>
+                  </div>
+                  {booking.startingOdometerImagePath ? (
+                    <div
+                      onClick={() =>
+                        setPreviewImage({
+                          url: resolveImageUrl(booking.startingOdometerImagePath),
+                          title: `Starting Odometer (${booking.startingOdometer || 'N/A'} KM)`,
+                        })
+                      }
+                      className="w-full h-20 bg-slate-100 rounded border border-slate-200 overflow-hidden cursor-pointer relative group"
+                    >
+                      <img
+                        src={resolveImageUrl(booking.startingOdometerImagePath)}
+                        alt="Starting Odometer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-[10px] font-bold">
+                        🔍 View Full
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-16 bg-slate-50 rounded border border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400">
+                      No photo uploaded
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-lg p-2.5 shadow-2xs">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[11px] font-bold text-slate-700">Final Odometer</span>
+                    <span className="text-xs font-mono font-black text-indigo-700">
+                      {booking.finalOdometer ? `${booking.finalOdometer} KM` : 'N/A'}
+                    </span>
+                  </div>
+                  {booking.finalOdometerImagePath ? (
+                    <div
+                      onClick={() =>
+                        setPreviewImage({
+                          url: resolveImageUrl(booking.finalOdometerImagePath),
+                          title: `Final Odometer (${booking.finalOdometer || 'N/A'} KM)`,
+                        })
+                      }
+                      className="w-full h-20 bg-slate-100 rounded border border-slate-200 overflow-hidden cursor-pointer relative group"
+                    >
+                      <img
+                        src={resolveImageUrl(booking.finalOdometerImagePath)}
+                        alt="Final Odometer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white text-[10px] font-bold">
+                        🔍 View Full
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-16 bg-slate-50 rounded border border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400">
+                      No photo uploaded
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -483,6 +822,36 @@ export function BookingDetailDrawer({
           </div>
         )}
       </div>
+
+      {/* Fullscreen Photo Lightbox Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-60 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-slate-800 flex justify-between items-center text-white">
+              <span className="font-bold text-sm">📸 {previewImage.title}</span>
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg text-sm"
+              >
+                ✕ Close
+              </button>
+            </div>
+            <div className="p-4 flex items-center justify-center bg-black/60 max-h-[70vh] overflow-hidden">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="max-h-[65vh] w-auto max-w-full rounded-lg object-contain shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

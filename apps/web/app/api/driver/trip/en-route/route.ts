@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { bookingId } = body;
+    const { bookingId, action, status: requestedStatus } = body;
 
     const booking = await prisma.booking.findFirst({
       where: {
@@ -40,32 +40,49 @@ export async function POST(req: NextRequest) {
       return setCorsHeaders(res);
     }
 
+    const isRevert = action === 'NOT_REACHED' || action === 'REVERT' || requestedStatus === BookingStatus.DRIVER_ACCEPTED;
+    const targetStatus = isRevert ? BookingStatus.DRIVER_ACCEPTED : BookingStatus.DRIVER_EN_ROUTE;
+
+    // Do not downgrade if already TRIP_STARTED or TRIP_COMPLETED
+    if (
+      booking.status === BookingStatus.TRIP_STARTED ||
+      booking.status === BookingStatus.TRIP_COMPLETED ||
+      booking.status === BookingStatus.CANCELLED
+    ) {
+      const res = NextResponse.json(
+        { success: true, message: `Booking is already ${booking.status}`, status: booking.status },
+        { status: 200 }
+      );
+      return setCorsHeaders(res);
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.booking.update({
         where: { id: bookingId },
-        data: { status: BookingStatus.DRIVER_EN_ROUTE },
+        data: { status: targetStatus },
       });
 
       await tx.tripEvent.create({
         data: {
           bookingId,
-          type: 'DRIVER_EN_ROUTE',
+          type: isRevert ? 'DRIVER_ACCEPTED' : 'DRIVER_EN_ROUTE',
           payloadJson: {
             driverId: session.driverId,
             timestamp: new Date().toISOString(),
+            action: isRevert ? 'NOT_REACHED' : 'START_TRIP_CLICKED',
           },
         },
       });
     });
 
-    // Realtime SSE: Notify customer tracking stream
+    // Realtime SSE: Notify customer tracking stream & admin
     RealtimeEvents.emitToBooking(bookingId, 'BOOKING_STATUS', {
       bookingId,
-      status: BookingStatus.DRIVER_EN_ROUTE,
+      status: targetStatus,
     });
 
     const res = NextResponse.json(
-      { success: true, message: 'Status updated to DRIVER_EN_ROUTE' },
+      { success: true, message: `Status updated to ${targetStatus}`, status: targetStatus },
       { status: 200 }
     );
     return setCorsHeaders(res);

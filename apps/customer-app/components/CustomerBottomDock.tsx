@@ -1,48 +1,137 @@
 import React, { memo } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-type TripType = 'ONEWAY' | 'ROUND' | 'LOCAL' | 'AIRPORT';
+import { useRouter } from 'expo-router';
+import { safeNavigate } from '../lib/safeNav';
 
 interface CustomerBottomDockProps {
-  activeType: TripType;
-  onSelectType: (type: TripType) => void;
+  activeTab?: 'HOME' | 'BOOKINGS' | 'SUPPORT' | 'PROFILE';
+  onPressProfile?: () => void;
+  onPressBookings?: () => void;
 }
 
-const TABS = [
-  { id: 'ONEWAY' as const, label: 'ONE WAY', icon: 'git-commit-outline' as const },
-  { id: 'ROUND' as const, label: 'ROUND TRIP', icon: 'refresh-outline' as const },
-  { id: 'LOCAL' as const, label: 'LOCAL', icon: 'time-outline' as const },
-  { id: 'AIRPORT' as const, label: 'AIRPORT', icon: 'airplane-outline' as const },
-];
-
 export const CustomerBottomDock = memo(function CustomerBottomDock({
-  activeType,
-  onSelectType,
+  activeTab = 'HOME',
+  onPressProfile,
+  onPressBookings,
 }: CustomerBottomDockProps) {
+  const router = useRouter();
+
+  const handleSupport = () => {
+    Alert.alert(
+      'Kandy Cabs Support',
+      'Need help with your booking or have questions?',
+      [
+        {
+          text: 'Call Us (+91 99004 47660)',
+          onPress: () => Linking.openURL('tel:+919900447660'),
+        },
+        {
+          text: 'WhatsApp Support',
+          onPress: () =>
+            Linking.openURL('https://wa.me/919900447660?text=Hello%20Kandy%20Cabs%2C%20I%20need%20assistance.'),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleBookings = () => {
+    safeNavigate(() => {
+      if (onPressBookings) {
+        onPressBookings();
+      } else {
+        router.push('/my-bookings');
+      }
+    });
+  };
+
+  const handleHome = () => {
+    safeNavigate(() => {
+      router.push('/');
+    });
+  };
+
+  const handleProfile = () => {
+    safeNavigate(() => {
+      if (onPressProfile) {
+        onPressProfile();
+      } else {
+        router.push('/profile');
+      }
+    });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.dock}>
-        {TABS.map((tab) => {
-          const isActive = activeType === tab.id;
-          return (
-            <TouchableOpacity
-              key={tab.id}
-              style={[styles.dockTab, isActive && styles.dockTabActive]}
-              onPress={() => onSelectType(tab.id)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={tab.icon}
-                size={19}
-                color={isActive ? '#ea580c' : '#64748b'}
-              />
-              <Text style={[styles.dockTabLabel, isActive && styles.dockTabLabelActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {/* Home Tab */}
+        <TouchableOpacity
+          style={styles.dockTab}
+          onPress={handleHome}
+          activeOpacity={0.7}
+        >
+          {activeTab === 'HOME' && <View style={styles.activeTopIndicator} />}
+          <Ionicons
+            name={activeTab === 'HOME' ? 'home' : 'home-outline'}
+            size={22}
+            color={activeTab === 'HOME' ? '#ea580c' : '#64748b'}
+          />
+          <Text style={[styles.dockTabLabel, activeTab === 'HOME' && styles.dockTabLabelActive]}>
+            Home
+          </Text>
+        </TouchableOpacity>
+
+        {/* My Bookings Tab */}
+        <TouchableOpacity
+          style={styles.dockTab}
+          onPress={handleBookings}
+          activeOpacity={0.7}
+        >
+          {activeTab === 'BOOKINGS' && <View style={styles.activeTopIndicator} />}
+          <Ionicons
+            name={activeTab === 'BOOKINGS' ? 'calendar' : 'calendar-outline'}
+            size={22}
+            color={activeTab === 'BOOKINGS' ? '#ea580c' : '#64748b'}
+          />
+          <Text style={[styles.dockTabLabel, activeTab === 'BOOKINGS' && styles.dockTabLabelActive]}>
+            My Bookings
+          </Text>
+        </TouchableOpacity>
+
+        {/* Support Tab */}
+        <TouchableOpacity
+          style={styles.dockTab}
+          onPress={handleSupport}
+          activeOpacity={0.7}
+        >
+          {activeTab === 'SUPPORT' && <View style={styles.activeTopIndicator} />}
+          <Ionicons
+            name="headset-outline"
+            size={22}
+            color={activeTab === 'SUPPORT' ? '#ea580c' : '#64748b'}
+          />
+          <Text style={[styles.dockTabLabel, activeTab === 'SUPPORT' && styles.dockTabLabelActive]}>
+            Support
+          </Text>
+        </TouchableOpacity>
+
+        {/* Profile Tab */}
+        <TouchableOpacity
+          style={styles.dockTab}
+          onPress={handleProfile}
+          activeOpacity={0.7}
+        >
+          {activeTab === 'PROFILE' && <View style={styles.activeTopIndicator} />}
+          <Ionicons
+            name={activeTab === 'PROFILE' ? 'person' : 'person-outline'}
+            size={22}
+            color={activeTab === 'PROFILE' ? '#ea580c' : '#64748b'}
+          />
+          <Text style={[styles.dockTabLabel, activeTab === 'PROFILE' && styles.dockTabLabelActive]}>
+            Profile
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -54,38 +143,46 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
-    paddingBottom: 8,
-    paddingTop: 6,
-    paddingHorizontal: 12,
+    paddingBottom: 16,
+    paddingTop: 8,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 10,
   },
   dock: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
   },
   dockTab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 4,
+    position: 'relative',
   },
-  dockTabActive: {
-    backgroundColor: '#fff7ed',
-    borderWidth: 1,
-    borderColor: '#fed7aa',
+  activeTopIndicator: {
+    position: 'absolute',
+    top: -8,
+    width: 28,
+    height: 3,
+    backgroundColor: '#ea580c',
+    borderRadius: 2,
   },
   dockTabLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '500',
     color: '#64748b',
-    marginTop: 3,
+    marginTop: 4,
   },
   dockTabLabelActive: {
     color: '#ea580c',
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

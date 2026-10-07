@@ -16,6 +16,7 @@ import { ALL_LOCATIONS, PlaceLocation } from '@/lib/locations';
 
 import { DriverAppModal } from '@/components/DriverAppModal';
 import { LocationPickerModal } from '@/components/LocationPickerModal';
+import { trackWebEvent, WebAnalyticsEventType } from '@/lib/analytics';
 
 const POPULAR_LOCATIONS = ALL_LOCATIONS.map((l) => ({ name: l.label, lat: l.lat, lng: l.lng }));
 
@@ -477,6 +478,7 @@ export default function HomePage() {
     const d = new Date();
     d.setDate(d.getDate() + 1);
     setScheduledDate(d.toISOString().split('T')[0]);
+    trackWebEvent('VISIT');
   }, []);
   const [scheduledTime, setScheduledTime] = useState('09:00');
   const [durationDays, setDurationDays] = useState(1);
@@ -503,6 +505,12 @@ export default function HomePage() {
       setQuoteData(cached);
       setQuoteError('');
       setIsQuoting(false);
+      trackWebEvent('VIEW_RATES', {
+        tripType,
+        pickup: pickupAddress,
+        drop: dropAddress,
+        category: selectedCategory,
+      });
       return;
     }
 
@@ -538,6 +546,12 @@ export default function HomePage() {
         const data: QuoteResponse = await res.json();
         clientQuoteCache.current.set(cacheKey, data);
         setQuoteData(data);
+        trackWebEvent('VIEW_RATES', {
+          tripType,
+          pickup: pickupAddress,
+          drop: dropAddress,
+          category: selectedCategory,
+        });
       } else {
         const err = await res.json();
         setQuoteError(err.error || 'Failed to calculate quote');
@@ -571,6 +585,14 @@ export default function HomePage() {
     if (category) {
       setSelectedCategory(category);
     }
+
+    trackWebEvent('STARTED_BOOKING', {
+      category: cat,
+      tripType,
+      pickup: pickupAddress,
+      drop: dropAddress,
+    });
+
     if (!pickupAddress || !dropAddress) {
       scrollToBookingEngine(cat);
       return;
@@ -1474,7 +1496,22 @@ export default function HomePage() {
                     return (
                       <div
                         key={q.category}
-                        onClick={() => setSelectedCategory(q.category)}
+                        onClick={() => {
+                          setSelectedCategory(q.category);
+                          let eventType: WebAnalyticsEventType = 'VIEW_RATES';
+                          if (q.category === VehicleCategory.HATCHBACK) eventType = 'VIEW_HATCHBACK';
+                          else if (q.category === VehicleCategory.SEDAN) eventType = 'VIEW_SEDAN';
+                          else if (q.category === VehicleCategory.SUV) eventType = 'VIEW_SUV';
+                          else if (q.category === VehicleCategory.SUV_PREMIUM) eventType = 'VIEW_SUV_PREMIUM';
+                          else if (q.category === VehicleCategory.TEMPO_TRAVELER) eventType = 'VIEW_TEMPO_TRAVELER';
+
+                          trackWebEvent(eventType, {
+                            category: q.category,
+                            tripType,
+                            pickup: pickupAddress,
+                            drop: dropAddress,
+                          });
+                        }}
                         className={`p-2.5 rounded-xl border cursor-pointer transition text-center ${
                           isSelected
                             ? 'bg-orange-600 text-white border-orange-700 shadow-sm font-bold'

@@ -333,21 +333,21 @@ Thank you for choosing Kandy Cabs Mangalore!
 
           {/* Customer Fully Paid */}
           <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-            <div className="text-[11px] font-medium text-blue-700 uppercase tracking-wider">Cust. Fully Paid</div>
+            <div className="text-[11px] font-medium text-blue-700 uppercase tracking-wider">Cust. Amount Received</div>
             <div className="text-2xl font-black text-blue-700 mt-1">{summary.paidCount || 0}</div>
-            <div className="text-[10px] text-slate-400 mt-1">Advance + Balance paid</div>
+            <div className="text-[10px] text-slate-400 mt-1">Advance + Balance received</div>
           </div>
 
           {/* Customer Partially Paid */}
           <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-            <div className="text-[11px] font-medium text-amber-700 uppercase tracking-wider">Advance Paid (25%)</div>
+            <div className="text-[11px] font-medium text-amber-700 uppercase tracking-wider">Advance Received (25%)</div>
             <div className="text-2xl font-black text-amber-700 mt-1">{summary.partiallyPaidCount || 0}</div>
             <div className="text-[10px] text-slate-400 mt-1">Balance due at drop</div>
           </div>
 
           {/* Customer Pending Advance */}
           <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
-            <div className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Adv. Pending</div>
+            <div className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Adv. Due</div>
             <div className="text-2xl font-black text-slate-800 mt-1">{summary.pendingCount || 0}</div>
             <div className="text-[10px] text-slate-400 mt-1">Unpaid bookings</div>
           </div>
@@ -361,8 +361,8 @@ Thank you for choosing Kandy Cabs Mangalore!
               { id: 'ALL', label: 'All Bookings' },
               { id: 'DRIVER_PAID', label: `✓ Driver Paid (${summary.driverPaidCount || 0})`, color: 'emerald' },
               { id: 'DRIVER_UNPAID', label: `✗ Driver Unpaid (${summary.driverPendingCount || 0})`, color: 'rose' },
-              { id: 'PAID', label: 'Customer Fully Paid' },
-              { id: 'PARTIALLY_PAID', label: 'Customer Adv Only' },
+              { id: 'PAID', label: 'Customer Amount Received' },
+              { id: 'PARTIALLY_PAID', label: 'Customer Adv Received' },
               { id: 'PENDING', label: 'Customer Adv Due' },
             ].map((tab) => {
               const isActive = statusFilter === tab.id;
@@ -487,11 +487,11 @@ Thank you for choosing Kandy Cabs Mangalore!
                           <div className="font-semibold text-slate-900">₹{t.advanceAmount.toLocaleString('en-IN')}</div>
                           {t.advancePaymentStatus === PaymentStatus.PAID ? (
                             <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold">
-                              ✓ PAID (Online)
+                              ✓ RECEIVED (Online)
                             </span>
                           ) : (
                             <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-rose-100 text-rose-800 border border-rose-300 rounded text-[9px] font-bold">
-                              PENDING
+                              ADV. DUE
                             </span>
                           )}
                           {t.advancePayment?.razorpayPaymentId && (
@@ -510,7 +510,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                           {t.balancePaymentStatus === PaymentStatus.PAID ? (
                             <div className="space-y-1 mt-0.5">
                               <span className="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[9px] font-bold">
-                                ✓ PAID ({t.balancePayment?.paymentMethod || 'CASH'})
+                                ✓ RECEIVED ({t.balancePayment?.paymentMethod || 'CASH'})
                               </span>
                               <div className="flex flex-wrap gap-1 pt-0.5">
                                 <button
@@ -552,7 +552,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                                   className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-amber-900 border border-amber-300 rounded text-[9px] font-bold transition flex items-center gap-0.5 shadow-2xs"
                                   title="Record or Mark Balance Payment"
                                 >
-                                  <span>💵</span> Mark Paid
+                                  <span>💵</span> Mark Received
                                 </button>
                               </div>
                             </div>
@@ -591,12 +591,12 @@ Thank you for choosing Kandy Cabs Mangalore!
                                 {isDriverPaid ? (
                                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                                     <span className="text-base font-black text-emerald-700">✓</span>
-                                    <span>PAID</span>
+                                    <span>DRIVER PAID</span>
                                   </div>
                                 ) : (
                                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
                                     <span className="text-base font-black text-rose-700">✗</span>
-                                    <span>NOT PAID</span>
+                                    <span>DRIVER UNPAID</span>
                                   </div>
                                 )}
 
@@ -636,7 +636,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                                       <span>Updating...</span>
                                     ) : (
                                       <>
-                                        <span>✗</span> Mark as Unpaid
+                                        <span>✗</span> Mark Driver Unpaid
                                       </>
                                     )}
                                   </button>
@@ -651,7 +651,7 @@ Thank you for choosing Kandy Cabs Mangalore!
                                       <span>Updating...</span>
                                     ) : (
                                       <>
-                                        <span className="text-xs">✓</span> Mark as Paid
+                                        <span className="text-xs">✓</span> Mark Driver Paid
                                       </>
                                     )}
                                   </button>
@@ -770,8 +770,8 @@ Thank you for choosing Kandy Cabs Mangalore!
                   onChange={(e) => setEditStatus(e.target.value)}
                   className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
-                  <option value="PAID">✓ PAID (Settled)</option>
-                  <option value="PENDING">✗ NOT PAID (Pending)</option>
+                  <option value="PAID">✓ DRIVER PAID (Settled)</option>
+                  <option value="PENDING">✗ DRIVER UNPAID (Pending)</option>
                 </select>
               </div>
 

@@ -21,6 +21,7 @@ export interface VehicleRateConfig {
 export interface DynamicRateOverrides {
   ratePerKm?: number;
   extraKmRate?: number;
+  extraKmThreshold?: number;
   driverAllowance?: number;
   nightCharge?: number;
   gstRatePercent?: number;
@@ -28,7 +29,15 @@ export interface DynamicRateOverrides {
   nightWindowEndHour?: number;
   minRoundTripKmPerDay?: number;
   localPackage4hrBase?: number;
+  localPackage4hrKm?: number;
+  localPackage4hrExtraKmRate?: number;
   localPackage8hrBase?: number;
+  localPackage8hrKm?: number;
+  localPackage8hrExtraKmRate?: number;
+  localPackage12hrBase?: number;
+  localPackage12hrKm?: number;
+  localPackage12hrExtraKmRate?: number;
+  extraHourRate?: number;
 }
 
 export interface PricingCalculationInput {
@@ -51,6 +60,7 @@ export interface PricingBreakdown {
   actualDistanceKm: number;
   baseFare: number;
   extraKmCharge: number;
+  extraKmThreshold?: number;
   driverAllowance: number;
   nightCharge: number;
   subtotal: number;

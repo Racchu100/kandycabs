@@ -15,8 +15,9 @@ import {
   Image,
   AppState,
   AppStateStatus,
+  Animated,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { driverApiClient } from '../lib/api';
@@ -24,18 +25,29 @@ import { locationTracker, LocationState } from '../lib/location-tracker';
 import { driverRealtimeClient } from '../lib/realtime-client';
 import { BookingStatus } from '@kandy-cabs/shared';
 import { SlideToAccept } from '../components/SlideToAccept';
+import { getTripInProcessSync, getTripInProcess, setTripInProcess, subscribeTripState } from '../lib/tripState';
 
 export default function DriverDashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [driver, setDriver] = useState<any>(null);
   const [onlineStatus, setOnlineStatus] = useState(false);
   const [activeBooking, setActiveBooking] = useState<any>(null);
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
   const [dispatches, setDispatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsState, setGpsState] = useState<LocationState>(locationTracker.getState());
+  const [tripInProcessRev, setTripInProcessRev] = useState(0);
+
+  useEffect(() => {
+    const unsub = subscribeTripState(() => {
+      setTripInProcessRev((r) => r + 1);
+    });
+    return () => unsub();
+  }, []);
 
   // Bottom Navigation State: 'HOME' | 'MY_TRIPS' | 'SUPPORT' | 'PROFILE'
   const [activeBottomTab, setActiveBottomTab] = useState<'HOME' | 'MY_TRIPS' | 'SUPPORT' | 'PROFILE'>('HOME');
@@ -74,63 +86,32 @@ export default function DriverDashboardScreen() {
 
   // Dynamically calculate active KPI summary based on selected billing month
   const activeKpiSummary = useMemo(() => {
-    if (selectedMonthKey === 'ALL') {
-      return earningsSummary;
-    }
-    const matched = monthlyBreakdown.find((m) => m.monthKey === selectedMonthKey);
-    if (matched) {
-      return matched;
-    }
-    if (selectedMonthKey === currentMonthSummary?.monthKey && currentMonthSummary) {
-      return currentMonthSummary;
-    }
-    if (selectedMonthKey === previousMonthSummary?.monthKey && previousMonthSummary) {
-      return previousMonthSummary;
-    }
-    // Calculate dynamically from filteredTrips
-    let totalAllowanceEarned = 0;
-    let totalPayeeEarned = 0;
-    let totalSettled = 0;
-    let totalPending = 0;
+    let paidTripsCount = 0;
+    let unpaidTripsCount = 0;
     let completedTripsCount = 0;
     filteredTrips.forEach((t) => {
-      const allowance = Number(t.driverAllowance || 0);
-      const payee = Number(t.driverPayeeAmount || 0);
-      const total = allowance + payee;
       if (t.status === 'TRIP_COMPLETED') {
         completedTripsCount++;
-        totalAllowanceEarned += allowance;
-        totalPayeeEarned += payee;
         if (t.driverPaymentStatus === 'PAID') {
-          totalSettled += total;
+          paidTripsCount++;
         } else {
-          totalPending += total;
+          unpaidTripsCount++;
         }
       }
     });
     return {
-      totalAllowanceEarned,
-      totalPayeeEarned,
-      totalEarnings: totalAllowanceEarned + totalPayeeEarned,
-      totalSettled,
-      totalPending,
+      paidTripsCount,
+      unpaidTripsCount,
       completedTripsCount,
     };
-  }, [selectedMonthKey, earningsSummary, monthlyBreakdown, currentMonthSummary, previousMonthSummary, filteredTrips]);
+  }, [filteredTrips]);
 
-  // Check if any KYC document, driver profile photo, or vehicle inspection photo is missing (unfilled)
+  // Check if any KYC document or driver profile photo is missing (unfilled)
   const hasPendingDocuments = useMemo(() => {
     if (!driver) return false;
-    // Check if any required document or photo is unfilled
     if (!driver.profilePhotoUrl || !driver.licenseDocUrl || !driver.rcDocUrl || !driver.insuranceDocUrl) {
       return true;
     }
-    const photos = Array.isArray(driver.vehiclePhotos) ? driver.vehiclePhotos : [];
-    const validPhotos = photos.filter((p: string) => p && !p.includes('placehold.co') && p.trim().length > 0);
-    if (photos.length !== 5 || validPhotos.length !== 5) {
-      return true;
-    }
-    // All documents are filled in
     return false;
   }, [driver]);
 
@@ -151,6 +132,24 @@ export default function DriverDashboardScreen() {
   const tripsLoadedRef = useRef(tripsLoaded);
   tripsLoadedRef.current = tripsLoaded;
 
+  const handleSessionExpired = useCallback(async (msg?: string) => {
+    try {
+      await locationTracker.stopTracking();
+      await driverApiClient.auth.logout();
+    } catch (_) {}
+    Alert.alert(
+      'Account Deactivated',
+      msg || 'Your driver account has been deactivated or removed by Admin. Please contact support.',
+      [
+        {
+          text: 'OK',
+          onPress: () => router.replace('/login'),
+        },
+      ],
+      { cancelable: false }
+    );
+  }, [router]);
+
   const fetchDriverData = useCallback(async () => {
     // Prevent simultaneous in-flight fetches
     if (isFetchingRef.current) {
@@ -165,14 +164,36 @@ export default function DriverDashboardScreen() {
         driverApiClient.fetch('/api/driver/dispatches'),
       ]);
 
-      if (statusRes.success) {
+      if (statusRes && statusRes.success && statusRes.driver) {
         setDriver(statusRes.driver);
         setOnlineStatus(statusRes.driver.onlineStatus);
         setActiveBooking(statusRes.activeBooking);
+        setUpcomingBookings(statusRes.upcomingBookings || []);
+
+        if (statusRes.activeBooking) {
+          const isStarted =
+            statusRes.activeBooking.status === BookingStatus.TRIP_STARTED ||
+            statusRes.activeBooking.status === 'TRIP_STARTED' ||
+            statusRes.activeBooking.status === 'IN_PROGRESS';
+          if (isStarted) {
+            await setTripInProcess(statusRes.activeBooking.id, true);
+          } else {
+            await getTripInProcess(statusRes.activeBooking.id);
+          }
+        }
 
         // Start/Stop GPS tracking based on online and trip status
         if (statusRes.driver.onlineStatus) {
-          if (statusRes.activeBooking) {
+          const isTripActiveOrEnRoute =
+            statusRes.activeBooking &&
+            (statusRes.activeBooking.status === BookingStatus.TRIP_STARTED ||
+              statusRes.activeBooking.status === 'TRIP_STARTED' ||
+              statusRes.activeBooking.status === 'IN_PROGRESS' ||
+              statusRes.activeBooking.status === BookingStatus.DRIVER_EN_ROUTE ||
+              statusRes.activeBooking.status === 'DRIVER_EN_ROUTE' ||
+              getTripInProcessSync(statusRes.activeBooking.id));
+
+          if (isTripActiveOrEnRoute) {
             locationTracker.startActiveTripTracking(statusRes.activeBooking.id);
           } else {
             locationTracker.startIdleTracking();
@@ -180,13 +201,27 @@ export default function DriverDashboardScreen() {
         } else {
           locationTracker.stopTracking();
         }
+      } else {
+        handleSessionExpired(statusRes?.message);
+        return;
       }
 
       if (dispatchRes.success) {
         setDispatches(dispatchRes.dispatches || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch driver data:', err);
+      if (
+        err.status === 401 ||
+        err.status === 403 ||
+        err.message?.includes('Unauthorized') ||
+        err.message?.includes('deactivated') ||
+        err.message?.includes('deleted') ||
+        err.message?.includes('Driver authentication required')
+      ) {
+        handleSessionExpired(err.message);
+        return;
+      }
     } finally {
       isFetchingRef.current = false;
       setLoading(false);
@@ -197,7 +232,13 @@ export default function DriverDashboardScreen() {
         fetchDriverData();
       }
     }
-  }, []);
+  }, [handleSessionExpired]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDriverData();
+    }, [fetchDriverData])
+  );
 
   // Coalesced / Debounced fetch trigger for rapid bursts of SSE events or reconnects
   const triggerDebouncedFetch = useCallback((delayMs: number = 600) => {
@@ -282,10 +323,18 @@ export default function DriverDashboardScreen() {
       }
     });
 
-    // Gentle 60s background safety sync
+    const unsubProfile = driverRealtimeClient.on('PROFILE_UPDATED', (data: any) => {
+      if (data?.accountDeleted) {
+        handleSessionExpired('Your driver account has been deactivated or removed by Admin.');
+      } else {
+        triggerDebouncedFetch(200);
+      }
+    });
+
+    // 4-second active trip & phone release sync interval
     const interval = setInterval(() => {
       triggerDebouncedFetch(0);
-    }, 60000);
+    }, 4000);
 
     // AppState listener for background / foreground transitions
     const appStateSubscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
@@ -303,11 +352,12 @@ export default function DriverDashboardScreen() {
       unsubNew();
       unsubRevoke();
       unsubTrip();
+      unsubProfile();
       clearInterval(interval);
       appStateSubscription.remove();
       driverRealtimeClient.stop();
     };
-  }, [fetchDriverData, fetchTripsData, triggerDebouncedFetch]);
+  }, [fetchDriverData, fetchTripsData, triggerDebouncedFetch, handleSessionExpired]);
 
   const isTogglingDutyRef = useRef(false);
 
@@ -316,10 +366,24 @@ export default function DriverDashboardScreen() {
     if (isTogglingDutyRef.current) return;
     isTogglingDutyRef.current = true;
 
-    // Fast-path hardware / permission check only if going online
+    // Check verification status before attempting to go online
+    if (val && driver?.verificationStatus !== 'APPROVED') {
+      Alert.alert(
+        'Verification In Review',
+        'Your profile is currently under review by Admin. You will be able to go Online and receive rides once verified.'
+      );
+      isTogglingDutyRef.current = false;
+      return;
+    }
+
+    // 1. INSTANT 0ms OPTIMISTIC UI FLIP (Provides immediate tactile visual response)
+    const prevStatus = onlineStatus;
+    setOnlineStatus(val);
+
+    // 2. Hardware / Location Permission Checks
     if (val) {
-      // Check if location services are already known to be disabled
       if (gpsState.status === 'SERVICES_DISABLED') {
+        setOnlineStatus(prevStatus);
         Alert.alert(
           'Location Services Required',
           'GPS/Location Services are currently disabled on your device. Please enable GPS in your device settings to go online and receive ride dispatches.',
@@ -335,10 +399,10 @@ export default function DriverDashboardScreen() {
         return;
       }
 
-      // If permissions haven't been granted yet, request them
       if (gpsState.status === 'PERMISSION_DENIED' || gpsState.status === 'NOT_STARTED') {
         const permResult = await locationTracker.requestPermissions();
         if (!permResult.granted) {
+          setOnlineStatus(prevStatus);
           if (permResult.status === 'SERVICES_DISABLED') {
             Alert.alert(
               'Location Services Required',
@@ -368,14 +432,7 @@ export default function DriverDashboardScreen() {
           return;
         }
       }
-    }
 
-    // 1. OPTIMISTIC 0ms UI FLIP
-    const prevStatus = onlineStatus;
-    setOnlineStatus(val);
-
-    // 2. Immediate tracking start/stop
-    if (val) {
       locationTracker.startIdleTracking();
     } else {
       locationTracker.stopTracking();
@@ -421,13 +478,33 @@ export default function DriverDashboardScreen() {
       });
 
       if (res.success && res.booking) {
-        // Start Active-Trip tier GPS tracking immediately
-        locationTracker.startActiveTripTracking(bookingId);
-        router.push({
-          pathname: '/trip/en-route',
-          params: { bookingId: res.booking.id },
-        });
+        // Remove this dispatch from the pending list
+        setDispatches((prev) => prev.filter((d) => d.id !== dispatchId && d.booking?.id !== bookingId));
+
+        if (currentTrip) {
+          // If already on an active trip, immediately add this trip to upcoming queue
+          setUpcomingBookings((prev) => {
+            const filtered = prev.filter((b) => b.id !== res.booking.id);
+            return [...filtered, res.booking];
+          });
+          setActiveCardTab('MY_TRIPS');
+          await fetchDriverData();
+          Alert.alert(
+            'Ride Accepted & Queued! 🎉',
+            `Trip ${res.booking.humanReadableRef || ''} is confirmed and added to your queue below your active trip. You can start it once your current trip is finished.`,
+            [{ text: 'OK' }]
+          );
+        } else {
+          setActiveBooking(res.booking);
+          setActiveCardTab('MY_TRIPS');
+          fetchDriverData();
+          router.push({
+            pathname: '/trip/inspection',
+            params: { bookingId: res.booking.id || bookingId },
+          });
+        }
       } else if (res.alreadyTaken) {
+        setDispatches((prev) => prev.filter((d) => d.id !== dispatchId));
         Alert.alert(
           'Ride Unavailable',
           'This ride was already accepted by another driver.'
@@ -436,6 +513,7 @@ export default function DriverDashboardScreen() {
       }
     } catch (err: any) {
       if (err.status === 409) {
+        setDispatches((prev) => prev.filter((d) => d.id !== dispatchId));
         Alert.alert('Ride Taken', 'This ride was already accepted by another driver.');
       } else {
         Alert.alert('Error', err.message || 'Failed to accept dispatch');
@@ -469,10 +547,20 @@ export default function DriverDashboardScreen() {
     destinationLng?: number | null,
     destinationAddress?: string
   ) => {
-    const hasCoords = typeof destinationLat === 'number' && typeof destinationLng === 'number';
+    const hasCoords =
+      typeof destinationLat === 'number' &&
+      typeof destinationLng === 'number' &&
+      !isNaN(destinationLat) &&
+      !isNaN(destinationLng);
+
     const targetQuery = hasCoords
       ? `${destinationLat},${destinationLng}`
       : encodeURIComponent(destinationAddress || '');
+
+    if (!targetQuery || targetQuery === 'undefined' || targetQuery === 'null') {
+      Alert.alert('Location Notice', 'Address or GPS coordinates are not available for navigation.');
+      return;
+    }
 
     const androidNavUrl = `google.navigation:q=${targetQuery}&mode=d`;
     const universalFallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${targetQuery}&travelmode=driving`;
@@ -504,6 +592,45 @@ export default function DriverDashboardScreen() {
   const currentTrip = activeBooking;
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 20);
 
+  const HEADER_MAX_HEIGHT = topInset + 195;
+  const HEADER_MIN_HEIGHT = topInset + 54;
+
+  const heroTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_MAX_HEIGHT],
+    outputRange: [0, -HEADER_MAX_HEIGHT * 0.45],
+    extrapolate: 'clamp',
+  });
+
+  const heroOpacity = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const stickyBgOpacity = scrollY.interpolate({
+    inputRange: [15, 65],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const whiteLogoOpacity = scrollY.interpolate({
+    inputRange: [15, 45],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const darkLogoOpacity = scrollY.interpolate({
+    inputRange: [25, 65],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const avatarScale = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [1, 0.60],
+    extrapolate: 'clamp',
+  });
+
   return (
     <View style={styles.container}>
       <StatusBar
@@ -512,28 +639,34 @@ export default function DriverDashboardScreen() {
         translucent={false}
       />
 
-      {/* TOP HEADER SECTION */}
+      {/* STICKY TOP BRAND STRIP (zIndex: 100 - White background when scrolled) */}
       {activeBottomTab === 'HOME' ? (
-        /* FULL HERO BANNER ONLY FOR HOME TAB */
-        <ImageBackground
-          source={require('../assets/images/hero-banner.webp')}
-          style={styles.heroBannerBackground}
-          imageStyle={{ resizeMode: 'cover' }}
-        >
-          <View style={[styles.heroOverlay, { paddingTop: topInset + 6 }]}>
-            {/* Top Brand Strip: Logo (Left) + Enlarged Profile Avatar (Right) */}
-            <View style={styles.heroTopBar}>
-              <View style={styles.heroBrandLeft}>
-                <Image
-                  source={require('../assets/images/logo-white.png')}
-                  style={styles.kandyCabsLogo}
-                  resizeMode="contain"
-                />
-                <View style={styles.chauffeurBadge}>
-                  <Text style={styles.chauffeurBadgeText}>CHAUFFEUR</Text>
-                </View>
-              </View>
+        <View pointerEvents="box-none" style={[styles.stickyTopBarContainer, { height: HEADER_MIN_HEIGHT, paddingTop: topInset }]}>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFillObject,
+              styles.stickyHeaderBackdropWhite,
+              { opacity: stickyBgOpacity },
+            ]}
+          />
+          <View pointerEvents="box-none" style={[styles.heroTopBar, { marginBottom: 0 }]}>
+            <View pointerEvents="none" style={styles.heroBrandLeft}>
+              {/* White Logo for dark transparent hero */}
+              <Animated.Image
+                source={require('../assets/images/logo-white.png')}
+                style={[styles.kandyCabsLogo, { opacity: whiteLogoOpacity }]}
+                resizeMode="contain"
+              />
+              {/* Dark / Color Logo for white scrolled header */}
+              <Animated.Image
+                source={require('../assets/images/logo.png')}
+                style={[styles.kandyCabsLogo, { position: 'absolute', left: 0, opacity: darkLogoOpacity }]}
+                resizeMode="contain"
+              />
+            </View>
 
+            <Animated.View style={{ transform: [{ scale: avatarScale }] }}>
               <TouchableOpacity
                 style={styles.avatarRing}
                 onPress={() => setActiveBottomTab('PROFILE')}
@@ -556,89 +689,9 @@ export default function DriverDashboardScreen() {
                   </View>
                 )}
               </TouchableOpacity>
-            </View>
-
-            {/* Slogan + Driver Snapshot */}
-            <View style={styles.heroContentRow}>
-              {/* Left Slogan */}
-              <View style={styles.heroSloganBox}>
-                <Text style={styles.heroSloganWhite}>Drive Safe</Text>
-                <Text style={styles.heroSloganOrange}>Drive Trusted</Text>
-                <Text style={styles.heroSloganSub}>SAFE • RELIABLE • HASSLE FREE</Text>
-              </View>
-
-              {/* Right Driver Details */}
-              <View style={styles.heroDriverBox}>
-                <Text style={styles.heroDriverName} numberOfLines={1}>
-                  {driver?.fullName || 'Mukesh'}
-                </Text>
-                <Text style={styles.heroVehiclePlate}>
-                  {driver?.vehicle?.plateNumber ? driver.vehicle.plateNumber.toUpperCase() : 'KA 01 MJ 2023'}
-                </Text>
-                <Text style={styles.heroVehicleModel} numberOfLines={1}>
-                  {driver?.vehicle
-                    ? `${driver.vehicle.category} • ${driver.vehicle.fuelType || 'DIESEL'}`
-                    : 'SEDAN • DIESEL'}
-                </Text>
-                <Text style={styles.heroTierBadge}>
-                  {driver?.verificationStatus === 'APPROVED' ? '✓ Verified Partner' : '⏳ Verification In Review'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Bottom Row across Hero: GPS Pill (Left) + Duty Pill (Right) */}
-            <View style={styles.heroBottomBar}>
-              <TouchableOpacity
-                style={styles.heroGpsPill}
-                onPress={() => {
-                  if (gpsState.status === 'SERVICES_DISABLED' || gpsState.status === 'PERMISSION_DENIED') {
-                    locationTracker.openLocationSettings();
-                  } else {
-                    locationTracker.forceImmediatePing();
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.gpsDot,
-                    gpsState.status === 'SERVICES_DISABLED' || gpsState.status === 'PERMISSION_DENIED'
-                      ? { backgroundColor: '#ef4444' }
-                      : currentCoords
-                      ? onlineStatus
-                        ? styles.gpsDotActive
-                        : styles.gpsDotInactive
-                      : { backgroundColor: '#f59e0b' },
-                  ]}
-                />
-                <Text style={styles.heroGpsText} numberOfLines={1}>
-                  {gpsState.status === 'SERVICES_DISABLED'
-                    ? '⚠️ Please enable GPS'
-                    : gpsState.status === 'PERMISSION_DENIED'
-                    ? '⚠️ Location permission required'
-                    : currentCoords
-                    ? `📍 GPS: ${currentCoords.lat.toFixed(5)}, ${currentCoords.lng.toFixed(5)}`
-                    : '⏳ Acquiring GPS...'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.dutyCapsule,
-                  onlineStatus ? styles.dutyCapsuleOnline : styles.dutyCapsuleOffline,
-                ]}
-                onPress={() => handleToggleOnline(!onlineStatus)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.dutyDot, { backgroundColor: onlineStatus ? '#10b981' : '#ef4444' }]} />
-                <Text style={styles.dutyCapsuleText}>
-                  {onlineStatus ? 'Online' : 'Offline'}
-                </Text>
-                <Text style={styles.dutyCapsuleArrow}>⌄</Text>
-              </TouchableOpacity>
-            </View>
+            </Animated.View>
           </View>
-        </ImageBackground>
+        </View>
       ) : (
         /* COMPACT LOGO HEADER ONLY FOR MY TRIPS, SUPPORT, AND PROFILE TABS (WHITE BG) */
         <View style={[styles.compactHeader, { paddingTop: topInset + 6 }]}>
@@ -649,9 +702,6 @@ export default function DriverDashboardScreen() {
                 style={styles.kandyCabsLogo}
                 resizeMode="contain"
               />
-              <View style={styles.chauffeurBadge}>
-                <Text style={styles.chauffeurBadgeText}>CHAUFFEUR</Text>
-              </View>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -702,30 +752,93 @@ export default function DriverDashboardScreen() {
         </View>
       )}
 
-      {/* MAIN SCROLLABLE BODY IN WHITE / BRIGHT CANVAS */}
-      <ScrollView
+      {/* MAIN SCROLLABLE BODY */}
+      <Animated.ScrollView
         style={[
           styles.mainScrollView,
           activeBottomTab === 'HOME' && styles.mainScrollViewHome,
         ]}
         contentContainerStyle={[
           styles.scrollContent,
-          activeBottomTab === 'HOME' && styles.scrollContentHome,
+          activeBottomTab === 'HOME' ? styles.scrollContentHome : null,
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
       >
         {/* ============================================================ */}
         {/* TAB 1: HOME (Live Duty, Active Trip & Radar)                 */}
         {/* ============================================================ */}
         {activeBottomTab === 'HOME' && (
           <>
+            {/* HERO BANNER SECTION (First child of scroll) */}
+            <View style={[styles.heroBannerContainer, { height: HEADER_MAX_HEIGHT }]}>
+              <ImageBackground
+                source={require('../assets/images/hero-banner-scenic-night.jpg')}
+                style={[styles.heroBannerBackground, { height: HEADER_MAX_HEIGHT }]}
+                imageStyle={{ resizeMode: 'cover' }}
+              >
+                <View style={[styles.heroOverlay, { paddingTop: HEADER_MIN_HEIGHT + 8, minHeight: HEADER_MAX_HEIGHT }]}>
+                  {/* Driver Snapshot Row with Duty Pill on Right */}
+                  <View style={[styles.heroContentRow, { alignItems: 'flex-end', paddingBottom: 26 }]}>
+                    {/* Left Driver Details */}
+                    <View style={styles.heroDriverBox}>
+                      <Text style={styles.heroDriverName} numberOfLines={1}>
+                        {driver?.fullName || 'Driver Partner'}
+                      </Text>
+                      <Text style={styles.heroVehiclePlate}>
+                        {driver?.vehicle?.plateNumber && driver.vehicle.plateNumber !== 'PENDING' && !driver.vehicle.plateNumber.startsWith('KA 01 TR 0000')
+                          ? driver.vehicle.plateNumber.toUpperCase()
+                          : 'Plate Not Added'}
+                      </Text>
+                      <Text style={styles.heroVehicleModel} numberOfLines={1}>
+                        {driver?.vehicle
+                          ? `${driver.vehicle.category} • ${driver.vehicle.fuelType || 'DIESEL'}`
+                          : 'SEDAN • DIESEL'}
+                      </Text>
+                      <Text style={styles.heroTierBadge}>
+                        {driver?.verificationStatus === 'APPROVED' ? '✓ Verified Partner' : '⏳ Verification In Review'}
+                      </Text>
+                    </View>
+
+                    {/* Right: Duty Pill */}
+                    <TouchableOpacity
+                      style={[
+                        styles.dutyCapsule,
+                        onlineStatus ? styles.dutyCapsuleOnline : styles.dutyCapsuleOffline,
+                        { marginBottom: 2 },
+                      ]}
+                      onPress={() => handleToggleOnline(!onlineStatus)}
+                      activeOpacity={0.8}
+                      hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+                    >
+                      <View style={[styles.dutyDot, { backgroundColor: onlineStatus ? '#22c55e' : '#ef4444' }]} />
+                      <Text style={styles.dutyCapsuleText}>
+                        {onlineStatus ? 'Online' : 'Offline'}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={13} color="#ffffff" style={{ marginLeft: 2 }} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ImageBackground>
+            </View>
+
+            {/* FLOATING CARD CONTAINER REFLECTING ABOVE THE IMAGE */}
+            <View style={styles.homeCardsContainer}>
             {/* Top Priority KYC Incomplete Banner on Home Tab */}
             {hasPendingDocuments && (
               <View style={styles.homePendingKycBanner}>
-                <View style={styles.homePendingKycHeader}>
+                <TouchableOpacity
+                  style={styles.homePendingKycHeader}
+                  onPress={() => router.push('/documents')}
+                  activeOpacity={0.85}
+                >
                   <View style={styles.homePendingKycIconBox}>
-                    <Text style={{ fontSize: 22 }}>⚠️</Text>
+                    <Ionicons name="warning" size={24} color="#f97316" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.homePendingKycTitle}>KYC & Document Verification Required</Text>
@@ -733,42 +846,78 @@ export default function DriverDashboardScreen() {
                       Please upload your Driver Profile Photo, Driving License, RC Book & 5-angle cab photos to complete verification.
                     </Text>
                   </View>
-                </View>
+                  <Ionicons name="chevron-forward" size={18} color="#ea580c" />
+                </TouchableOpacity>
 
                 {/* Quick Status Chips */}
                 <View style={styles.homePendingChipsRow}>
+                  {/* Profile Photo */}
                   <View style={[styles.homePendingChip, driver?.profilePhotoUrl ? styles.homeChipDone : styles.homeChipPending]}>
+                    <Ionicons
+                      name="person-outline"
+                      size={14}
+                      color={driver?.profilePhotoUrl ? '#16a34a' : '#ea580c'}
+                    />
                     <Text style={[styles.homeChipText, driver?.profilePhotoUrl ? styles.homeChipTextDone : styles.homeChipTextPending]}>
-                      {driver?.profilePhotoUrl ? '✓ Profile Photo' : '⏳ Profile Photo'}
+                      Profile Photo
                     </Text>
+                    <Ionicons
+                      name={driver?.profilePhotoUrl ? 'checkmark-circle' : 'alert-circle'}
+                      size={13}
+                      color={driver?.profilePhotoUrl ? '#16a34a' : '#ea580c'}
+                    />
                   </View>
+
+                  {/* License DL */}
                   <View style={[styles.homePendingChip, driver?.licenseDocUrl ? styles.homeChipDone : styles.homeChipPending]}>
+                    <Ionicons
+                      name="card-outline"
+                      size={14}
+                      color={driver?.licenseDocUrl ? '#16a34a' : '#ea580c'}
+                    />
                     <Text style={[styles.homeChipText, driver?.licenseDocUrl ? styles.homeChipTextDone : styles.homeChipTextPending]}>
-                      {driver?.licenseDocUrl ? '✓ License DL' : '⏳ License DL'}
+                      License DL
                     </Text>
+                    <Ionicons
+                      name={driver?.licenseDocUrl ? 'checkmark-circle' : 'alert-circle'}
+                      size={13}
+                      color={driver?.licenseDocUrl ? '#16a34a' : '#ea580c'}
+                    />
                   </View>
+
+                  {/* RC Book */}
                   <View style={[styles.homePendingChip, driver?.rcDocUrl ? styles.homeChipDone : styles.homeChipPending]}>
+                    <Ionicons
+                      name="car-outline"
+                      size={14}
+                      color={driver?.rcDocUrl ? '#16a34a' : '#ea580c'}
+                    />
                     <Text style={[styles.homeChipText, driver?.rcDocUrl ? styles.homeChipTextDone : styles.homeChipTextPending]}>
-                      {driver?.rcDocUrl ? '✓ RC Book' : '⏳ RC Book'}
+                      RC Book
                     </Text>
+                    <Ionicons
+                      name={driver?.rcDocUrl ? 'checkmark-circle' : 'alert-circle'}
+                      size={13}
+                      color={driver?.rcDocUrl ? '#16a34a' : '#ea580c'}
+                    />
                   </View>
+
+                  {/* Insurance */}
                   <View style={[styles.homePendingChip, driver?.insuranceDocUrl ? styles.homeChipDone : styles.homeChipPending]}>
+                    <Ionicons
+                      name="shield-outline"
+                      size={14}
+                      color={driver?.insuranceDocUrl ? '#16a34a' : '#ea580c'}
+                    />
                     <Text style={[styles.homeChipText, driver?.insuranceDocUrl ? styles.homeChipTextDone : styles.homeChipTextPending]}>
-                      {driver?.insuranceDocUrl ? '✓ Insurance' : '⏳ Insurance'}
+                      Insurance
                     </Text>
+                    <Ionicons
+                      name={driver?.insuranceDocUrl ? 'checkmark-circle' : 'alert-circle'}
+                      size={13}
+                      color={driver?.insuranceDocUrl ? '#16a34a' : '#ea580c'}
+                    />
                   </View>
-                  {(() => {
-                    const photos = Array.isArray(driver?.vehiclePhotos) ? driver.vehiclePhotos : [];
-                    const validPhotos = photos.filter((p: string) => p && !p.includes('placehold.co') && p.trim().length > 0);
-                    const hasAll5 = photos.length === 5 && validPhotos.length === 5;
-                    return (
-                      <View style={[styles.homePendingChip, hasAll5 ? styles.homeChipDone : styles.homeChipPending]}>
-                        <Text style={[styles.homeChipText, hasAll5 ? styles.homeChipTextDone : styles.homeChipTextPending]}>
-                          {hasAll5 ? '✓ 5 Cab Photos' : '⏳ 5 Cab Photos'}
-                        </Text>
-                      </View>
-                    );
-                  })()}
                 </View>
 
                 <TouchableOpacity
@@ -776,7 +925,9 @@ export default function DriverDashboardScreen() {
                   onPress={() => router.push('/documents')}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.homeUploadDocsBtnText}>📤 UPLOAD KYC & CAB PHOTOS NOW →</Text>
+                  <Ionicons name="cloud-upload-outline" size={17} color="#ffffff" />
+                  <Text style={styles.homeUploadDocsBtnText}>UPLOAD KYC DOCUMENTS NOW</Text>
+                  <Ionicons name="arrow-forward" size={15} color="#ffffff" />
                 </TouchableOpacity>
               </View>
             )}
@@ -790,7 +941,11 @@ export default function DriverDashboardScreen() {
                     onPress={() => setActiveCardTab('MY_TRIPS')}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.subTabEmoji}>🚗</Text>
+                    <Ionicons
+                      name="car-sport"
+                      size={17}
+                      color={activeCardTab === 'MY_TRIPS' ? '#ea580c' : '#64748b'}
+                    />
                     <Text style={[styles.subTabText, activeCardTab === 'MY_TRIPS' && styles.subTabTextActive]}>
                       My Trips
                     </Text>
@@ -802,7 +957,11 @@ export default function DriverDashboardScreen() {
                     onPress={() => setActiveCardTab('UPCOMING')}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.subTabEmoji}>📅</Text>
+                    <Ionicons
+                      name="calendar-outline"
+                      size={16}
+                      color={activeCardTab === 'UPCOMING' ? '#ea580c' : '#64748b'}
+                    />
                     <Text style={[styles.subTabText, activeCardTab === 'UPCOMING' && styles.subTabTextActive]}>
                       Upcoming
                     </Text>
@@ -814,7 +973,11 @@ export default function DriverDashboardScreen() {
                     onPress={() => setActiveCardTab('HISTORY')}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.subTabEmoji}>🕒</Text>
+                    <Ionicons
+                      name="time-outline"
+                      size={16}
+                      color={activeCardTab === 'HISTORY' ? '#ea580c' : '#64748b'}
+                    />
                     <Text style={[styles.subTabText, activeCardTab === 'HISTORY' && styles.subTabTextActive]}>
                       History
                     </Text>
@@ -824,182 +987,398 @@ export default function DriverDashboardScreen() {
 
                 {/* CARD BODY: ACTIVE TRIP */}
                 {activeCardTab === 'MY_TRIPS' ? (
-                  <View style={styles.tripCardContent}>
-                    {/* Top Row: Booking ID + ON ROUTE Badge */}
-                    <View style={styles.bookingTopRow}>
-                      <View>
-                        <Text style={styles.bookingIdLabel}>Booking ID</Text>
-                        <Text style={styles.bookingIdNumber}>{currentTrip.humanReadableRef}</Text>
-                      </View>
-                      <View style={styles.onRouteBadge}>
-                        <Text style={styles.onRouteBadgeText}>
-                          {currentTrip.status === BookingStatus.TRIP_STARTED ? 'TRIP ACTIVE' : 'ON ROUTE'}
-                        </Text>
-                      </View>
-                    </View>
+                  (() => {
+                    const isTripInProcess =
+                      currentTrip.status === BookingStatus.TRIP_STARTED ||
+                      currentTrip.status === 'TRIP_STARTED' ||
+                      currentTrip.status === 'IN_PROGRESS' ||
+                      getTripInProcessSync(currentTrip.id);
 
-                    {/* Stepper Route */}
-                    <View style={styles.stepperContainer}>
-                      <View style={[styles.stepperLeft, { flex: 1 }]}>
-                        <View style={styles.stepPoint}>
-                          <View style={styles.pickupCircle} />
-                          <View style={styles.stepTextGroup}>
-                            <Text style={styles.locationTitle}>{currentTrip.pickupAddress}</Text>
-                            <Text style={styles.locationSubtitle}>Pickup Location</Text>
+                    return (
+                      <View style={styles.tripCardContent}>
+                        {/* Top Row: Booking ID + ON ROUTE Badge */}
+                        <View style={styles.bookingTopRow}>
+                          <View>
+                            <Text style={styles.bookingIdLabel}>Booking ID</Text>
+                            <Text style={styles.bookingIdNumber}>{currentTrip.humanReadableRef}</Text>
                           </View>
-                        </View>
-
-                        <View style={styles.dashedTrail} />
-
-                        <View style={styles.stepPoint}>
-                          <View style={styles.dropCircle} />
-                          <View style={styles.stepTextGroup}>
-                            <Text style={styles.locationTitle}>{currentTrip.dropAddress}</Text>
-                            <Text style={styles.locationSubtitle}>Destination</Text>
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.cardDivider} />
-
-                    {/* 2-Column Info Grid */}
-                    <View style={styles.infoGrid}>
-                      {/* Date & Time */}
-                      <View style={styles.infoCol}>
-                        <View style={styles.infoColHeader}>
-                          <Text style={styles.infoIcon}>📅</Text>
-                          <Text style={styles.infoLabel}>Pickup Date & Time</Text>
-                        </View>
-                        <Text style={styles.infoValue}>
-                          {new Date(currentTrip.scheduledAt || currentTrip.createdAt).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}, {new Date(currentTrip.scheduledAt || currentTrip.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                      </View>
-
-                      {/* Customer */}
-                      <View style={styles.infoCol}>
-                        <View style={styles.infoColHeader}>
-                          <Text style={styles.infoIcon}>👥</Text>
-                          <Text style={styles.infoLabel}>Customer</Text>
-                        </View>
-                        <View style={styles.customerRowWithCall}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.infoValue} numberOfLines={1}>
-                              {currentTrip.customer?.user?.fullName || 'Stewart Gangera'}
-                            </Text>
-                            <Text style={styles.customerPhoneSub}>
-                              {currentTrip.customerPhoneReleased && currentTrip.customer?.user?.phone
-                                ? currentTrip.customer.user.phone
-                                : '9342759612'}
+                          <View style={isTripInProcess ? styles.onTripBadge : styles.onRouteBadge}>
+                            <View style={isTripInProcess ? styles.onTripDot : styles.onRouteDot} />
+                            <Text style={isTripInProcess ? styles.onTripBadgeText : styles.onRouteBadgeText}>
+                              {isTripInProcess ? 'ON TRIP' : 'ON ROUTE'}
                             </Text>
                           </View>
                         </View>
-                      </View>
-                    </View>
 
-                    {/* Fare & Advance */}
-                    <View style={[styles.infoGrid, { marginTop: 12 }]}>
-                      <View style={styles.infoCol}>
-                        <View style={styles.infoColHeader}>
-                          <Text style={styles.infoIcon}>₹</Text>
-                          <Text style={styles.infoLabel}>Total Fare</Text>
+                        {/* Stepper Route */}
+                        <View style={styles.stepperContainer}>
+                          <View style={[styles.stepperLeft, { flex: 1 }]}>
+                            <TouchableOpacity
+                              style={styles.stepPoint}
+                              onPress={() => openNavigationMap(currentTrip.pickupLat, currentTrip.pickupLng, currentTrip.pickupAddress)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.pickupCircle} />
+                              <View style={styles.stepTextGroup}>
+                                <Text style={styles.locationTitle}>{currentTrip.pickupAddress}</Text>
+                                <Text style={styles.locationSubtitle}>Pickup Location 📍 (Tap to navigate)</Text>
+                              </View>
+                            </TouchableOpacity>
+
+                            <View style={styles.dashedTrail} />
+
+                            <TouchableOpacity
+                              style={styles.stepPoint}
+                              onPress={() => openNavigationMap(currentTrip.dropLat, currentTrip.dropLng, currentTrip.dropAddress)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.dropCircle} />
+                              <View style={styles.stepTextGroup}>
+                                <Text style={styles.locationTitle}>{currentTrip.dropAddress}</Text>
+                                <Text style={styles.locationSubtitle}>Destination 🏁 (Tap to navigate)</Text>
+                              </View>
+                            </TouchableOpacity>
+                          </View>
+
+                          <TouchableOpacity
+                            style={styles.stepperViewRouteBtn}
+                            onPress={() => {
+                              const targetLat = isTripInProcess ? currentTrip.dropLat : currentTrip.pickupLat;
+                              const targetLng = isTripInProcess ? currentTrip.dropLng : currentTrip.pickupLng;
+                              const targetAddress = isTripInProcess ? currentTrip.dropAddress : currentTrip.pickupAddress;
+                              openNavigationMap(targetLat, targetLng, targetAddress);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="navigate" size={15} color="#2563eb" />
+                            <Text style={styles.stepperViewRouteText}>
+                              {isTripInProcess ? 'Drop-off Route' : 'Pickup Location'}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={13} color="#2563eb" />
+                          </TouchableOpacity>
                         </View>
-                        <Text style={styles.infoValueLarge}>
-                          ₹{Number(currentTrip.totalEstimatedFare || currentTrip.finalPrice || 4250).toLocaleString('en-IN')}
-                        </Text>
-                      </View>
 
-                      <View style={styles.infoCol}>
-                        <View style={styles.infoColHeader}>
-                          <Text style={styles.infoIcon}>💳</Text>
-                          <Text style={styles.infoLabel}>Advance Paid</Text>
+                        {/* 3-Column Info Row */}
+                        <View style={styles.infoThreeColsRow}>
+                          {/* Col 1: Pickup Date & Time */}
+                          <View style={styles.infoThreeCol}>
+                            <View style={styles.infoColHeaderRow}>
+                              <Ionicons name="calendar-outline" size={15} color="#0f294d" />
+                              <Text style={styles.infoColHeaderLabel} numberOfLines={1}>Pickup Date & Time</Text>
+                            </View>
+                            <Text style={styles.infoColValDark}>
+                              {new Date(currentTrip.scheduledAt || currentTrip.createdAt).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })},
+                            </Text>
+                            <Text style={styles.infoColValDark}>
+                              {new Date(currentTrip.scheduledAt || currentTrip.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                          </View>
+
+                          {/* Vertical Slash/Divider 1 */}
+                          <View style={styles.infoColDivider} />
+
+                          {/* Col 2: Customer */}
+                          <View style={styles.infoThreeCol}>
+                            <View style={styles.infoColHeaderRow}>
+                              <Ionicons name="person" size={14} color="#2563eb" />
+                              <Text style={styles.infoColHeaderLabel} numberOfLines={1}>Customer</Text>
+                            </View>
+                            <Text style={styles.infoColValDark} numberOfLines={1}>
+                              {currentTrip.customer?.user?.fullName || 'manish'}
+                            </Text>
+                            <Text style={styles.infoColSubPhone}>
+                              {(() => {
+                                const isPhoneReleased =
+                                  Boolean(currentTrip.customerPhoneReleased) ||
+                                  (currentTrip.scheduledAt &&
+                                    new Date(currentTrip.scheduledAt).getTime() - Date.now() <= 5 * 60 * 60 * 1000);
+
+                                return isPhoneReleased && currentTrip.customer?.user?.phone
+                                  ? currentTrip.customer.user.phone
+                                  : 'Phone Protected';
+                              })()}
+                            </Text>
+                          </View>
+
+                          {/* Vertical Slash/Divider 2 */}
+                          <View style={styles.infoColDivider} />
+
+                          {/* Col 3: Distance / Trip Type */}
+                          <View style={styles.infoThreeCol}>
+                            <View style={styles.infoColHeaderRow}>
+                              <Ionicons name="navigate-outline" size={14} color="#ea580c" />
+                              <Text style={styles.infoColHeaderLabel} numberOfLines={1}>Distance</Text>
+                            </View>
+                            <Text style={styles.infoFareValBold}>
+                              {currentTrip.distanceKm || '--'} km
+                            </Text>
+                            <Text style={styles.infoColSubPhone}>
+                              {currentTrip.tripType || 'ONE WAY'}
+                            </Text>
+                          </View>
                         </View>
-                        <Text style={styles.infoValueGreen}>
-                          ₹{Number(currentTrip.advancePaid || currentTrip.driverAllowance || 1063).toLocaleString('en-IN')} (PAID)
-                        </Text>
-                      </View>
-                    </View>
 
-                    {/* 2 Primary Action Buttons */}
-                    <View style={styles.primaryButtonsRow}>
-                      <TouchableOpacity
-                        style={styles.greenStartTripBtn}
-                        onPress={() => {
-                          if (
-                            currentTrip.status === BookingStatus.DRIVER_ACCEPTED ||
-                            currentTrip.status === BookingStatus.DRIVER_EN_ROUTE
-                          ) {
-                            router.push({ pathname: '/trip/en-route', params: { bookingId: currentTrip.id } });
-                          } else if (currentTrip.status === BookingStatus.TRIP_STARTED) {
-                            router.push({ pathname: '/trip/active', params: { bookingId: currentTrip.id } });
-                          }
-                        }}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={styles.greenBtnIcon}>✈</Text>
-                        <Text style={styles.greenBtnText}>
-                          {currentTrip.status === BookingStatus.TRIP_STARTED ? 'MANAGE TRIP' : 'START TRIP'}
-                        </Text>
-                      </TouchableOpacity>
+                        {/* 2 Primary Action Buttons */}
+                        {(() => {
+                          const inspectionPhotos = Array.isArray(currentTrip.vehicleInspectionPhotos)
+                            ? currentTrip.vehicleInspectionPhotos.filter((p: string) => p && !p.includes('placehold.co') && p.trim().length > 0)
+                            : [];
+                          const hasCompletedInspection = inspectionPhotos.length >= 4;
 
-                      <TouchableOpacity
-                        style={styles.creamViewRouteBtn}
-                        onPress={() => openNavigationMap(currentTrip.dropLat, currentTrip.dropLng, currentTrip.dropAddress)}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={styles.creamBtnIcon}>📍</Text>
-                        <Text style={styles.creamBtnText}>VIEW ROUTE</Text>
-                      </TouchableOpacity>
-                    </View>
+                          return (
+                            <View style={styles.primaryButtonsRow}>
+                              {!hasCompletedInspection && !isTripInProcess ? (
+                                <TouchableOpacity
+                                  style={styles.blueInspectionBtn}
+                                  onPress={() => router.push({ pathname: '/trip/inspection', params: { bookingId: currentTrip.id } })}
+                                  activeOpacity={0.85}
+                                >
+                                  <Ionicons name="camera" size={15} color="#ffffff" style={{ marginRight: 2 }} />
+                                  <Text style={styles.inspectionBtnText}>VEHICLE INSPECTION</Text>
+                                </TouchableOpacity>
+                              ) : (
+                                <TouchableOpacity
+                                  style={isTripInProcess ? styles.onTripBtn : styles.greenStartTripBtn}
+                                  onPress={async () => {
+                                    const isTripVerifiedAndStarted =
+                                      currentTrip.status === BookingStatus.TRIP_STARTED ||
+                                      currentTrip.status === 'TRIP_STARTED' ||
+                                      currentTrip.status === 'IN_PROGRESS';
 
-                    {/* 3 Quick Action Buttons */}
-                    <View style={styles.quickActionsRow}>
-                      <TouchableOpacity
-                        style={styles.quickActionPill}
-                        onPress={() => Linking.openURL(`tel:${currentTrip.customer?.user?.phone || '9342759612'}`)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.quickActionIcon}>📞</Text>
-                        <Text style={styles.quickActionText}>CALL CUSTOMER</Text>
-                      </TouchableOpacity>
+                                    if (isTripVerifiedAndStarted) {
+                                      locationTracker.startActiveTripTracking(currentTrip.id);
+                                      router.push({ pathname: '/trip/active', params: { bookingId: currentTrip.id } });
+                                    } else {
+                                      await setTripInProcess(currentTrip.id, true);
+                                      driverApiClient.fetch('/api/driver/trip/en-route', {
+                                        method: 'POST',
+                                        body: JSON.stringify({ bookingId: currentTrip.id }),
+                                      }).catch(() => {});
+                                      locationTracker.startActiveTripTracking(currentTrip.id);
+                                      router.push({ pathname: '/trip/start', params: { bookingId: currentTrip.id } });
+                                    }
+                                  }}
+                                  activeOpacity={0.85}
+                                >
+                                  <Ionicons name={isTripInProcess ? 'navigate' : 'car'} size={17} color="#ffffff" style={{ marginRight: 4 }} />
+                                  <Text style={styles.greenBtnText}>
+                                    {isTripInProcess ? 'ON TRIP' : 'START TRIP'}
+                                  </Text>
+                                </TouchableOpacity>
+                              )}
 
-                      <TouchableOpacity
-                        style={styles.quickActionPill}
-                        onPress={() => Linking.openURL(`sms:${currentTrip.customer?.user?.phone || '9342759612'}`)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.quickActionIcon}>✉️</Text>
-                        <Text style={styles.quickActionText}>MESSAGE</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.quickActionPill}
-                        onPress={() => {
-                          Alert.alert(
-                            `Trip: ${currentTrip.humanReadableRef}`,
-                            `Pickup: ${currentTrip.pickupAddress}\nDrop: ${currentTrip.dropAddress}\nDistance: ${currentTrip.distanceKm} km\nTotal Fare: ₹${currentTrip.totalEstimatedFare || 4250}\nDriver Allowance: ₹${currentTrip.driverAllowance || 1063}`
+                              <TouchableOpacity
+                                style={styles.creamViewRouteBtn}
+                                onPress={() => {
+                                  const targetLat = isTripInProcess ? currentTrip.dropLat : currentTrip.pickupLat;
+                                  const targetLng = isTripInProcess ? currentTrip.dropLng : currentTrip.pickupLng;
+                                  const targetAddress = isTripInProcess ? currentTrip.dropAddress : currentTrip.pickupAddress;
+                                  openNavigationMap(targetLat, targetLng, targetAddress);
+                                }}
+                                activeOpacity={0.85}
+                              >
+                                <Ionicons name="location" size={17} color="#ea580c" />
+                                <Text style={styles.creamBtnText}>
+                                  {isTripInProcess ? 'DROP OFF LOCATION' : 'PICKUP LOCATION'}
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
                           );
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.quickActionIcon}>📄</Text>
-                        <Text style={styles.quickActionText}>TRIP DETAILS</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                        })()}
+
+                        {/* 3 Quick Action Buttons */}
+                        <View style={styles.quickActionsRow}>
+                          <TouchableOpacity
+                            style={styles.quickActionPill}
+                            onPress={() => Linking.openURL(`tel:${currentTrip.customer?.user?.phone || '9342759612'}`)}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="call" size={14} color="#0f172a" />
+                            <Text style={styles.quickActionText}>CALL CUSTOMER</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.quickActionPill}
+                            onPress={() => Linking.openURL(`sms:${currentTrip.customer?.user?.phone || '9342759612'}`)}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="chatbox" size={14} color="#0f172a" />
+                            <Text style={styles.quickActionText}>MESSAGE</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.quickActionPill}
+                            onPress={() => {
+                              Alert.alert(
+                                `Trip: ${currentTrip.humanReadableRef}`,
+                                `Pickup: ${currentTrip.pickupAddress}\nDrop: ${currentTrip.dropAddress}\nDistance: ${currentTrip.distanceKm || '--'} km\nTrip Type: ${currentTrip.tripType || 'ONE WAY'}`
+                              );
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="document-text" size={14} color="#0f172a" />
+                            <Text style={styles.quickActionText}>TRIP DETAILS</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })()
                 ) : activeCardTab === 'UPCOMING' ? (
-                  <View style={styles.emptyCardInner}>
-                    <Text style={styles.emptyCardInnerEmoji}>📅</Text>
-                    <Text style={styles.emptyCardInnerTitle}>No Upcoming Scheduled Trips</Text>
-                    <Text style={styles.emptyCardInnerSubtitle}>New advanced bookings allocated to you will appear here.</Text>
-                  </View>
+                  upcomingBookings.length === 0 ? (
+                    <View style={styles.emptyCardInner}>
+                      <Ionicons name="calendar-outline" size={32} color="#94a3b8" style={{ marginBottom: 8 }} />
+                      <Text style={styles.emptyCardInnerTitle}>No Upcoming Scheduled Trips</Text>
+                      <Text style={styles.emptyCardInnerSubtitle}>Accepted rides and advanced bookings allocated to you will appear here.</Text>
+                    </View>
+                  ) : (
+                    <View style={{ gap: 14 }}>
+                      {upcomingBookings.map((upBooking) => {
+                        const isPrimaryTripActive = !!activeBooking;
+                        const pickupDateStr = upBooking.scheduledAt
+                          ? new Date(upBooking.scheduledAt).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                          : '--';
+                        const pickupTimeStr = upBooking.scheduledAt
+                          ? new Date(upBooking.scheduledAt).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true,
+                            })
+                          : '--';
+
+                        return (
+                          <View key={upBooking.id} style={styles.upcomingBookingItemCard}>
+                            {/* Top Row: Ref & Upcoming Tag */}
+                            <View style={styles.bookingTopRow}>
+                              <View>
+                                <Text style={styles.bookingIdLabel}>Upcoming Booking</Text>
+                                <Text style={styles.bookingIdNumber}>{upBooking.humanReadableRef}</Text>
+                              </View>
+                              <View style={styles.upcomingBadgePill}>
+                                <Ionicons name="calendar" size={11} color="#2563eb" />
+                                <Text style={styles.upcomingBadgeText}>NEXT IN QUEUE</Text>
+                              </View>
+                            </View>
+
+                            {/* Stepper Route */}
+                            <View style={[styles.stepperContainer, { marginTop: 10 }]}>
+                              <View style={[styles.stepperLeft, { flex: 1 }]}>
+                                <TouchableOpacity
+                                  style={styles.stepPoint}
+                                  onPress={() => openNavigationMap(upBooking.pickupLat, upBooking.pickupLng, upBooking.pickupAddress)}
+                                  activeOpacity={0.7}
+                                >
+                                  <View style={styles.pickupCircle} />
+                                  <View style={styles.stepTextGroup}>
+                                    <Text style={styles.locationTitle}>{upBooking.pickupAddress}</Text>
+                                    <Text style={styles.locationSubtitle}>Pickup Location 📍</Text>
+                                  </View>
+                                </TouchableOpacity>
+
+                                <View style={styles.dashedTrail} />
+
+                                <TouchableOpacity
+                                  style={styles.stepPoint}
+                                  onPress={() => openNavigationMap(upBooking.dropLat, upBooking.dropLng, upBooking.dropAddress)}
+                                  activeOpacity={0.7}
+                                >
+                                  <View style={styles.dropCircle} />
+                                  <View style={styles.stepTextGroup}>
+                                    <Text style={styles.locationTitle}>{upBooking.dropAddress}</Text>
+                                    <Text style={styles.locationSubtitle}>Destination 🏁</Text>
+                                  </View>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+
+                            {/* Info 3 Columns Row */}
+                            <View style={styles.infoThreeColsRow}>
+                              <View style={styles.infoThreeCol}>
+                                <View style={styles.infoColTopLabel}>
+                                  <Ionicons name="calendar-outline" size={12} color="#64748b" />
+                                  <Text style={styles.infoColLabel}>Scheduled</Text>
+                                </View>
+                                <Text style={styles.infoColMainText}>{pickupDateStr}</Text>
+                                <Text style={styles.infoColSubPhone}>{pickupTimeStr}</Text>
+                              </View>
+
+                              <View style={styles.infoColDivider} />
+
+                              <View style={styles.infoThreeCol}>
+                                <View style={styles.infoColTopLabel}>
+                                  <Ionicons name="person-outline" size={12} color="#64748b" />
+                                  <Text style={styles.infoColLabel}>Customer</Text>
+                                </View>
+                                <Text style={styles.infoColMainText} numberOfLines={1}>
+                                  {upBooking.customer?.user?.fullName || 'Customer'}
+                                </Text>
+                                <Text style={styles.infoColSubPhone}>
+                                  {upBooking.customerPhoneReleased
+                                    ? upBooking.customer?.user?.phone || 'Released'
+                                    : 'Phone Released on Pickup'}
+                                </Text>
+                              </View>
+
+                              <View style={styles.infoColDivider} />
+
+                              <View style={styles.infoThreeCol}>
+                                <View style={styles.infoColTopLabel}>
+                                  <Ionicons name="navigate-outline" size={12} color="#64748b" />
+                                  <Text style={styles.infoColLabel}>Distance</Text>
+                                </View>
+                                <Text style={styles.infoColMainText}>
+                                  {upBooking.distanceKm || '--'} km
+                                </Text>
+                                <Text style={styles.infoColSubPhone}>
+                                  {upBooking.tripType || 'ONE WAY'}
+                                </Text>
+                              </View>
+                            </View>
+
+                            {/* Action Button: Disabled/Locked if primary trip is ongoing */}
+                            <View style={{ marginTop: 12 }}>
+                              {isPrimaryTripActive ? (
+                                <TouchableOpacity
+                                  style={styles.lockedUpcomingStartBtn}
+                                  onPress={() => {
+                                    Alert.alert(
+                                      'Active Trip Ongoing 🚗',
+                                      'You are currently on an active trip. Complete your ongoing trip before starting this upcoming ride.'
+                                    );
+                                  }}
+                                  activeOpacity={0.8}
+                                >
+                                  <Ionicons name="lock-closed" size={15} color="#64748b" />
+                                  <Text style={styles.lockedUpcomingStartText}>
+                                    LOCKED • FINISH ACTIVE TRIP FIRST
+                                  </Text>
+                                </TouchableOpacity>
+                              ) : (
+                                <TouchableOpacity
+                                  style={styles.greenStartTripBtn}
+                                  onPress={() => router.push({ pathname: '/trip/start', params: { bookingId: upBooking.id } })}
+                                  activeOpacity={0.85}
+                                >
+                                  <Ionicons name="car" size={17} color="#ffffff" style={{ marginRight: 4 }} />
+                                  <Text style={styles.greenBtnText}>START TRIP</Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )
                 ) : (
                   <View style={styles.emptyCardInner}>
-                    <Text style={styles.emptyCardInnerEmoji}>🕒</Text>
+                    <Ionicons name="time-outline" size={32} color="#94a3b8" style={{ marginBottom: 8 }} />
                     <Text style={styles.emptyCardInnerTitle}>Recent Trip History</Text>
                     <Text style={styles.emptyCardInnerSubtitle}>
                       {driverTrips.length} completed trips recorded. Switch to the 'My Trips' bottom tab for full accounting.
@@ -1009,155 +1388,339 @@ export default function DriverDashboardScreen() {
               </View>
             )}
 
+            {/* SEPARATE STANDALONE CARD: Queued / Accepted Trips */}
+            {activeCardTab === 'MY_TRIPS' && upcomingBookings.length > 0 && (
+              <View style={styles.separateQueuedCardWrapper}>
+                <View style={styles.separateQueuedHeader}>
+                  <View style={styles.separateQueuedHeaderLeft}>
+                    <Ionicons name="layers" size={17} color="#ea580c" />
+                    <Text style={styles.separateQueuedTitle}>
+                      Queued / Accepted Trips ({upcomingBookings.length})
+                    </Text>
+                  </View>
+                  <View style={styles.queuedBadgeLight}>
+                    <Ionicons name="time" size={11} color="#2563eb" />
+                    <Text style={styles.queuedBadgeTextLight}>Next In Queue</Text>
+                  </View>
+                </View>
+
+                <View style={styles.separateQueuedCardBody}>
+                  {upcomingBookings.map((upBooking) => {
+                    const pickupDateStr = upBooking.scheduledAt
+                      ? new Date(upBooking.scheduledAt).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : '--';
+                    const pickupTimeStr = upBooking.scheduledAt
+                      ? new Date(upBooking.scheduledAt).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true,
+                        })
+                      : '--';
+
+                    return (
+                      <View key={upBooking.id} style={styles.separateQueuedItemCard}>
+                        {/* Top Row: Ref & Tag */}
+                        <View style={styles.bookingTopRow}>
+                          <View>
+                            <Text style={styles.bookingIdLabel}>Accepted Trip</Text>
+                            <Text style={styles.bookingIdNumber}>{upBooking.humanReadableRef}</Text>
+                          </View>
+                          <View style={styles.availableQueueBadge}>
+                            <Ionicons name="checkmark-circle" size={12} color="#15803d" />
+                            <Text style={styles.availableQueueBadgeText}>ACCEPTED • QUEUED</Text>
+                          </View>
+                        </View>
+
+                        {/* Stepper Route */}
+                        <View style={styles.stepperContainer}>
+                          <View style={[styles.stepperLeft, { flex: 1 }]}>
+                            <TouchableOpacity
+                              style={styles.stepPoint}
+                              onPress={() => openNavigationMap(upBooking.pickupLat, upBooking.pickupLng, upBooking.pickupAddress)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.pickupCircle} />
+                              <View style={styles.stepTextGroup}>
+                                <Text style={styles.locationTitle}>{upBooking.pickupAddress}</Text>
+                                <Text style={styles.locationSubtitle}>Pickup Location 📍</Text>
+                              </View>
+                            </TouchableOpacity>
+
+                            <View style={styles.dashedTrail} />
+
+                            <TouchableOpacity
+                              style={styles.stepPoint}
+                              onPress={() => openNavigationMap(upBooking.dropLat, upBooking.dropLng, upBooking.dropAddress)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.dropCircle} />
+                              <View style={styles.stepTextGroup}>
+                                <Text style={styles.locationTitle}>{upBooking.dropAddress}</Text>
+                                <Text style={styles.locationSubtitle}>Destination 🏁</Text>
+                              </View>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+
+                        {/* Info 3 Columns Row */}
+                        <View style={styles.infoThreeColsRow}>
+                          <View style={styles.infoThreeCol}>
+                            <View style={styles.infoColTopLabel}>
+                              <Ionicons name="calendar-outline" size={13} color="#64748b" />
+                              <Text style={styles.infoColLabel}>Scheduled</Text>
+                            </View>
+                            <Text style={styles.infoColMainText}>{pickupDateStr}</Text>
+                            <Text style={styles.infoColSubPhone}>{pickupTimeStr}</Text>
+                          </View>
+
+                          <View style={styles.infoColDivider} />
+
+                          <View style={styles.infoThreeCol}>
+                            <View style={styles.infoColTopLabel}>
+                              <Ionicons name="person-outline" size={13} color="#64748b" />
+                              <Text style={styles.infoColLabel}>Customer</Text>
+                            </View>
+                            <Text style={styles.infoColMainText} numberOfLines={1}>
+                              {upBooking.customer?.user?.fullName || 'Customer'}
+                            </Text>
+                            <Text style={styles.infoColSubPhone}>
+                              {upBooking.customerPhoneReleased
+                                ? upBooking.customer?.user?.phone || 'Released'
+                                : 'Phone on Pickup'}
+                            </Text>
+                          </View>
+
+                          <View style={styles.infoColDivider} />
+
+                          <View style={styles.infoThreeCol}>
+                            <View style={styles.infoColTopLabel}>
+                              <Ionicons name="navigate-outline" size={13} color="#64748b" />
+                              <Text style={styles.infoColLabel}>Distance</Text>
+                            </View>
+                            <Text style={styles.infoColMainText}>
+                              {upBooking.distanceKm || '--'} km
+                            </Text>
+                            <Text style={styles.infoColSubPhone}>
+                              {upBooking.tripType || 'ONE WAY'}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Action Buttons: Locked Start Button + Trip Details */}
+                        <View style={{ marginTop: 12, flexDirection: 'row', gap: 10 }}>
+                          <TouchableOpacity
+                            style={[styles.lockedUpcomingStartBtn, { flex: 2 }]}
+                            onPress={() => {
+                              Alert.alert(
+                                'Active Trip Ongoing 🚗',
+                                'This trip is in your queue. You will be able to start it as soon as your current active trip is completed.'
+                              );
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="lock-closed" size={15} color="#64748b" />
+                            <Text style={styles.lockedUpcomingStartText}>
+                              UNABLE TO START • QUEUED
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[styles.creamViewRouteBtn, { flex: 1, paddingVertical: 11 }]}
+                            onPress={() => {
+                              Alert.alert(
+                                `Queued Trip: ${upBooking.humanReadableRef}`,
+                                `Pickup: ${upBooking.pickupAddress}\nDrop: ${upBooking.dropAddress}\nDistance: ${upBooking.distanceKm || '--'} km\nCustomer: ${upBooking.customer?.user?.fullName || 'Customer'}\nScheduled: ${pickupDateStr} ${pickupTimeStr}`
+                              );
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="document-text" size={15} color="#ea580c" />
+                            <Text style={[styles.creamBtnText, { fontSize: 11.5 }]}>DETAILS</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
             {/* Broadcast Dispatches List & Radar Section */}
             {!onlineStatus ? (
               <View style={styles.offlineBoxWhite}>
                 <View style={styles.dispatchesCardHeader}>
-                  <Text style={styles.dispatchesTitle}>
-                    Incoming Broadcast Dispatches ({dispatches.length})
-                  </Text>
-                  <View style={styles.listeningBadgeLight}>
-                    <View style={[styles.listeningDot, { backgroundColor: '#94a3b8' }]} />
-                    <Text style={styles.listeningTextLight}>Paused</Text>
+                  <View style={styles.dispatchesHeaderLeft}>
+                    <Ionicons name="car-sport" size={17} color="#ea580c" />
+                    <Text style={styles.dispatchesTitle}>
+                      Admin Bookings & Assignments
+                    </Text>
+                  </View>
+                  <View style={styles.pausedBadge}>
+                    <Ionicons name="pause" size={10} color="#475569" />
+                    <Text style={styles.pausedText}>Off-Duty</Text>
                   </View>
                 </View>
 
                 <View style={styles.cardHeaderDivider} />
 
                 <View style={styles.offlineCardBody}>
-                  <Text style={styles.offlineEmoji}>⏸️</Text>
-                  <Text style={styles.offlineTitleDark}>You are currently OFF-DUTY</Text>
-                  <Text style={styles.offlineSubtitleDark}>
-                    Toggle the green Online status at the top to start receiving nearby ride dispatches.
+                  <View style={styles.offDutyIconContainer}>
+                    <Ionicons name="power-outline" size={32} color="#94a3b8" />
+                    <View style={styles.offDutyPauseBadge}>
+                      <Ionicons name="pause" size={10} color="#ffffff" />
+                    </View>
+                  </View>
+                  <Text style={styles.offDutyTitle}>You are currently OFF-DUTY</Text>
+                  <Text style={styles.offDutySubtitle}>
+                    Go On-Duty to receive direct ride assignments from Admin.
                   </Text>
                   <TouchableOpacity
-                    style={styles.goOnlineBtnOrange}
+                    style={styles.goDutyBtn}
                     onPress={() => handleToggleOnline(true)}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                   >
-                    <Text style={styles.goOnlineBtnText}>🟢 GO ON-DUTY NOW</Text>
+                    <View style={styles.goDutyGreenDot} />
+                    <Text style={styles.goDutyBtnText}>Go ON-DUTY NOW</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            ) : dispatches.length === 0 && !currentTrip ? (
-              /* Radar Scanner in Modern White Card */
-              <View style={styles.radarCardWhite}>
-                <View style={styles.dispatchesCardHeader}>
-                  <Text style={styles.dispatchesTitle}>
-                    Incoming Broadcast Dispatches ({dispatches.length})
-                  </Text>
-                  <View style={styles.listeningBadgeLight}>
-                    <View style={[styles.listeningDot, { backgroundColor: '#10b981' }]} />
-                    <Text style={styles.listeningTextLight}>Listening</Text>
+            ) : dispatches.length === 0 ? (
+              !currentTrip ? (
+                /* Radar Scanner in Modern White Card (only shown when no active trip) */
+                <View style={styles.radarCardWhite}>
+                  <View style={styles.dispatchesCardHeader}>
+                    <View style={styles.dispatchesHeaderLeft}>
+                      <Ionicons name="car-sport" size={17} color="#ea580c" />
+                      <Text style={styles.dispatchesTitle}>
+                        Admin Bookings & Assignments
+                      </Text>
+                    </View>
+                    <View style={styles.listeningBadgeLight}>
+                      <View style={[styles.listeningDot, { backgroundColor: '#10b981' }]} />
+                      <Text style={styles.listeningTextLight}>Ready for Duty</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.cardHeaderDivider} />
+
+                  <View style={styles.radarCardBody}>
+                    <View style={styles.radarIconCircleDark}>
+                      <Ionicons name="shield-checkmark" size={28} color="#ea580c" />
+                    </View>
+                    <Text style={styles.radarTitleDark}>Ready for Admin Assignment</Text>
+                    <Text style={styles.radarSubtitleDark}>
+                      You are On-Duty! When Admin directly assigns a booking for your vehicle ({driver?.vehicle?.category?.toUpperCase() || 'SEDAN'}), it will appear here immediately.
+                    </Text>
+                    <View style={styles.radarPillOrange}>
+                      <View style={styles.radarPulseDot} />
+                      <Text style={styles.radarPillTextOrange}>Direct Dispatch Active</Text>
+                    </View>
+
+                    {hasPendingDocuments && (
+                      <TouchableOpacity
+                        style={styles.radarKycNoticeBox}
+                        onPress={() => router.push('/documents')}
+                        activeOpacity={0.85}
+                      >
+                        <View style={styles.radarKycIconCircle}>
+                          <Ionicons name="warning" size={18} color="#f97316" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.radarKycNoticeTitle}>KYC Verification Incomplete</Text>
+                          <Text style={styles.radarKycNoticeSub}>
+                            Upload your Driver Profile Photo, DL, RC & Cab photos to accept rides.
+                          </Text>
+                        </View>
+                        <View style={styles.radarKycNoticeBtn}>
+                          <Text style={styles.radarKycNoticeBtnText}>Upload ›</Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
-
-                <View style={styles.cardHeaderDivider} />
-
-                <View style={styles.radarCardBody}>
-                  <View style={styles.radarIconCircleDark}>
-                    <Text style={styles.radarEmoji}>📡</Text>
-                  </View>
-                  <Text style={styles.radarTitleDark}>Scanning for nearby ride bookings...</Text>
-                  <Text style={styles.radarSubtitleDark}>
-                    New trip broadcasts matching your vehicle category ({driver?.vehicle?.category?.toUpperCase() || 'SEDAN'}) will appear here instantly.
-                  </Text>
-                  <View style={styles.radarPillOrange}>
-                    <View style={styles.radarPulseDot} />
-                    <Text style={styles.radarPillTextOrange}>Live Dispatch Radar Active</Text>
-                  </View>
-
-                  {hasPendingDocuments && (
-                    <TouchableOpacity
-                      style={styles.radarKycNoticeBox}
-                      onPress={() => router.push('/documents')}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.radarKycNoticeIcon}>⚠️</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.radarKycNoticeTitle}>KYC Verification Incomplete</Text>
-                        <Text style={styles.radarKycNoticeSub}>
-                          Upload your Driver Profile Photo, DL, RC & Cab photos to accept rides.
-                        </Text>
-                      </View>
-                      <View style={styles.radarKycNoticeBtn}>
-                        <Text style={styles.radarKycNoticeBtnText}>Upload ›</Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
+              ) : null
             ) : (
-              <View style={{ gap: 10 }}>
-                <View style={styles.dispatchesSectionHeader}>
-                  <Text style={styles.dispatchesTitle}>
-                    Incoming Broadcast Dispatches ({dispatches.length})
-                  </Text>
-                  <View style={styles.listeningBadgeLight}>
-                    <View style={[styles.listeningDot, { backgroundColor: onlineStatus ? '#10b981' : '#94a3b8' }]} />
-                    <Text style={styles.listeningTextLight}>{onlineStatus ? 'Listening' : 'Paused'}</Text>
+              <View style={{ gap: 12, marginTop: currentTrip ? 8 : 0 }}>
+                {currentTrip && (
+                  <View style={styles.otherTripsHeader}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="radio" size={16} color="#ea580c" />
+                      <Text style={styles.otherTripsHeaderTitle}>
+                        Assigned Trips from Admin <Text style={styles.dispatchesCount}>({dispatches.length})</Text>
+                      </Text>
+                    </View>
+                    <View style={styles.availableQueueBadge}>
+                      <Ionicons name="checkmark-circle" size={11} color="#15803d" />
+                      <Text style={styles.availableQueueBadgeText}>Accept Available</Text>
+                    </View>
                   </View>
-                </View>
+                )}
 
                 {dispatches.map((d) => {
-                const b = d.booking;
-                const isAccepting = acceptingId === d.id;
+                  const b = d.booking;
+                  const isAccepting = acceptingId === d.id;
 
-                return (
-                  <View key={d.id} style={styles.floatingDispatchCardWhite}>
-                    <View style={styles.dispatchHeaderRow}>
-                      <View>
-                        <View style={styles.newAlertBadge}>
-                          <Text style={styles.newAlertText}>⚡ NEW RIDE ALERT</Text>
+                  return (
+                    <View key={d.id} style={styles.floatingDispatchCardWhite}>
+                      <View style={styles.dispatchHeaderRow}>
+                        <View>
+                          <View style={styles.newAlertBadge}>
+                            <Text style={styles.newAlertText}>⚡ DIRECT ADMIN ASSIGNMENT</Text>
+                          </View>
+                          <Text style={styles.dispatchRefText}>{b.humanReadableRef}</Text>
                         </View>
-                        <Text style={styles.dispatchRefText}>{b.humanReadableRef}</Text>
+                        <View style={styles.distanceBadgeLight}>
+                          <Text style={styles.distanceBadgeTextLight}>📍 {b.distanceKm} km</Text>
+                        </View>
                       </View>
-                      <View style={styles.distanceBadgeLight}>
-                        <Text style={styles.distanceBadgeTextLight}>📍 {b.distanceKm} km</Text>
-                      </View>
-                    </View>
 
-                    {/* Stepper Route */}
-                    <View style={styles.stepperContainer}>
-                      <View style={styles.stepperLeft}>
-                        <View style={styles.stepPoint}>
-                          <View style={styles.pickupCircle} />
-                          <View style={styles.stepTextGroup}>
-                            <Text style={styles.locationTitle}>{b.pickupAddress}</Text>
-                            <Text style={styles.locationSubtitle}>Pickup Location</Text>
+                      {/* Stepper Route */}
+                      <View style={styles.stepperContainer}>
+                        <View style={styles.stepperLeft}>
+                          <View style={styles.stepPoint}>
+                            <View style={styles.pickupCircle} />
+                            <View style={styles.stepTextGroup}>
+                              <Text style={styles.locationTitle}>{b.pickupAddress}</Text>
+                              <Text style={styles.locationSubtitle}>Pickup Location</Text>
+                            </View>
+                          </View>
+                          <View style={styles.dashedTrail} />
+                          <View style={styles.stepPoint}>
+                            <View style={styles.dropCircle} />
+                            <View style={styles.stepTextGroup}>
+                              <Text style={styles.locationTitle}>{b.dropAddress}</Text>
+                              <Text style={styles.locationSubtitle}>Destination</Text>
+                            </View>
                           </View>
                         </View>
-                        <View style={styles.dashedTrail} />
-                        <View style={styles.stepPoint}>
-                          <View style={styles.dropCircle} />
-                          <View style={styles.stepTextGroup}>
-                            <Text style={styles.locationTitle}>{b.dropAddress}</Text>
-                            <Text style={styles.locationSubtitle}>Destination</Text>
-                          </View>
-                        </View>
                       </View>
-                    </View>
 
-                    {/* Passenger & Fare Row */}
-                    <View style={styles.dispatchPassengerRowLight}>
-                      <Text style={styles.dispatchPassengerNameDark}>
-                        👤 {b.customer?.user?.fullName || 'Customer'}
-                      </Text>
-                      <Text style={styles.dispatchTripTypeOrange}>{b.tripType}</Text>
-                    </View>
+                      {/* Passenger & Fare Row */}
+                      <View style={styles.dispatchPassengerRowLight}>
+                        <Text style={styles.dispatchPassengerNameDark}>
+                          👤 {b.customer?.user?.fullName || 'Customer'}
+                        </Text>
+                        <Text style={styles.dispatchTripTypeOrange}>{b.tripType}</Text>
+                      </View>
 
-                    {/* Call-style Slide to Accept Ride Slider */}
-                    <SlideToAccept
-                      onAccept={() => handleAcceptDispatch(d.id, b.id)}
-                      isAccepting={isAccepting}
-                      title="SLIDE RIGHT TO ACCEPT"
-                      acceptingTitle="ACCEPTING RIDE..."
-                    />
-                  </View>
-                );
-              })}
+                      {/* Call-style Slide to Accept Ride Slider */}
+                      <SlideToAccept
+                        onAccept={() => handleAcceptDispatch(d.id, b.id)}
+                        isAccepting={isAccepting}
+                        disabled={false}
+                        title={currentTrip ? 'SLIDE TO ACCEPT (QUEUED TRIP)' : 'SLIDE RIGHT TO ACCEPT'}
+                        acceptingTitle="ACCEPTING RIDE..."
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+            )}
             </View>
-          )}
           </>
         )}
 
@@ -1238,37 +1801,24 @@ export default function DriverDashboardScreen() {
                   <View style={styles.kpiHeaderRow}>
                     <Text style={styles.kpiHeaderLabelOrange}>
                       {selectedMonthKey === 'ALL'
-                        ? '🌐 LIFETIME TOTAL EARNINGS'
+                        ? '🌐 ALL TIME TRIPS'
                         : selectedMonthKey === currentMonthSummary?.monthKey
                         ? `📅 THIS MONTH (${(currentMonthSummary.monthName || '').toUpperCase()})`
-                        : `🗓️ ${(selectedMonthKey).toUpperCase()} EARNINGS`}
+                        : `🗓️ ${(selectedMonthKey).toUpperCase()} TRIPS`}
                     </Text>
                     <View style={styles.kpiTripsCountBadgeLight}>
                       <Text style={styles.kpiTripsCountTextGreen}>{activeKpiSummary.completedTripsCount || 0} Completed Trips</Text>
                     </View>
                   </View>
 
-                  <Text style={styles.kpiTotalEarningsAmountDark}>
-                    ₹{Number(activeKpiSummary.totalEarnings || 0).toLocaleString('en-IN')}
-                  </Text>
-
-                  <View style={styles.kpiSubBreakdownRow}>
-                    <Text style={styles.kpiSubTextDark}>
-                      🚗 Driver Allowance: ₹{Number(activeKpiSummary.totalAllowanceEarned || 0).toLocaleString('en-IN')}
-                    </Text>
-                    <Text style={styles.kpiSubTextDark}>
-                      • 💰 Payee: ₹{Number(activeKpiSummary.totalPayeeEarned || 0).toLocaleString('en-IN')}
-                    </Text>
-                  </View>
-
                   <View style={styles.kpiSettlementRowLight}>
                     <View style={styles.kpiSettledPillLight}>
-                      <Text style={styles.kpiSettledLabel}>✓ SETTLED (PAID)</Text>
-                      <Text style={styles.kpiSettledAmountDark}>₹{Number(activeKpiSummary.totalSettled || 0).toLocaleString('en-IN')}</Text>
+                      <Text style={styles.kpiSettledLabel}>✓ PAID TRIPS</Text>
+                      <Text style={styles.kpiSettledCountText}>{activeKpiSummary.paidTripsCount || 0} Settled</Text>
                     </View>
                     <View style={styles.kpiPendingPillLight}>
-                      <Text style={styles.kpiPendingLabel}>⏳ PENDING PAYEE</Text>
-                      <Text style={styles.kpiPendingAmountDark}>₹{Number(activeKpiSummary.totalPending || 0).toLocaleString('en-IN')}</Text>
+                      <Text style={styles.kpiPendingLabel}>⏳ NOT PAID TRIPS</Text>
+                      <Text style={styles.kpiPendingCountText}>{activeKpiSummary.unpaidTripsCount || 0} Pending</Text>
                     </View>
                   </View>
                 </View>
@@ -1291,7 +1841,7 @@ export default function DriverDashboardScreen() {
                 <Text style={styles.emptyCardTitleDark}>No Trips in Selected Period</Text>
                 <Text style={styles.emptyCardSubtitleDark}>
                   {selectedMonthKey === 'ALL'
-                    ? 'Your assigned rides and payment settlements will appear here.'
+                    ? 'Your assigned rides and payment statuses will appear here.'
                     : `No completed rides recorded for ${selectedMonthKey}. Select another month or All Time.`}
                 </Text>
               </View>
@@ -1321,7 +1871,7 @@ export default function DriverDashboardScreen() {
                         </View>
                         <View style={[styles.settledBadgePill, isSettled ? styles.badgeGreen : styles.badgeAmber]}>
                           <Text style={isSettled ? styles.badgeTextGreen : styles.badgeTextAmber}>
-                            {isSettled ? '✓ SETTLED (PAID)' : '⏳ NOT PAID (PENDING)'}
+                            {isSettled ? '✓ PAID' : '⏳ NOT PAID'}
                           </Text>
                         </View>
                       </View>
@@ -1335,21 +1885,17 @@ export default function DriverDashboardScreen() {
                         🏁 <Text style={{ fontWeight: '700' }}>Drop:</Text> {trip.dropAddress}
                       </Text>
                       <Text style={styles.tripDistanceLine}>
-                        🚗 Distance: {trip.distanceKm} km {trip.tollAmount > 0 ? `• Toll: ₹${trip.tollAmount}` : ''} {trip.parkingAmount > 0 ? `• Parking: ₹${trip.parkingAmount}` : ''}
+                        🚗 Distance: {trip.distanceKm} km
                       </Text>
                     </View>
 
-                    <View style={styles.tripPayoutRow}>
-                      <Text style={styles.tripPayoutLabel}>Driver Allowance:</Text>
-                      <Text style={styles.tripPayoutVal}>₹{Number(trip.driverAllowance || 0).toLocaleString('en-IN')}</Text>
-                    </View>
-                    <View style={styles.tripPayoutRow}>
-                      <Text style={styles.tripPayoutLabel}>Driver Final Payee:</Text>
-                      <Text style={styles.tripPayoutVal}>₹{Number(trip.driverPayeeAmount || 0).toLocaleString('en-IN')}</Text>
-                    </View>
-                    <View style={[styles.tripPayoutRow, { borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 4, marginTop: 4 }]}>
-                      <Text style={[styles.tripPayoutLabel, { fontWeight: '800', color: '#0f172a' }]}>Total Driver Earnings:</Text>
-                      <Text style={styles.tripPayoutValBold}>₹{Number(trip.totalEarnings || 0).toLocaleString('en-IN')}</Text>
+                    <View style={styles.tripPaymentStatusRow}>
+                      <Text style={styles.tripPaymentStatusLabel}>Driver Payment Status:</Text>
+                      <View style={[styles.settledBadgePillInline, isSettled ? styles.badgeGreen : styles.badgeAmber]}>
+                        <Text style={isSettled ? styles.badgeTextGreen : styles.badgeTextAmber}>
+                          {isSettled ? '✓ PAID' : '⏳ NOT PAID'}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 );
@@ -1458,7 +2004,7 @@ export default function DriverDashboardScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.pendingKycAlertTitle}>KYC Verification Incomplete</Text>
-                  <Text style={styles.pendingKycAlertSub}>Upload pending certificates or 5-angle vehicle photos</Text>
+                  <Text style={styles.pendingKycAlertSub}>Upload pending KYC documents & vehicle specifications</Text>
                 </View>
                 <View style={styles.pendingKycActionBtn}>
                   <Text style={styles.pendingKycActionText}>Upload ›</Text>
@@ -1499,7 +2045,9 @@ export default function DriverDashboardScreen() {
               <View style={styles.profileDetailRow}>
                 <Text style={styles.profileDetailLabel}>Vehicle Plate:</Text>
                 <Text style={styles.profileDetailValueBold}>
-                  {driver?.vehicle?.plateNumber ? driver.vehicle.plateNumber.toUpperCase() : 'KA 01 MJ 2023'}
+                  {driver?.vehicle?.plateNumber && driver.vehicle.plateNumber !== 'PENDING' && !driver.vehicle.plateNumber.startsWith('KA 01 TR 0000')
+                    ? driver.vehicle.plateNumber.toUpperCase()
+                    : 'Not Added (Pending KYC)'}
                 </Text>
               </View>
               <View style={styles.profileDetailRow}>
@@ -1595,25 +2143,6 @@ export default function DriverDashboardScreen() {
                     : '⏳ Pending'}
                 </Text>
               </View>
-              <View style={styles.docRow}>
-                <Text style={styles.docName}>Vehicle Photos (5 Angles)</Text>
-                {(() => {
-                  const photos = Array.isArray(driver?.vehiclePhotos) ? driver.vehiclePhotos : [];
-                  const validPhotos = photos.filter((p: string) => p && !p.includes('placehold.co') && p.trim().length > 0);
-                  const hasAll5 = photos.length === 5 && validPhotos.length === 5;
-                  const isApproved = driver?.verificationStatus === 'APPROVED';
-
-                  return (
-                    <Text style={hasAll5 ? styles.docStatusGreen : styles.docStatusAmber}>
-                      {hasAll5
-                        ? isApproved
-                          ? '✓ Active'
-                          : '✓ Attached'
-                        : '⏳ Pending'}
-                    </Text>
-                  );
-                })()}
-              </View>
 
               <TouchableOpacity
                 style={styles.fullUploadBtnOrange}
@@ -1621,7 +2150,7 @@ export default function DriverDashboardScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={styles.fullUploadBtnIcon}>📸</Text>
-                <Text style={styles.fullUploadBtnText}>UPLOAD KYC & 5 VEHICLE ANGLE PHOTOS</Text>
+                <Text style={styles.fullUploadBtnText}>UPLOAD VEHICLE SPECS & KYC DOCUMENTS</Text>
               </TouchableOpacity>
             </View>
 
@@ -1645,7 +2174,7 @@ export default function DriverDashboardScreen() {
             <Text style={styles.versionTextDark}>Kandy Cabs Driver App v1.0.0</Text>
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* ============================================================ */}
       {/* BOTTOM NAVIGATION BAR (HOME, MY TRIPS, SUPPORT, PROFILE)     */}
@@ -1727,13 +2256,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
+  heroBannerContainer: {
+    width: '100%',
+    overflow: 'hidden',
+  },
+  homeCardsContainer: {
+    marginTop: -26,
+    paddingHorizontal: 14,
+    zIndex: 20,
+  },
+  stickyTopBarContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+  },
+  stickyHeaderBackdropWhite: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
   heroBannerBackground: {
     width: '100%',
   },
   heroOverlay: {
-    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
     paddingHorizontal: 16,
-    paddingBottom: 44,
+    paddingBottom: 20,
   },
   compactHeader: {
     backgroundColor: '#ffffff',
@@ -1773,22 +2330,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginLeft: -32,
   },
   kandyCabsLogo: {
     height: 46,
     width: 155,
   },
   chauffeurBadge: {
-    backgroundColor: 'rgba(234, 88, 12, 0.15)',
-    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderWidth: 1.5,
     borderColor: '#ea580c',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   chauffeurBadgeText: {
     color: '#ea580c',
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
@@ -1856,16 +2417,24 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   heroSloganWhite: {
-    fontSize: 20,
+    fontSize: 27,
     fontWeight: '900',
     color: '#ffffff',
-    lineHeight: 24,
+    lineHeight: 31,
+    letterSpacing: -0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroSloganOrange: {
-    fontSize: 20,
+    fontSize: 27,
     fontWeight: '900',
     color: '#ea580c',
-    lineHeight: 24,
+    lineHeight: 31,
+    letterSpacing: -0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroSloganSub: {
     fontSize: 9,
@@ -1891,19 +2460,19 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   heroGpsText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: '700',
-    color: '#cbd5e1',
+    color: '#ffffff',
   },
   heroDriverBox: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
   },
   avatarRing: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2.5,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    borderWidth: 3,
     borderColor: '#ffffff',
     backgroundColor: '#334155',
     alignItems: 'center',
@@ -1911,19 +2480,19 @@ const styles = StyleSheet.create({
     shadowColor: '#000000',
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 5,
-    elevation: 4,
+    shadowRadius: 6,
+    elevation: 5,
     position: 'relative',
   },
   avatarPhotoClipper: {
-    width: 43,
-    height: 43,
-    borderRadius: 21.5,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     overflow: 'hidden',
     backgroundColor: '#1e293b',
   },
   avatarEmoji: {
-    fontSize: 26,
+    fontSize: 34,
   },
   avatarImage: {
     width: '100%',
@@ -1933,6 +2502,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   heroVehiclePlate: {
     fontSize: 12,
@@ -1940,51 +2512,55 @@ const styles = StyleSheet.create({
     color: '#e2e8f0',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     marginTop: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   heroVehicleModel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94a3b8',
+    color: '#cbd5e1',
     marginTop: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   heroTierBadge: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#f59e0b',
+    color: '#facc15',
     marginTop: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   dutyCapsule: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
-    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 22,
+    borderWidth: 1.5,
   },
   dutyCapsuleOnline: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: 'rgba(6, 78, 59, 0.88)',
     borderColor: '#10b981',
   },
   dutyCapsuleOffline: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
     borderColor: '#ef4444',
   },
   dutyDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    marginRight: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
   dutyCapsuleText: {
-    fontSize: 11,
+    fontSize: 12.5,
     fontWeight: '800',
     color: '#ffffff',
-  },
-  dutyCapsuleArrow: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#cbd5e1',
-    marginLeft: 3,
+    letterSpacing: 0.2,
   },
   gpsBar: {
     flexDirection: 'row',
@@ -2032,17 +2608,20 @@ const styles = StyleSheet.create({
   mainScrollView: {
     flex: 1,
     backgroundColor: '#f8fafc',
+    zIndex: 10,
   },
   mainScrollViewHome: {
     backgroundColor: 'transparent',
-    marginTop: -32,
+    zIndex: 10,
+    marginTop: 0,
   },
   scrollContent: {
     padding: 14,
-    paddingBottom: 90,
+    paddingBottom: 140,
   },
   scrollContentHome: {
-    paddingTop: 0,
+    padding: 0,
+    paddingBottom: 140,
   },
   cardWrapper: {
     backgroundColor: '#ffffff',
@@ -2050,9 +2629,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
-    shadowRadius: 14,
+    shadowRadius: 16,
     elevation: 6,
     overflow: 'hidden',
     marginBottom: 20,
@@ -2098,7 +2677,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   tripCardContent: {
-    padding: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
   },
   bookingTopRow: {
     flexDirection: 'row',
@@ -2119,18 +2699,48 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   onRouteBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: '#fef3c7',
-    borderWidth: 1,
-    borderColor: '#fde68a',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 20,
+  },
+  onRouteDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#d97706',
   },
   onRouteBadgeText: {
     color: '#b45309',
-    fontSize: 10,
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  onTripBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#dcfce7',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  onTripDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#16a34a',
+  },
+  onTripBadgeText: {
+    color: '#15803d',
+    fontSize: 10.5,
     fontWeight: '900',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   stepperContainer: {
     flexDirection: 'row',
@@ -2138,11 +2748,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f8fafc',
     borderRadius: 16,
-    padding: 12,
-    marginVertical: 4,
+    padding: 14,
+    marginVertical: 6,
   },
   stepperLeft: {
     flex: 1,
+  },
+  stepperViewRouteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+  },
+  stepperViewRouteText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2563eb',
   },
   stepPoint: {
     flexDirection: 'row',
@@ -2183,149 +2805,357 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     marginTop: 1,
   },
-  stepperRightGraphic: {
+  infoThreeColsRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  infoThreeCol: {
+    flex: 1,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  infoColDivider: {
+    width: 1,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 2,
+    marginHorizontal: 2,
+  },
+  infoColHeaderRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingLeft: 10,
+    gap: 3,
+    marginBottom: 4,
+    width: '100%',
   },
-  cardDivider: {
-    height: 1,
-    backgroundColor: '#f1f5f9',
-    marginVertical: 12,
-  },
-  infoGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  infoCol: {
-    flex: 1,
-  },
-  infoColHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 3,
-  },
-  infoIcon: {
-    fontSize: 12,
-  },
-  infoLabel: {
-    fontSize: 11,
+  infoColHeaderLabel: {
+    fontSize: 8.5,
     color: '#64748b',
-    fontWeight: '600',
+    fontWeight: '700',
+    textAlign: 'center',
   },
-  infoValue: {
-    fontSize: 12,
+  infoColValDark: {
+    fontSize: 12.5,
     fontWeight: '800',
     color: '#0f172a',
+    lineHeight: 16,
+    textAlign: 'center',
   },
-  infoValueLarge: {
-    fontSize: 15,
+  infoColSubPhone: {
+    fontSize: 10,
+    color: '#64748b',
+    fontWeight: '600',
+    marginTop: 1,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    textAlign: 'center',
+  },
+  rupeeCircleBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#1d4ed8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rupeeCircleText: {
+    color: '#ffffff',
+    fontSize: 9.5,
+    fontWeight: '900',
+    lineHeight: 11,
+  },
+  infoFareValBold: {
+    fontSize: 14.5,
     fontWeight: '900',
     color: '#0f172a',
+    marginTop: 2,
+    textAlign: 'center',
   },
-  infoValueGreen: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#059669',
-  },
-  customerRowWithCall: {
+  advancePaidBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 6,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginTop: 10,
+    marginBottom: 4,
   },
-  customerPhoneSub: {
-    fontSize: 10,
-    color: '#64748b',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-  callSquareBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#ea580c',
+  advancePaidLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 10,
   },
-  callSquareIcon: {
-    fontSize: 14,
+  advancePaidLabel: {
+    fontSize: 10.5,
+    color: '#64748b',
+    fontWeight: '700',
+  },
+  advancePaidValue: {
+    fontSize: 13.5,
+    fontWeight: '900',
+    color: '#059669',
+    marginTop: 1,
   },
   primaryButtonsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 16,
+    marginTop: 12,
+  },
+  blueInspectionBtn: {
+    flex: 1,
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  inspectionBtnText: {
+    color: '#ffffff',
+    fontSize: 11.5,
+    fontWeight: '900',
+    letterSpacing: 0.2,
   },
   greenStartTripBtn: {
-    flex: 1.2,
+    flex: 1,
     backgroundColor: '#059669',
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  greenBtnIcon: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '900',
+  onTripBtn: {
+    flex: 1,
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    paddingVertical: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
   },
   greenBtnText: {
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '900',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   creamViewRouteBtn: {
     flex: 1,
-    backgroundColor: '#fff7ed',
+    backgroundColor: '#fffaf5',
     borderWidth: 1.5,
-    borderColor: '#fdba74',
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderColor: '#fed7aa',
+    borderRadius: 14,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  creamBtnIcon: {
-    fontSize: 13,
-  },
   creamBtnText: {
     color: '#ea580c',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
+    letterSpacing: 0.3,
   },
   quickActionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
-    marginTop: 12,
+    marginTop: 10,
   },
   quickActionPill: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 10,
-    paddingVertical: 8,
-  },
-  quickActionIcon: {
-    fontSize: 11,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
   quickActionText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
     color: '#0f172a',
   },
   emptyCardInner: {
-    padding: 32,
+    paddingVertical: 32,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  upcomingBookingItemCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  upcomingBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  upcomingBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#2563eb',
+    letterSpacing: 0.2,
+  },
+  infoColTopLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginBottom: 2,
+  },
+  infoColLabel: {
+    fontSize: 9,
+    color: '#64748b',
+    fontWeight: '700',
+  },
+  infoColMainText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  lockedUpcomingStartBtn: {
+    backgroundColor: '#f1f5f9',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    paddingVertical: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  lockedUpcomingStartText: {
+    color: '#64748b',
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  availableQueueBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#dcfce7',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  availableQueueBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803d',
+  },
+  separateQueuedCardWrapper: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 5,
+    overflow: 'hidden',
+    zIndex: 15,
+  },
+  separateQueuedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    backgroundColor: '#fffaf5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#fed7aa',
+  },
+  separateQueuedHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  separateQueuedTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  queuedBadgeLight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  queuedBadgeTextLight: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#2563eb',
+  },
+  separateQueuedCardBody: {
+    padding: 16,
+    gap: 14,
+  },
+  separateQueuedItemCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    padding: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   emptyCardInnerEmoji: {
     fontSize: 32,
@@ -2346,7 +3176,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   dispatchesCardHeader: {
     flexDirection: 'row',
@@ -2356,15 +3186,41 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 14,
   },
+  dispatchesHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
   cardHeaderDivider: {
     height: 1,
     backgroundColor: '#f1f5f9',
     width: '100%',
   },
   dispatchesTitle: {
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: 14.5,
+    fontWeight: '800',
     color: '#0f172a',
+  },
+  dispatchesCount: {
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  pausedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  pausedText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
   },
   listeningBadgeLight: {
     flexDirection: 'row',
@@ -2372,20 +3228,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 5,
   },
   listeningTextLight: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     color: '#475569',
   },
   listeningDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 5,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   offlineBoxWhite: {
     backgroundColor: '#ffffff',
@@ -2394,44 +3250,84 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     overflow: 'hidden',
     shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
-    shadowRadius: 14,
+    shadowRadius: 16,
     elevation: 6,
-    zIndex: 20,
+    marginBottom: 16,
   },
   offlineCardBody: {
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 28,
+    paddingBottom: 24,
   },
-  offlineEmoji: {
-    fontSize: 32,
-    marginBottom: 6,
+  offDutyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    marginBottom: 12,
   },
-  offlineTitleDark: {
-    fontSize: 15,
+  offDutyPauseBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#ea580c',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  offDutyTitle: {
+    fontSize: 16,
     fontWeight: '900',
     color: '#0f172a',
+    textAlign: 'center',
   },
-  offlineSubtitleDark: {
-    fontSize: 11,
+  offDutySubtitle: {
+    fontSize: 12.5,
     color: '#64748b',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 6,
+    lineHeight: 18,
+    maxWidth: 290,
   },
-  goOnlineBtnOrange: {
+  goDutyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#ea580c',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginTop: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginTop: 18,
+    shadowColor: '#ea580c',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  goOnlineBtnText: {
+  goDutyGreenDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#22c55e',
+    marginRight: 8,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
+  goDutyBtnText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 13.5,
     fontWeight: '900',
+    letterSpacing: 0.3,
   },
   radarCardWhite: {
     backgroundColor: '#ffffff',
@@ -2440,29 +3336,28 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     overflow: 'hidden',
     shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
-    shadowRadius: 14,
+    shadowRadius: 16,
     elevation: 6,
-    zIndex: 20,
+    marginBottom: 16,
   },
   radarCardBody: {
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 28,
+    paddingBottom: 24,
   },
   radarIconCircleDark: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#0f172a',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#fff7ed',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-  },
-  radarEmoji: {
-    fontSize: 26,
+    borderWidth: 1,
+    borderColor: '#ffedd5',
   },
   radarTitleDark: {
     fontSize: 15,
@@ -2471,11 +3366,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   radarSubtitleDark: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#64748b',
     textAlign: 'center',
     marginTop: 6,
-    lineHeight: 16,
+    lineHeight: 18,
+    maxWidth: 300,
   },
   radarPillOrange: {
     flexDirection: 'row',
@@ -2568,6 +3464,35 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#ea580c',
+  },
+  otherTripsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  otherTripsHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  lockedTripBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  lockedTripBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
   },
   acceptDispatchBtnGreen: {
     backgroundColor: '#059669',
@@ -2690,14 +3615,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   kpiSettledLabel: {
-    fontSize: 8,
+    fontSize: 8.5,
     fontWeight: '800',
     color: '#059669',
   },
-  kpiSettledAmountDark: {
-    fontSize: 13,
+  kpiSettledCountText: {
+    fontSize: 13.5,
     fontWeight: '900',
-    color: '#0f172a',
+    color: '#059669',
     marginTop: 2,
   },
   kpiPendingPillLight: {
@@ -2707,14 +3632,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   kpiPendingLabel: {
-    fontSize: 8,
+    fontSize: 8.5,
     fontWeight: '800',
     color: '#b45309',
   },
-  kpiPendingAmountDark: {
-    fontSize: 13,
+  kpiPendingCountText: {
+    fontSize: 13.5,
     fontWeight: '900',
-    color: '#0f172a',
+    color: '#b45309',
     marginTop: 2,
   },
   tripsHeaderRow: {
@@ -2835,25 +3760,24 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 2,
   },
-  tripPayoutRow: {
+  tripPaymentStatusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    paddingTop: 8,
+    marginTop: 6,
   },
-  tripPayoutLabel: {
-    fontSize: 11,
-    color: '#64748b',
-  },
-  tripPayoutVal: {
+  tripPaymentStatusLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#475569',
   },
-  tripPayoutValBold: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#059669',
+  settledBadgePillInline: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   supportHeaderCardWhite: {
     backgroundColor: '#ffffff',
@@ -3189,6 +4113,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 999,
     height: Platform.OS === 'android' ? 68 : 74,
     paddingBottom: Platform.OS === 'android' ? 8 : 16,
     backgroundColor: '#000000',
@@ -3200,7 +4125,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
     overflow: 'hidden',
-    elevation: 12,
+    elevation: 25,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.5,
@@ -3367,126 +4292,134 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   homePendingKycBanner: {
-    backgroundColor: '#fff7ed',
+    backgroundColor: '#fffaf5',
     borderWidth: 1.5,
     borderColor: '#fed7aa',
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 12,
-    shadowColor: '#ea580c',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 3,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 6,
   },
   homePendingKycHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 10,
+    gap: 12,
   },
   homePendingKycIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#ffedd5',
-    borderWidth: 1,
-    borderColor: '#fdba74',
     alignItems: 'center',
     justifyContent: 'center',
   },
   homePendingKycTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#9a3412',
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#0f172a',
   },
   homePendingKycSub: {
-    fontSize: 10.5,
-    color: '#c2410c',
-    marginTop: 1,
-    lineHeight: 14,
+    fontSize: 11.5,
+    color: '#64748b',
+    marginTop: 2,
+    lineHeight: 16,
   },
   homePendingChipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 12,
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 16,
   },
   homePendingChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
     borderWidth: 1,
   },
   homeChipDone: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#a7f3d0',
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
   },
   homeChipPending: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: '#fff1f2',
     borderColor: '#fecaca',
   },
   homeChipText: {
-    fontSize: 9.5,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
   },
   homeChipTextDone: {
-    color: '#059669',
+    color: '#16a34a',
   },
   homeChipTextPending: {
-    color: '#dc2626',
+    color: '#ea580c',
   },
   homeUploadDocsBtn: {
     backgroundColor: '#ea580c',
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: 14,
+    paddingVertical: 13,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     shadowColor: '#ea580c',
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+    elevation: 4,
   },
   homeUploadDocsBtnText: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 12.5,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
   radarKycNoticeBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff7ed',
+    backgroundColor: '#fffaf5',
     borderWidth: 1.5,
     borderColor: '#fed7aa',
-    borderRadius: 12,
-    padding: 10,
-    marginTop: 12,
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 14,
     gap: 10,
   },
-  radarKycNoticeIcon: {
-    fontSize: 20,
+  radarKycIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ffedd5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   radarKycNoticeTitle: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '900',
-    color: '#9a3412',
+    color: '#0f172a',
   },
   radarKycNoticeSub: {
-    fontSize: 9.5,
-    color: '#c2410c',
+    fontSize: 10,
+    color: '#64748b',
     marginTop: 1,
   },
   radarKycNoticeBtn: {
     backgroundColor: '#ea580c',
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   radarKycNoticeBtnText: {
     color: '#ffffff',
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '900',
   },
 });

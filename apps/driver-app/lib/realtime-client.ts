@@ -1,14 +1,23 @@
 import { driverApiClient, driverTokenStorage } from './api';
+import { getSupabaseClient } from '@kandy-cabs/shared';
 
-export type DriverEventType = 'DISPATCH_NEW' | 'DISPATCH_REVOKED' | 'TRIP_STATUS' | 'PROFILE_UPDATED' | 'connected';
+export type DriverEventType =
+  | 'DISPATCH_NEW'
+  | 'DISPATCH_REVOKED'
+  | 'TRIP_STATUS'
+  | 'PROFILE_UPDATED'
+  | 'connected'
+  | string;
 
 type EventListener = (data: any) => void;
 
 class DriverRealtimeClient {
+  private supabaseChannel: any = null;
   private xhr: XMLHttpRequest | null = null;
   private listeners: Map<string, Set<EventListener>> = new Map();
   private reconnectTimer: any = null;
-  private isConnected = false;
+  private isSupabaseConnected = false;
+  private isSseConnected = false;
   private isStopped = true;
   private processedIndex = 0;
   private reconnectDelay = 2000;
@@ -40,10 +49,10 @@ class DriverRealtimeClient {
 
   public start() {
     this.isStopped = false;
-    if (this.xhr && this.isConnected) {
-      return; // Already actively connected
+    if (this.isSupabaseConnected || this.isSseConnected) {
+      return;
     }
-    this.connect();
+    this.connectSupabaseRealtime();
   }
 
   public stop() {
@@ -52,35 +61,161 @@ class DriverRealtimeClient {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+
+    // 1. Clean up Supabase Channel
+    if (this.supabaseChannel) {
+      try {
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          supabase.removeChannel(this.supabaseChannel);
+        } else {
+          this.supabaseChannel.unsubscribe();
+        }
+      } catch (_) {}
+      this.supabaseChannel = null;
+    }
+    this.isSupabaseConnected = false;
+
+    // 2. Clean up Fallback SSE
     if (this.xhr) {
       try {
         this.xhr.abort();
       } catch (_) {}
       this.xhr = null;
     }
-    this.isConnected = false;
+    this.isSseConnected = false;
     this.processedIndex = 0;
   }
 
-  private connect() {
+  // --- PRIMARY: Supabase Realtime (PostgreSQL Replication Channel) ---
+  private async connectSupabaseRealtime() {
     if (this.isStopped) return;
 
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-
-    // Clean up any stale active connection before establishing a new one
-    if (this.xhr) {
-      try {
-        this.xhr.abort();
-      } catch (_) {}
-      this.xhr = null;
-    }
-
-    const token = driverTokenStorage.getToken();
+    const token = await driverTokenStorage.getToken();
     if (!token) {
-      // Retry in 3 seconds if not authenticated yet
+      this.scheduleReconnect(3000);
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      this.connectFallbackSSE();
+      return;
+    }
+
+    try {
+      // Decode driver token payload for driverId if available
+      let driverId: string | null = null;
+      try {
+        const payloadBase64 = token.split('.')[1];
+        if (payloadBase64) {
+          const payloadJson = JSON.parse(
+            typeof atob === 'function' ? atob(payloadBase64) : Buffer.from(payloadBase64, 'base64').toString('utf8')
+          );
+          driverId = payloadJson.driverId || payloadJson.id || payloadJson.sub || null;
+        }
+      } catch (_) {}
+
+      const channelName = driverId
+        ? `driver-channel-${driverId}-${Date.now()}`
+        : `driver-channel-global-${Date.now()}`;
+
+      let channelBuilder = supabase.channel(channelName);
+
+      if (driverId) {
+        // Scoped to driver's own dispatches, assigned bookings, and profile
+        channelBuilder = channelBuilder
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'DriverDispatch',
+              filter: `driverId=eq.${driverId}`,
+            },
+            (payload: any) => {
+              if (payload.eventType === 'INSERT') {
+                this.emitLocal('DISPATCH_NEW', payload.new);
+              } else if (payload.eventType === 'UPDATE' && payload.new.status !== 'PENDING') {
+                this.emitLocal('DISPATCH_REVOKED', {
+                  dispatchId: payload.new.id,
+                  bookingId: payload.new.bookingId,
+                });
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'Booking',
+              filter: `assignedDriverId=eq.${driverId}`,
+            },
+            (payload: any) => {
+              this.emitLocal('TRIP_STATUS', payload.new);
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'Driver',
+              filter: `id=eq.${driverId}`,
+            },
+            (payload: any) => {
+              this.emitLocal('PROFILE_UPDATED', payload.new);
+            }
+          );
+      } else {
+        // Global driver broadcast listener
+        channelBuilder = channelBuilder.on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'DriverDispatch',
+          },
+          (payload: any) => {
+            if (payload.eventType === 'INSERT') {
+              this.emitLocal('DISPATCH_NEW', payload.new);
+            }
+          }
+        );
+      }
+
+      this.supabaseChannel = channelBuilder.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          this.isSupabaseConnected = true;
+          this.emitLocal('connected', { mode: 'SUPABASE_REALTIME' });
+          if (this.xhr) {
+            try {
+              this.xhr.abort();
+            } catch (_) {}
+            this.xhr = null;
+            this.isSseConnected = false;
+          }
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          this.isSupabaseConnected = false;
+          if (!this.isStopped && !this.isSseConnected) {
+            this.connectFallbackSSE();
+          }
+        }
+      });
+    } catch (err) {
+      console.warn('[Driver Realtime] Supabase subscription failed, falling back to SSE:', err);
+      this.isSupabaseConnected = false;
+      this.connectFallbackSSE();
+    }
+  }
+
+  // --- FALLBACK: Next.js SSE Stream ---
+  private async connectFallbackSSE() {
+    if (this.isStopped || this.isSupabaseConnected || this.xhr) return;
+
+    const token = await driverTokenStorage.getToken();
+    if (!token) {
       this.scheduleReconnect(3000);
       return;
     }
@@ -111,23 +246,25 @@ class DriverRealtimeClient {
         }
 
         if (xhr.readyState === 4) {
-          this.isConnected = false;
-          if (!this.isStopped) {
+          this.isSseConnected = false;
+          this.xhr = null;
+          if (!this.isStopped && !this.isSupabaseConnected) {
             this.scheduleReconnect();
           }
         }
       };
 
       xhr.onerror = () => {
-        this.isConnected = false;
-        if (!this.isStopped) {
+        this.isSseConnected = false;
+        this.xhr = null;
+        if (!this.isStopped && !this.isSupabaseConnected) {
           this.scheduleReconnect();
         }
       };
 
       xhr.send();
     } catch (err) {
-      console.warn('Driver SSE connection error:', err);
+      console.warn('Driver fallback SSE error:', err);
       this.scheduleReconnect();
     }
   }
@@ -142,7 +279,6 @@ class DriverRealtimeClient {
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith(':')) {
-          // Heartbeat ping or comment
           continue;
         }
 
@@ -157,8 +293,8 @@ class DriverRealtimeClient {
         try {
           const parsed = JSON.parse(dataStr);
           if (eventType === 'connected') {
-            this.isConnected = true;
-            this.reconnectDelay = 2000; // Reset backoff
+            this.isSseConnected = true;
+            this.reconnectDelay = 2000;
           }
           this.emitLocal(eventType, parsed);
         } catch {
@@ -174,10 +310,11 @@ class DriverRealtimeClient {
     const delay = explicitDelay || this.reconnectDelay;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      this.connect();
+      if (!this.isStopped) {
+        this.connectSupabaseRealtime();
+      }
     }, delay);
 
-    // Exponential backoff
     this.reconnectDelay = Math.min(this.reconnectDelay * 1.5, this.maxReconnectDelay);
   }
 }

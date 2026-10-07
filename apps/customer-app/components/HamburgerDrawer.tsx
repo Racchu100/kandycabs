@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { formatDisplayPhone } from '../lib/api';
 
 interface HamburgerDrawerProps {
   visible: boolean;
@@ -48,7 +49,14 @@ export function HamburgerDrawer({
           <View style={styles.header}>
             <View style={styles.userInfo}>
               {user ? (
-                <>
+                <TouchableOpacity
+                  style={styles.userInfoTouchable}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    onClose();
+                    router.push('/profile');
+                  }}
+                >
                   <View style={styles.avatar}>
                     <Text style={styles.avatarText}>
                       {user.fullName ? user.fullName[0].toUpperCase() : 'U'}
@@ -56,9 +64,9 @@ export function HamburgerDrawer({
                   </View>
                   <View>
                     <Text style={styles.userName}>{user.fullName || 'Customer'}</Text>
-                    <Text style={styles.userPhone}>+91 {user.phone}</Text>
+                    <Text style={styles.userPhone}>{formatDisplayPhone(user.phone)}</Text>
                   </View>
-                </>
+                </TouchableOpacity>
               ) : (
                 <Image
                   source={require('../assets/images/logo.png')}
@@ -74,7 +82,26 @@ export function HamburgerDrawer({
 
           {/* Navigation Links */}
           <View style={styles.menuList}>
-            {/* My Profile & Bookings (Highlighted if user logged in) */}
+            {/* My Profile (If user logged in) */}
+            {user && (
+              <TouchableOpacity
+                style={styles.myProfileBtn}
+                onPress={() => {
+                  onClose();
+                  router.push('/profile');
+                }}
+              >
+                <View style={styles.myBookingsLeft}>
+                  <Ionicons name="person-circle-outline" size={20} color="#ea580c" />
+                  <Text style={styles.myBookingsText}>My Profile</Text>
+                </View>
+                <View style={styles.ridesBadge}>
+                  <Text style={styles.ridesBadgeText}>View Details →</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* My Bookings */}
             {user && (
               <TouchableOpacity
                 style={styles.myBookingsBtn}
@@ -84,12 +111,10 @@ export function HamburgerDrawer({
                 }}
               >
                 <View style={styles.myBookingsLeft}>
-                  <Ionicons name="receipt-outline" size={18} color="#ea580c" />
-                  <Text style={styles.myBookingsText}>My Profile & Bookings</Text>
+                  <Ionicons name="receipt-outline" size={18} color="#0284c7" />
+                  <Text style={[styles.myBookingsText, { color: '#0369a1' }]}>My Bookings & Invoices</Text>
                 </View>
-                <View style={styles.ridesBadge}>
-                  <Text style={styles.ridesBadgeText}>View Details →</Text>
-                </View>
+                <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
               </TouchableOpacity>
             )}
 
@@ -269,16 +294,32 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#f1f5f9',
   },
+  userInfoTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   menuList: {
     paddingTop: 8,
   },
-  myBookingsBtn: {
+  myProfileBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#fff7ed',
     borderWidth: 1,
     borderColor: '#fed7aa',
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  myBookingsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1,
+    borderColor: '#bae6fd',
     paddingVertical: 9,
     paddingHorizontal: 12,
     borderRadius: 12,

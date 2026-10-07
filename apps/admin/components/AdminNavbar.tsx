@@ -11,13 +11,14 @@ export function AdminNavbar() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Overview', icon: '📊' },
+    { href: '/analytics', label: 'Visitors & Funnel', icon: '👤' },
     { href: '/bookings', label: 'Bookings', icon: '📋' },
     { href: '/live-map', label: 'Live Map', icon: '🗺️' },
     { href: '/payments', label: 'Payments', icon: '💳' },
-    { href: '/odometer-evidence', label: 'Odometer Audit', icon: '🔍' },
     { href: '/vehicle-evidence', label: 'Vehicle KYC', icon: '🛡️' },
     { href: '/fleets', label: 'Fleets', icon: '🚐' },
     { href: '/pricing', label: 'Pricing Rules', icon: '🏷️' },
+    { href: '/banners', label: 'Banners & Offers', icon: '🖼️' },
     { href: '/audit-logs', label: 'Audit Logs', icon: '📜' },
   ];
 
@@ -31,7 +32,8 @@ export function AdminNavbar() {
               <img
                 src="/images/logo.png"
                 alt="Kandy Cabs"
-                className="h-9 w-auto object-contain"
+                className="h-9 w-auto max-h-9 object-contain"
+                style={{ height: 36, maxHeight: 36, width: 'auto', display: 'block' }}
               />
               <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded border border-amber-300 tracking-wider">
                 ADMIN

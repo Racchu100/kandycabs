@@ -46,18 +46,21 @@ export interface RouteDistanceResult {
   durationMins: number;
 }
 
-// In-Memory High-Performance LRU Route Cache (24-hour TTL)
+// In-Memory High-Performance LRU Route Cache (2-Hour TTL)
 interface RouteCacheEntry {
   result: RouteDistanceResult;
   expiresAt: number;
 }
 
 const MAX_ROUTE_CACHE_SIZE = 5000;
-const ROUTE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 Hours
+const ROUTE_CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 Hours
 const routeMemoryCache = new Map<string, RouteCacheEntry>();
 
+// In-flight Promise Coalescing to prevent concurrent duplicate OSRM HTTP requests
+const inFlightRoutes = new Map<string, Promise<RouteDistanceResult>>();
+
 function getPointCacheKey(lat1: number, lng1: number, lat2: number, lng2: number): string {
-  return `${lat1.toFixed(4)},${lng1.toFixed(4)}->${lat2.toFixed(4)},${lng2.toFixed(4)}`;
+  return `osrm_route:${lat1.toFixed(4)},${lng1.toFixed(4)}->${lat2.toFixed(4)},${lng2.toFixed(4)}`;
 }
 
 function getFromCache(key: string): RouteDistanceResult | null {
@@ -87,7 +90,8 @@ function saveToCache(key: string, result: RouteDistanceResult): void {
 /**
  * Server-authoritative distance calculation.
  * Never trusts client-submitted distances.
- * Uses OpenStreetMap OSRM road routing engine with high-availability mirror fallback and in-memory LRU cache.
+ * Uses OpenStreetMap OSRM road routing engine with high-availability mirror fallback, in-memory LRU cache,
+ * and in-flight request coalescing to eliminate duplicate external calls.
  */
 export async function calculateRouteDistance(
   pickupLat: number,
@@ -103,11 +107,16 @@ export async function calculateRouteDistance(
     return { distanceKm: 1, durationMins: 5 };
   }
 
-  // Check In-Memory Cache first (< 0.1ms lookup)
+  // 1. Fast Cache Lookup (< 0.1ms)
   const cacheKey = getPointCacheKey(pickupLat, pickupLng, dropLat, dropLng);
   const cached = getFromCache(cacheKey);
   if (cached) {
     return cached;
+  }
+
+  // 2. In-Flight Request Coalescing: If an identical route is being fetched right now, await its shared Promise
+  if (inFlightRoutes.has(cacheKey)) {
+    return inFlightRoutes.get(cacheKey)!;
   }
 
   const osrmEndpoints = [
@@ -115,10 +124,10 @@ export async function calculateRouteDistance(
     `https://routing.openstreetmap.de/routed-car/route/v1/driving/${pickupLng},${pickupLat};${dropLng},${dropLat}?overview=false`,
   ];
 
-  // 1. Parallel Fast Race across mirrors with aggressive 1200ms timeout
+  // 3. Parallel Fast Race across mirrors with aggressive 1500ms timeout
   const fetchMirror = async (url: string): Promise<RouteDistanceResult> => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1200);
+    const timeout = setTimeout(() => controller.abort(), 1500);
     try {
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
@@ -142,26 +151,34 @@ export async function calculateRouteDistance(
     }
   };
 
+  const routePromise = (async (): Promise<RouteDistanceResult> => {
+    try {
+      const result = await Promise.any(osrmEndpoints.map(fetchMirror));
+      saveToCache(cacheKey, result);
+      return result;
+    } catch (_) {
+      // Fallback: Calibrated Haversine with 1.30x road curvature factor
+      const straightLineKm = haversineDistanceKm(pickupLat, pickupLng, dropLat, dropLng);
+      const roadFactor = 1.30;
+      const estimatedKm = Math.round(straightLineKm * roadFactor * 10) / 10;
+      const estimatedDuration = calculateRealisticDurationMins(estimatedKm);
+
+      const fallbackResult = {
+        distanceKm: Math.max(estimatedKm, 1),
+        durationMins: estimatedDuration,
+      };
+      saveToCache(cacheKey, fallbackResult);
+      return fallbackResult;
+    }
+  })();
+
+  inFlightRoutes.set(cacheKey, routePromise);
+
   try {
-    const result = await Promise.any(osrmEndpoints.map(fetchMirror));
-    saveToCache(cacheKey, result);
-    return result;
-  } catch (_) {
-    // Both endpoints failed or timed out -> Instant fallback to high-precision calibrated curvature
+    return await routePromise;
+  } finally {
+    inFlightRoutes.delete(cacheKey);
   }
-
-  // 2. Calibrated Haversine with 1.30x road curvature factor
-  const straightLineKm = haversineDistanceKm(pickupLat, pickupLng, dropLat, dropLng);
-  const roadFactor = 1.30; // Calibrated Indian road network curvature factor
-  const estimatedKm = Math.round(straightLineKm * roadFactor * 10) / 10;
-  const estimatedDuration = calculateRealisticDurationMins(estimatedKm);
-
-  const fallbackResult = {
-    distanceKm: Math.max(estimatedKm, 1),
-    durationMins: estimatedDuration,
-  };
-  saveToCache(cacheKey, fallbackResult);
-  return fallbackResult;
 }
 
 export interface RoutePoint {
@@ -180,60 +197,73 @@ export async function calculateMultiPointRouteDistance(
   }
 
   // Check multi-point cache
-  const multiCacheKey = points.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join('->');
+  const multiCacheKey = `osrm_multi:${points.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join('->')}`;
   const cachedMulti = getFromCache(multiCacheKey);
   if (cachedMulti) {
     return cachedMulti;
   }
 
-  // 1. Try OSRM with all waypoints concatenated
-  try {
-    const coordsString = points.map((p) => `${p.lng},${p.lat}`).join(';');
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=false`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1200);
+  if (inFlightRoutes.has(multiCacheKey)) {
+    return inFlightRoutes.get(multiCacheKey)!;
+  }
 
-    const response = await fetch(osrmUrl, { signal: controller.signal });
-    clearTimeout(timeout);
+  const multiPromise = (async (): Promise<RouteDistanceResult> => {
+    // 1. Try OSRM with all waypoints concatenated
+    try {
+      const coordsString = points.map((p) => `${p.lng},${p.lat}`).join(';');
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=false`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 1500);
 
-    if (response.ok) {
-      const data = (await response.json()) as any;
-      if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        const distanceKm = Math.round((route.distance / 1000) * 10) / 10;
-        const durationMins = calculateRealisticDurationMins(distanceKm, Math.round(route.duration / 60));
-        const multiResult = {
-          distanceKm: Math.max(distanceKm, 5),
-          durationMins,
-        };
-        saveToCache(multiCacheKey, multiResult);
-        return multiResult;
+      const response = await fetch(osrmUrl, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        const data = (await response.json()) as any;
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const distanceKm = Math.round((route.distance / 1000) * 10) / 10;
+          const durationMins = calculateRealisticDurationMins(distanceKm, Math.round(route.duration / 60));
+          const multiResult = {
+            distanceKm: Math.max(distanceKm, 5),
+            durationMins,
+          };
+          saveToCache(multiCacheKey, multiResult);
+          return multiResult;
+        }
       }
+    } catch (_) {
+      // Fallback to sequential leg calculation
     }
-  } catch (err) {
-    // Fallback to sequential leg calculation
+
+    // 2. Sum of each leg using calculateRouteDistance
+    let totalKm = 0;
+    let totalMins = 0;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const leg = await calculateRouteDistance(
+        points[i].lat,
+        points[i].lng,
+        points[i + 1].lat,
+        points[i + 1].lng
+      );
+      totalKm += leg.distanceKm;
+      totalMins += leg.durationMins;
+    }
+
+    const combinedResult = {
+      distanceKm: Math.round(totalKm * 10) / 10,
+      durationMins: totalMins,
+    };
+    saveToCache(multiCacheKey, combinedResult);
+    return combinedResult;
+  })();
+
+  inFlightRoutes.set(multiCacheKey, multiPromise);
+
+  try {
+    return await multiPromise;
+  } finally {
+    inFlightRoutes.delete(multiCacheKey);
   }
-
-  // 2. Sum of each leg using calculateRouteDistance
-  let totalKm = 0;
-  let totalMins = 0;
-
-  for (let i = 0; i < points.length - 1; i++) {
-    const leg = await calculateRouteDistance(
-      points[i].lat,
-      points[i].lng,
-      points[i + 1].lat,
-      points[i + 1].lng
-    );
-    totalKm += leg.distanceKm;
-    totalMins += leg.durationMins;
-  }
-
-  const combinedResult = {
-    distanceKm: Math.round(totalKm * 10) / 10,
-    durationMins: totalMins,
-  };
-  saveToCache(multiCacheKey, combinedResult);
-  return combinedResult;
 }
-

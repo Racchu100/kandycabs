@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import 'leaflet/dist/leaflet.css';
 import type { BookingStatus } from '@kandy-cabs/shared';
 
 export interface DriverMapMarker {

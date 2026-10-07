@@ -1,6 +1,10 @@
+import 'fast-text-encoding';
 import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
 import { Linking, Platform } from 'react-native';
 import { driverApiClient } from './api';
+
+export const BACKGROUND_LOCATION_TASK = 'KANDY_ACTIVE_TRIP_BACKGROUND_LOCATION';
 
 export interface LocationPoint {
   lat: number;
@@ -17,7 +21,7 @@ export type LocationServiceStatus =
   | 'READY'
   | 'ERROR';
 
-export type LocationSource = 'lastKnown' | 'live' | 'manual' | 'none';
+export type LocationSource = 'lastKnown' | 'live' | 'background' | 'manual' | 'none';
 
 export interface LocationState {
   lat: number | null;
@@ -34,6 +38,9 @@ export type LocationChangeListener = (
   state: LocationState
 ) => void;
 
+// Safe FIFO memory queue for batched location points (max 20 to prevent unbounded memory growth)
+const MAX_BATCHED_POINTS = 20;
+
 class LocationTrackerService {
   private isTracking: boolean = false;
   private currentTier: 'IDLE' | 'ACTIVE_TRIP' = 'IDLE';
@@ -41,7 +48,8 @@ class LocationTrackerService {
   private intervalTimer: any = null;
   private watchSubscription: Location.LocationSubscription | null = null;
   private batchedPoints: LocationPoint[] = [];
-  private hasPermission: boolean = false;
+  private hasForegroundPermission: boolean = false;
+  private hasBackgroundPermission: boolean = false;
   private lastPingTime: number = 0;
   private listeners: Set<LocationChangeListener> = new Set();
 
@@ -60,6 +68,10 @@ class LocationTrackerService {
 
   public isCurrentlyTracking(): boolean {
     return this.isTracking;
+  }
+
+  public getActiveBookingId(): string | null {
+    return this.activeBookingId;
   }
 
   public getStatus(): LocationServiceStatus {
@@ -112,7 +124,7 @@ class LocationTrackerService {
         const recheck = await Location.hasServicesEnabledAsync();
         if (!recheck) {
           this.currentStatus = 'SERVICES_DISABLED';
-          this.hasPermission = false;
+          this.hasForegroundPermission = false;
           this.errorMessage = 'Location Services (GPS) are disabled on this device.';
           this.notifyListeners();
           return { granted: false, status: 'SERVICES_DISABLED', error: this.errorMessage };
@@ -123,13 +135,13 @@ class LocationTrackerService {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         this.currentStatus = 'PERMISSION_DENIED';
-        this.hasPermission = false;
-        this.errorMessage = 'Location permission was denied by the user.';
+        this.hasForegroundPermission = false;
+        this.errorMessage = 'Foreground location permission was denied by the user.';
         this.notifyListeners();
         return { granted: false, status: 'PERMISSION_DENIED', error: this.errorMessage };
       }
 
-      this.hasPermission = true;
+      this.hasForegroundPermission = true;
       this.errorMessage = undefined;
       this.currentStatus = this.hasInitialFix ? 'READY' : 'ACQUIRING';
       this.notifyListeners();
@@ -137,10 +149,25 @@ class LocationTrackerService {
     } catch (err: any) {
       console.warn('[LocationTracker] Permission request failed:', err);
       this.currentStatus = 'ERROR';
-      this.hasPermission = false;
+      this.hasForegroundPermission = false;
       this.errorMessage = err?.message || 'Failed to request location permissions';
       this.notifyListeners();
       return { granted: false, status: 'ERROR', error: this.errorMessage };
+    }
+  }
+
+  public async requestBackgroundPermissions(): Promise<boolean> {
+    try {
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      this.hasBackgroundPermission = status === 'granted';
+      if (!this.hasBackgroundPermission) {
+        console.warn('[BackgroundGPS] Background location permission not granted by user; falling back to foreground watcher.');
+      }
+      return this.hasBackgroundPermission;
+    } catch (err: any) {
+      console.warn('[BackgroundGPS] Background permission request error:', err?.message || err);
+      this.hasBackgroundPermission = false;
+      return false;
     }
   }
 
@@ -176,6 +203,9 @@ class LocationTrackerService {
   }
 
   public async startIdleTracking() {
+    // If background active trip task is running, stop it first
+    await this.stopBackgroundLocationUpdates();
+
     if (this.isTracking && this.currentTier === 'IDLE') {
       return;
     }
@@ -183,27 +213,84 @@ class LocationTrackerService {
     this.activeBookingId = null;
     await this.startWatchAndHeartbeat(
       Location.Accuracy.Balanced,
-      5000, // 5s interval
-      15,   // 15m distance threshold
-      10000 // 10s heartbeat
+      15000, // 15s watcher interval
+      25,    // 25m distance threshold
+      30000  // 30s heartbeat
     );
   }
 
   public async startActiveTripTracking(bookingId: string) {
     if (this.isTracking && this.currentTier === 'ACTIVE_TRIP' && this.activeBookingId === bookingId) {
+      // Ensure background updates are also active if supported
+      await this.ensureBackgroundLocationStarted(bookingId);
       return;
     }
+
     this.currentTier = 'ACTIVE_TRIP';
     this.activeBookingId = bookingId;
+
+    // 1. Start foreground watcher & heartbeat for responsive in-app updates (~10s active interval)
     await this.startWatchAndHeartbeat(
       Location.Accuracy.High,
-      3000, // 3s interval
-      8,    // 8m distance threshold
-      5000  // 5s heartbeat
+      8000,  // 8s watcher interval
+      12,    // 12m distance threshold
+      10000  // 10s heartbeat
     );
+
+    // 2. Start Android background location task with persistent foreground service notification
+    await this.ensureBackgroundLocationStarted(bookingId);
   }
 
-  public stopTracking() {
+  private async ensureBackgroundLocationStarted(bookingId: string) {
+    try {
+      if (Platform.OS === 'android') {
+        const bgGranted = await this.requestBackgroundPermissions();
+        if (!bgGranted) {
+          return;
+        }
+
+        const isRunning = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+        if (isRunning) {
+          return;
+        }
+
+        await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 10000,       // 10 seconds interval
+          distanceInterval: 15,      // 15m movement filter (reduces battery drain & duplicate writes)
+          deferredUpdatesInterval: 10000,
+          deferredUpdatesDistance: 15,
+          foregroundService: {
+            notificationTitle: 'Kandy Cabs Driver',
+            notificationBody: 'Active trip in progress — Live GPS tracking enabled',
+            notificationColor: '#ea580c',
+            killServiceOnDestroy: false,
+          },
+          showsBackgroundLocationIndicator: true,
+          pausesUpdatesAutomatically: false,
+        });
+      }
+    } catch (err: any) {
+      console.warn('[BackgroundGPS] Failed to start background location updates:', err?.message || err);
+    }
+  }
+
+  private async stopBackgroundLocationUpdates() {
+    try {
+      const isRunning = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+      if (isRunning) {
+        await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+      }
+    } catch (err: any) {
+      // Ignore if task was not running
+    }
+  }
+
+  public async stopTracking() {
+    // 1. Stop background task if running
+    await this.stopBackgroundLocationUpdates();
+
+    // 2. Stop foreground watcher & interval timer
     if (this.watchSubscription) {
       this.watchSubscription.remove();
       this.watchSubscription = null;
@@ -214,6 +301,32 @@ class LocationTrackerService {
     }
     this.isTracking = false;
     this.activeBookingId = null;
+  }
+
+  public async sendFinalTrackingPoint(bookingId?: string) {
+    const bId = bookingId || this.activeBookingId;
+    if (this.currentLat != null && this.currentLng != null) {
+      try {
+        await driverApiClient.fetch('/api/driver/ping', {
+          method: 'POST',
+          body: JSON.stringify({
+            lat: this.currentLat,
+            lng: this.currentLng,
+            bookingId: bId,
+            batchedPoints: [
+              {
+                lat: this.currentLat,
+                lng: this.currentLng,
+                recordedAt: new Date().toISOString(),
+              },
+            ],
+          }),
+        });
+        console.log('[BackgroundGPS] Location sent (final trip point)');
+      } catch (err: any) {
+        console.error('[BackgroundGPS] API error (final trip point):', err?.message || err);
+      }
+    }
   }
 
   public updateManualPosition(lat: number, lng: number) {
@@ -227,6 +340,38 @@ class LocationTrackerService {
     this.throttledSendLocationPing(true);
   }
 
+  public async handleBackgroundLocationUpdate(locationObj: Location.LocationObject) {
+    if (!locationObj || !locationObj.coords) return;
+    const { latitude, longitude } = locationObj.coords;
+
+    this.currentLat = latitude;
+    this.currentLng = longitude;
+    this.currentSource = 'background';
+    this.hasInitialFix = true;
+    this.currentStatus = 'READY';
+    this.lastTimestamp = locationObj.timestamp || Date.now();
+    this.notifyListeners();
+
+    // Push into FIFO batched queue
+    const point: LocationPoint = {
+      lat: latitude,
+      lng: longitude,
+      recordedAt: new Date(this.lastTimestamp).toISOString(),
+    };
+    this.enqueuePoint(point);
+
+    // Send location ping
+    await this.sendLocationPing();
+  }
+
+  private enqueuePoint(point: LocationPoint) {
+    this.batchedPoints.push(point);
+    if (this.batchedPoints.length > MAX_BATCHED_POINTS) {
+      // FIFO eviction to cap queue size
+      this.batchedPoints = this.batchedPoints.slice(-MAX_BATCHED_POINTS);
+    }
+  }
+
   private async acquireInitialPosition() {
     // 1. Fast immediate fix from OS cache (< 50ms)
     try {
@@ -236,9 +381,9 @@ class LocationTrackerService {
       if (lastKnown && lastKnown.coords) {
         const { latitude, longitude } = lastKnown.coords;
         if (__DEV__) {
-          console.log(`[LocationTracker] Acquired lastKnown location: lat=${latitude}, lng=${longitude}, time=${new Date().toISOString()}`);
+          console.log(`[LocationTracker] Acquired lastKnown location: lat=${latitude}, lng=${longitude}`);
         }
-        if (this.currentSource !== 'live') {
+        if (this.currentSource !== 'live' && this.currentSource !== 'background') {
           this.currentLat = latitude;
           this.currentLng = longitude;
           this.currentSource = 'lastKnown';
@@ -272,7 +417,7 @@ class LocationTrackerService {
       if (loc && loc.coords) {
         const { latitude, longitude } = loc.coords;
         if (__DEV__) {
-          console.log(`[LocationTracker] Acquired live single-shot location: lat=${latitude}, lng=${longitude}, time=${new Date().toISOString()}`);
+          console.log(`[LocationTracker] Acquired live single-shot location: lat=${latitude}, lng=${longitude}`);
         }
         this.currentLat = latitude;
         this.currentLng = longitude;
@@ -285,7 +430,7 @@ class LocationTrackerService {
       }
     } catch (err) {
       if (__DEV__) {
-        console.log('[LocationTracker] Single-shot getCurrentPositionAsync completed or timed out; continuous watcher is active');
+        console.log('[LocationTracker] Single-shot getCurrentPositionAsync completed or timed out');
       }
     }
   }
@@ -316,7 +461,7 @@ class LocationTrackerService {
     // Trigger fast initial acquisition asynchronously (non-blocking)
     this.acquireInitialPosition();
 
-    // Start continuous live GPS watcher immediately
+    // Start continuous live GPS watcher
     try {
       this.watchSubscription = await Location.watchPositionAsync(
         {
@@ -327,9 +472,11 @@ class LocationTrackerService {
         },
         (loc) => {
           if (loc && loc.coords) {
-            const { latitude, longitude } = loc.coords;
-            if (__DEV__) {
-              console.log(`[LocationTracker] Live GPS watch update: lat=${latitude}, lng=${longitude}, time=${new Date().toISOString()}`);
+            const { latitude, longitude, accuracy: coordAccuracy } = loc.coords;
+
+            // Accuracy filter: ignore noisy fixes (> 300m uncertainty)
+            if (coordAccuracy != null && coordAccuracy > 300) {
+              return;
             }
 
             const deltaMeters =
@@ -337,7 +484,9 @@ class LocationTrackerService {
                 ? this.getDistanceMeters(this.currentLat, this.currentLng, latitude, longitude)
                 : 999;
 
-            if (deltaMeters >= 3 || !this.hasInitialFix || this.currentSource !== 'live') {
+            const movementThreshold = this.currentTier === 'ACTIVE_TRIP' ? 5 : 15;
+
+            if (deltaMeters >= movementThreshold || !this.hasInitialFix || this.currentSource !== 'live') {
               this.currentLat = latitude;
               this.currentLng = longitude;
               this.currentSource = 'live';
@@ -366,7 +515,7 @@ class LocationTrackerService {
   }
 
   public async forceImmediatePing() {
-    if (!this.hasPermission) {
+    if (!this.hasForegroundPermission) {
       const permResult = await this.requestPermissions();
       if (!permResult.granted) return;
     }
@@ -380,7 +529,8 @@ class LocationTrackerService {
     }
 
     const now = Date.now();
-    const minInterval = this.currentTier === 'ACTIVE_TRIP' ? 2500 : 4500;
+    const minInterval = this.currentTier === 'ACTIVE_TRIP' ? 8000 : 25000;
+    const minDistance = this.currentTier === 'ACTIVE_TRIP' ? 12 : 30;
     const timeSinceLastPing = now - this.lastPingTime;
     const distanceSinceLastSent = this.getDistanceMeters(
       this.lastSentLat,
@@ -389,7 +539,13 @@ class LocationTrackerService {
       this.currentLng
     );
 
-    if (force || timeSinceLastPing >= minInterval || distanceSinceLastSent >= 20) {
+    if (force || timeSinceLastPing >= minInterval || distanceSinceLastSent >= minDistance) {
+      const point: LocationPoint = {
+        lat: this.currentLat,
+        lng: this.currentLng,
+        recordedAt: new Date().toISOString(),
+      };
+      this.enqueuePoint(point);
       this.sendLocationPing();
     }
   }
@@ -402,17 +558,7 @@ class LocationTrackerService {
     this.lastSentLat = this.currentLat;
     this.lastSentLng = this.currentLng;
 
-    const point: LocationPoint = {
-      lat: this.currentLat,
-      lng: this.currentLng,
-      recordedAt: new Date().toISOString(),
-    };
-
-    this.batchedPoints.push(point);
-
-    if (this.batchedPoints.length > 10) {
-      this.batchedPoints = this.batchedPoints.slice(-10);
-    }
+    const pointsToSend = [...this.batchedPoints];
 
     try {
       await driverApiClient.fetch('/api/driver/ping', {
@@ -421,13 +567,17 @@ class LocationTrackerService {
           lat: this.currentLat,
           lng: this.currentLng,
           bookingId: this.activeBookingId,
-          batchedPoints: this.batchedPoints,
+          batchedPoints: pointsToSend,
         }),
       });
 
-      this.batchedPoints = [];
-    } catch (error) {
-      // Retain silently for retry
+      console.log(`[BackgroundGPS] Location sent: lat=${this.currentLat}, lng=${this.currentLng}, bookingId=${this.activeBookingId || 'IDLE'}`);
+
+      // Successfully synced: clear points that were successfully delivered
+      this.batchedPoints = this.batchedPoints.filter((p) => !pointsToSend.includes(p));
+    } catch (error: any) {
+      console.error('[BackgroundGPS] API error:', error?.message || error);
+      // Retain in batchedPoints for retry on next ping
     } finally {
       this.isPinging = false;
     }
@@ -447,3 +597,21 @@ class LocationTrackerService {
 }
 
 export const locationTracker = new LocationTrackerService();
+
+// Register background task at module scope (outside React components)
+if (!TaskManager.isTaskDefined(BACKGROUND_LOCATION_TASK)) {
+  TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }: { data: any; error: any }) => {
+    if (error) {
+      console.error('[BackgroundGPS] API error:', error?.message || error);
+      return;
+    }
+    if (data) {
+      const { locations } = data as { locations: Location.LocationObject[] };
+      if (locations && locations.length > 0) {
+        const latest = locations[locations.length - 1];
+        console.log(`[BackgroundGPS] Location received: lat=${latest.coords.latitude}, lng=${latest.coords.longitude}, time=${new Date(latest.timestamp || Date.now()).toISOString()}`);
+        await locationTracker.handleBackgroundLocationUpdate(latest);
+      }
+    }
+  });
+}

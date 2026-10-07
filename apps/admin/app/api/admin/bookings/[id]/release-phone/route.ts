@@ -36,34 +36,32 @@ export async function PATCH(
         ? body.released
         : !booking.customerPhoneReleased;
 
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Update Booking
-      const updated = await tx.booking.update({
-        where: { id },
-        data: {
-          customerPhoneReleased: newReleasedState,
-        },
-      });
-
-      // 2. Insert AuditLog
-      await tx.auditLog.create({
-        data: {
-          actorUserId: session.userId,
-          action: 'TOGGLE_CUSTOMER_PHONE_RELEASE',
-          entityType: 'Booking',
-          entityId: id,
-          reason: `Admin changed customerPhoneReleased to ${newReleasedState}`,
-        },
-      });
-
-      return updated;
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: {
+        customerPhoneReleased: newReleasedState,
+      },
+      select: {
+        customerPhoneReleased: true,
+      },
     });
+
+    // Non-blocking audit log
+    prisma.auditLog.create({
+      data: {
+        actorUserId: session.userId,
+        action: 'TOGGLE_CUSTOMER_PHONE_RELEASE',
+        entityType: 'Booking',
+        entityId: id,
+        reason: `Admin changed customerPhoneReleased to ${newReleasedState}`,
+      },
+    }).catch((err) => console.warn('AuditLog error:', err));
 
     return NextResponse.json(
       {
         success: true,
-        customerPhoneReleased: result.customerPhoneReleased,
-        message: `Customer phone release set to ${result.customerPhoneReleased}`,
+        customerPhoneReleased: updated.customerPhoneReleased,
+        message: `Customer phone release set to ${updated.customerPhoneReleased}`,
       },
       { status: 200 }
     );

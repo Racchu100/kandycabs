@@ -50,4 +50,11 @@ Thumbs.db
 scratch/
 apps/driver-app/scratch/
 app_routes_backup/
-
+build_log*.txt
+*.bin
+*.traineddata
+.banners_store.json
+apps/*/.banners_store.json
+emulator_screen.png
+*.log
+apps/web/public/uploads/

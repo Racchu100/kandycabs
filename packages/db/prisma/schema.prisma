@@ -1,6 +1,7 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -122,6 +123,7 @@ model Driver {
   @@index([onlineStatus])
   @@index([verificationStatus, onlineStatus])
   @@index([userId])
+  @@index([lastPingAt])
 }
 
 model Vehicle {
@@ -174,16 +176,27 @@ model Booking {
 
   startingOdometer          Float?
   startingOdometerImagePath String?
+  vehicleInspectionPhotos   String[]      @default([])
   finalOdometer             Float?
   finalOdometerImagePath    String?
   actualDistanceKm          Float?
-  tollAmount                Decimal? @db.Decimal(10, 2)
+  tollAmount                Decimal?      @db.Decimal(10, 2)
   parkingAmount             Decimal? @db.Decimal(10, 2)
 
   // Driver Settlement & Payee tracking (Admin -> Driver)
   driverAllowance           Decimal? @db.Decimal(10, 2)
   driverPayeeAmount         Decimal? @db.Decimal(10, 2)
   driverPaymentStatus       PaymentStatus @default(PENDING)
+
+  // Actual GPS Telemetry Points Captured during Driver OTP verification & Trip Completion
+  actualPickupAddress       String?
+  actualPickupLat           Float?
+  actualPickupLng           Float?
+  actualStartedAt           DateTime?
+  actualDropAddress         String?
+  actualDropLat             Float?
+  actualDropLng             Float?
+  actualCompletedAt         DateTime?
 
   // Flow B (customer -> driver) pickup-window fields
   customerCurrentLat             Float?
@@ -228,6 +241,10 @@ model TripEvent {
   type        String
   payloadJson Json?
   createdAt   DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([bookingId, createdAt])
+  @@index([type])
 }
 
 model TripTracking {
@@ -241,6 +258,8 @@ model TripTracking {
   recordedAt DateTime @default(now())
 
   @@index([bookingId])
+  @@index([bookingId, recordedAt])
+  @@index([driverId])
 }
 
 model Payment {
@@ -256,6 +275,8 @@ model Payment {
   verifiedAt        DateTime?
 
   @@index([bookingId])
+  @@index([status])
+  @@index([bookingId, status])
 }
 
 model AuditLog {
@@ -267,6 +288,10 @@ model AuditLog {
   entityId    String
   reason      String?
   createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([action])
 }
 
 model OtpVerification {
@@ -282,28 +307,41 @@ model OtpVerification {
 }
 
 model FleetCategory {
-  id                   String          @id @default(cuid())
-  category             VehicleCategory @unique
-  name                 String
-  description          String?
-  seatCount            Int             @default(4)
-  luggageCount         Int             @default(2)
-  cngRate              Decimal         @default(11.0) @db.Decimal(10, 2)
-  cngEnabled           Boolean         @default(true)
-  petrolRate           Decimal         @default(12.0) @db.Decimal(10, 2)
-  petrolEnabled        Boolean         @default(true)
-  dieselRate           Decimal         @default(13.0) @db.Decimal(10, 2)
-  dieselEnabled        Boolean         @default(true)
-  extraKmRate          Decimal         @default(13.0) @db.Decimal(10, 2)
-  driverAllowance      Decimal         @default(300.0) @db.Decimal(10, 2)
-  nightCharge          Decimal         @default(250.0) @db.Decimal(10, 2)
-  minRoundTripKmPerDay Float           @default(250.0)
-  localPackage4hrBase  Decimal         @default(1200.0) @db.Decimal(10, 2)
-  localPackage8hrBase  Decimal         @default(2200.0) @db.Decimal(10, 2)
-  imageUrl             String?
-  isActive             Boolean         @default(true)
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  id                    String          @id @default(cuid())
+  category              VehicleCategory @unique
+  name                  String
+  description           String?
+  seatCount             Int             @default(4)
+  luggageCount          Int             @default(2)
+  cngEnabled            Boolean         @default(true)
+  petrolEnabled         Boolean         @default(true)
+  dieselEnabled         Boolean         @default(true)
+  hasCarrier            Boolean         @default(false)
+  carrierCapacityText   String?         @default("Up to 50 kg / 2 extra bags")
+  carrierExcludedCars   String?         @default("Tata Tiago (No Carrier / Boot space only)")
+  carrierExcludedReason String?         @default("No Roof Carrier Allowed (Boot Space Only)")
+  cngRate               Decimal?        @default(11.0) @db.Decimal(10, 2)
+  petrolRate            Decimal?        @default(12.0) @db.Decimal(10, 2)
+  dieselRate            Decimal?        @default(13.0) @db.Decimal(10, 2)
+  extraKmRate           Decimal?        @default(13.0) @db.Decimal(10, 2)
+  driverAllowance       Decimal?        @default(300.0) @db.Decimal(10, 2)
+  nightCharge           Decimal?        @default(250.0) @db.Decimal(10, 2)
+  minRoundTripKmPerDay  Float?          @default(250.0)
+  extraKmThreshold      Float?
+  localPackage4hrBase         Decimal?        @default(1200.0) @db.Decimal(10, 2)
+  localPackage4hrKm           Float?          @default(40.0)
+  localPackage4hrExtraKmRate  Decimal?        @default(13.0) @db.Decimal(10, 2)
+  localPackage8hrBase         Decimal?        @default(2200.0) @db.Decimal(10, 2)
+  localPackage8hrKm           Float?          @default(80.0)
+  localPackage8hrExtraKmRate  Decimal?        @default(13.0) @db.Decimal(10, 2)
+  localPackage12hrBase        Decimal?        @default(3200.0) @db.Decimal(10, 2)
+  localPackage12hrKm          Float?          @default(120.0)
+  localPackage12hrExtraKmRate Decimal?        @default(13.0) @db.Decimal(10, 2)
+  extraHourRate               Decimal?        @default(150.0) @db.Decimal(10, 2)
+  imageUrl              String?
+  isActive              Boolean         @default(true)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
   @@index([isActive])
 }
@@ -315,11 +353,25 @@ model PricingRule {
   fuelType             FuelType
   baseRatePerKm        Decimal         @db.Decimal(10, 2)
   extraKmRate          Decimal         @db.Decimal(10, 2)
+  extraKmThreshold     Float?
   driverAllowance      Decimal         @db.Decimal(10, 2)
   nightCharge          Decimal         @db.Decimal(10, 2)
   gstRatePercent       Decimal         @default(5.0) @db.Decimal(5, 2)
   nightWindowStartHour Int             @default(22)
   nightWindowEndHour   Int             @default(6)
+
+  // Local Rental Packages (Editable in Admin Panel)
+  localPackage4hrBase         Decimal?        @default(1200.0) @db.Decimal(10, 2)
+  localPackage4hrKm           Float?          @default(40.0)
+  localPackage4hrExtraKmRate  Decimal?        @default(13.0) @db.Decimal(10, 2)
+  localPackage8hrBase         Decimal?        @default(2200.0) @db.Decimal(10, 2)
+  localPackage8hrKm           Float?          @default(80.0)
+  localPackage8hrExtraKmRate  Decimal?        @default(13.0) @db.Decimal(10, 2)
+  localPackage12hrBase        Decimal?        @default(3200.0) @db.Decimal(10, 2)
+  localPackage12hrKm          Float?          @default(120.0)
+  localPackage12hrExtraKmRate Decimal?        @default(13.0) @db.Decimal(10, 2)
+  extraHourRate               Decimal?        @default(150.0) @db.Decimal(10, 2)
+
   inclusions           String[]
   exclusions           String[]
   isActive             Boolean         @default(true)
@@ -329,5 +381,42 @@ model PricingRule {
   @@unique([category, tripType, fuelType])
   @@index([isActive])
 }
+
+model VisitorSession {
+  id           String           @id @default(cuid())
+  sessionId    String           @unique
+  platform     String           // 'WEB' | 'CUSTOMER_APP' | 'MOBILE_WEB'
+  device       String?          // 'Android' | 'iOS' | 'Windows' | 'Mac'
+  browser      String?          // 'Chrome' | 'Safari' | 'Expo App'
+  city         String?          // e.g. 'Mangaluru', 'Bengaluru'
+  ipAddress    String?
+  referrer     String?
+  firstSeenAt  DateTime         @default(now())
+  lastActiveAt DateTime         @default(now())
+  events       AnalyticsEvent[]
+
+  @@index([platform])
+  @@index([firstSeenAt])
+  @@index([lastActiveAt])
+}
+
+model AnalyticsEvent {
+  id          String         @id @default(cuid())
+  sessionId   String
+  session     VisitorSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  eventType   String         // 'VISIT' | 'VIEW_RATES' | 'VIEW_HATCHBACK' | 'VIEW_SEDAN' | 'VIEW_SUV' | 'VIEW_SUV_PREMIUM' | 'VIEW_TEMPO_TRAVELER' | 'STARTED_BOOKING' | 'COMPLETED_BOOKING'
+  category    String?        // 'HATCHBACK' | 'SEDAN' | 'SUV' | 'SUV_PREMIUM' | 'TEMPO_TRAVELER'
+  tripType    String?        // 'ONEWAY' | 'ROUND' | 'AIRPORT' | 'LOCAL' | 'PACKAGE'
+  pickup      String?
+  drop        String?
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+
+  @@index([sessionId])
+  @@index([eventType, createdAt])
+  @@index([category])
+  @@index([createdAt])
+}
+
 
 

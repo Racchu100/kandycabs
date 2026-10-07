@@ -1,12 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { parseIntermediateStops, getBookingMetadata } from '@/lib/bookingHelpers';
 
 interface DriverOption {
   id: string;
   onlineStatus: boolean;
   profilePhotoUrl?: string | null;
   verificationStatus?: string;
+  licenseNumber?: string | null;
+  licenseDocUrl?: string | null;
+  rcDocUrl?: string | null;
+  insuranceDocUrl?: string | null;
+  panDocUrl?: string | null;
+  aadhaarDocUrl?: string | null;
   user: { fullName: string; phone: string };
   vehicles: { category: string; plateNumber: string }[];
   currentLat?: number | null;
@@ -30,12 +37,14 @@ export function BroadcastDispatchModal({
   onSuccess,
 }: BroadcastDispatchModalProps) {
   const [onlineDrivers, setOnlineDrivers] = useState<DriverOption[]>([]);
+  const [bookingData, setBookingData] = useState<any | null>(null);
   const [selectedDriverIds, setSelectedDriverIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ONLINE' | 'OFFLINE'>('ALL');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [kycWarningDrivers, setKycWarningDrivers] = useState<DriverOption[] | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +53,16 @@ export function BroadcastDispatchModal({
       setSelectedDriverIds([]);
       setSearchQuery('');
       setStatusFilter('ALL');
+      setKycWarningDrivers(null);
+      setBookingData(null);
+
+      fetch(`/api/admin/bookings/${bookingId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.booking) setBookingData(data.booking);
+        })
+        .catch(() => {});
+
       fetch('/api/admin/drivers/online')
         .then((res) => res.json())
         .then((data) => {
@@ -56,7 +75,32 @@ export function BroadcastDispatchModal({
         })
         .finally(() => setLoading(false));
     }
-  }, [isOpen]);
+  }, [isOpen, bookingId]);
+
+  // Check if driver KYC is incomplete (unapproved status or missing key documents)
+  const isDriverKycIncomplete = (driver: DriverOption) => {
+    // 1. If verification status is explicitly not APPROVED
+    if (!driver.verificationStatus || driver.verificationStatus !== 'APPROVED') {
+      return true;
+    }
+    // 2. If any of the mandatory KYC documents are missing / empty / placeholder
+    const isDocEmpty = (url?: string | null) => !url || url.trim() === '' || url.includes('placehold.co');
+    if (
+      isDocEmpty(driver.profilePhotoUrl) ||
+      isDocEmpty(driver.licenseDocUrl) ||
+      isDocEmpty(driver.rcDocUrl) ||
+      isDocEmpty(driver.insuranceDocUrl) ||
+      !driver.licenseNumber ||
+      driver.licenseNumber.trim() === ''
+    ) {
+      return true;
+    }
+    // 3. If vehicle is missing or vehicle plate is missing
+    if (!driver.vehicles || driver.vehicles.length === 0 || !driver.vehicles[0]?.plateNumber) {
+      return true;
+    }
+    return false;
+  };
 
   // Filtered drivers based on search query and status filter
   const filteredDrivers = useMemo(() => {
@@ -95,12 +139,26 @@ export function BroadcastDispatchModal({
     }
   };
 
-  const handleDispatch = async () => {
+  const handleInitialDispatch = () => {
     if (selectedDriverIds.length === 0) {
       setError('Please select at least one driver');
       return;
     }
 
+    // Identify selected drivers with incomplete KYC
+    const incompleteDrivers = selectedDriverIds
+      .map((id) => onlineDrivers.find((d) => d.id === id))
+      .filter((d): d is DriverOption => !!d && isDriverKycIncomplete(d));
+
+    if (incompleteDrivers.length > 0) {
+      setKycWarningDrivers(incompleteDrivers);
+      return;
+    }
+
+    executeDispatch();
+  };
+
+  const executeDispatch = async () => {
     setSubmitting(true);
     setError('');
 
@@ -116,6 +174,7 @@ export function BroadcastDispatchModal({
         throw new Error(data.message || 'Failed to dispatch booking');
       }
 
+      setKycWarningDrivers(null);
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -133,23 +192,139 @@ export function BroadcastDispatchModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl animate-fade-in flex flex-col max-h-[90vh]">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <span>📡</span> Broadcast Ride Dispatch
-            </h3>
-            <p className="text-xs text-slate-500">
-              Booking Ref: <span className="font-semibold text-slate-800">{bookingRef}</span>
-            </p>
+      <div className="relative w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl animate-fade-in flex flex-col max-h-[90vh] overflow-hidden">
+        {/* KYC Warning Confirmation Overlay */}
+        {kycWarningDrivers && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/60 p-5 backdrop-blur-xs animate-fade-in">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-amber-300 animate-scale-up">
+              <div className="flex items-center gap-3 mb-3.5">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xl font-bold flex-shrink-0">
+                  ⚠️
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">KYC Verification Incomplete</h4>
+                  <p className="text-[11px] text-slate-500">Dispatch Verification Alert</p>
+                </div>
+              </div>
+
+              <div className="my-3 rounded-xl bg-amber-50/90 border border-amber-200 p-4">
+                <p className="text-xs text-amber-950 font-medium leading-relaxed">
+                  {kycWarningDrivers.length === 1 ? (
+                    <>
+                      <span className="font-bold text-amber-950 text-sm">
+                        {kycWarningDrivers[0].user.fullName}
+                      </span>{' '}
+                      KYC is not complete. Would you like to broadcast dispatch?
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-bold text-amber-950">
+                        {kycWarningDrivers.map((d) => d.user.fullName).join(', ')}
+                      </span>{' '}
+                      KYC is not complete. Would you like to broadcast dispatch?
+                    </>
+                  )}
+                </p>
+
+                <div className="mt-3 pt-2.5 border-t border-amber-200/80 space-y-1.5 max-h-32 overflow-y-auto">
+                  {kycWarningDrivers.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between text-xs text-amber-900">
+                      <span className="font-semibold truncate mr-2">• {d.user.fullName} ({d.user.phone})</span>
+                      <span className="bg-amber-200 text-amber-900 text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0">
+                        {d.verificationStatus === 'PENDING' ? 'Pending Review' : 'KYC Incomplete'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2.5 mt-5 pt-2">
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => setKycWarningDrivers(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={executeDispatch}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-md shadow-amber-600/20 flex items-center gap-1.5"
+                >
+                  {submitting ? 'Broadcasting...' : 'Yes, Broadcast Dispatch'}
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-lg font-semibold w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition"
-          >
-            ✕
-          </button>
+        )}
+        {/* Modal Header */}
+        <div className="pb-4 border-b border-slate-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <span>📡</span> Broadcast Ride Dispatch
+              </h3>
+              <p className="text-xs text-slate-500">
+                Booking Ref: <span className="font-semibold text-slate-800">{bookingRef}</span>
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 text-lg font-semibold w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Route Summary with Multi-Drop support */}
+          {bookingData && (
+            <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1.5">
+              <div className="flex items-center justify-between flex-wrap gap-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                  Trip Route ({bookingData.tripType || 'ONEWAY'})
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {getBookingMetadata(bookingData).hasCarrier && (
+                    <span className="text-[10px] text-emerald-900 font-extrabold bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <span>📦</span>
+                      <span>Roof Carrier Requested</span>
+                    </span>
+                  )}
+                  <span className="text-[10px] text-indigo-700 font-bold bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+                    ~{bookingData.distanceKm} km
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-slate-800 font-medium space-y-1">
+                <div className="flex items-center gap-1.5 truncate">
+                  <span className="text-emerald-600 font-bold shrink-0">📍</span>
+                  <span className="truncate">{bookingData.pickupAddress}</span>
+                </div>
+
+                {/* Intermediate Stops */}
+                {parseIntermediateStops(bookingData).length > 0 && (
+                  <div className="pl-3.5 border-l-2 border-amber-300 ml-1.5 space-y-0.5 py-0.5">
+                    {parseIntermediateStops(bookingData).map((stop, i) => (
+                      <div key={i} className="flex items-center gap-1.5 text-amber-950 text-[11px]">
+                        <span className="text-[9px] px-1.5 py-0.2 bg-amber-100 text-amber-900 border border-amber-300 rounded font-extrabold shrink-0">
+                          Stop {i + 1}
+                        </span>
+                        <span className="truncate font-semibold">{stop}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1.5 truncate text-slate-600">
+                  <span className="text-rose-600 font-bold shrink-0">🏁</span>
+                  <span className="truncate">{bookingData.dropAddress}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -246,7 +421,42 @@ export function BroadcastDispatchModal({
             filteredDrivers.map((driver) => {
               const isSelected = selectedDriverIds.includes(driver.id);
               const vehicle = driver.vehicles[0];
-              const isOnTrip = driver.assignedBookings && driver.assignedBookings.length > 0;
+
+              const targetScheduledAt = bookingData?.scheduledAt;
+              const isSameCalendarDay = (d1?: string | Date | null, d2?: string | Date | null) => {
+                if (!d1 || !d2) return false;
+                const a = new Date(d1);
+                const b = new Date(d2);
+                if (isNaN(a.getTime()) || isNaN(b.getTime())) return false;
+                return (
+                  a.getFullYear() === b.getFullYear() &&
+                  a.getMonth() === b.getMonth() &&
+                  a.getDate() === b.getDate()
+                );
+              };
+
+              const activeBookingsOnDate = (driver.assignedBookings || []).filter((b: any) => {
+                const isLiveTrip = b.status === 'TRIP_STARTED' || b.status === 'IN_PROGRESS';
+                if (isLiveTrip) return true;
+                if (!targetScheduledAt) {
+                  return (
+                    b.status === 'DRIVER_ACCEPTED' ||
+                    b.status === 'DRIVER_EN_ROUTE' ||
+                    b.status === 'ASSIGNED'
+                  );
+                }
+                return (
+                  (b.status === 'DRIVER_ACCEPTED' ||
+                    b.status === 'DRIVER_EN_ROUTE' ||
+                    b.status === 'ASSIGNED') &&
+                  isSameCalendarDay(b.scheduledAt, targetScheduledAt)
+                );
+              });
+
+              const isOnTrip = activeBookingsOnDate.some(
+                (b: any) => b.status === 'TRIP_STARTED' || b.status === 'IN_PROGRESS'
+              );
+              const isAssigned = !isOnTrip && activeBookingsOnDate.length > 0;
 
               return (
                 <div
@@ -285,6 +495,10 @@ export function BroadcastDispatchModal({
                           <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">
                             On Trip
                           </span>
+                        ) : isAssigned ? (
+                          <span className="text-[10px] bg-sky-100 text-sky-800 px-1.5 py-0.5 rounded font-bold">
+                            Assigned
+                          </span>
                         ) : driver.onlineStatus ? (
                           <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
                             ● Online
@@ -294,9 +508,9 @@ export function BroadcastDispatchModal({
                             ○ Offline
                           </span>
                         )}
-                        {driver.verificationStatus && driver.verificationStatus !== 'APPROVED' && (
-                          <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1 py-0.2 rounded font-semibold">
-                            Pending Review
+                        {isDriverKycIncomplete(driver) && (
+                          <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-semibold">
+                            {driver.verificationStatus === 'PENDING' ? 'Pending Review' : 'KYC Incomplete'}
                           </span>
                         )}
                       </div>
@@ -330,7 +544,7 @@ export function BroadcastDispatchModal({
             <button
               type="button"
               disabled={submitting || selectedDriverIds.length === 0}
-              onClick={handleDispatch}
+              onClick={handleInitialDispatch}
               className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition disabled:opacity-50 shadow-md shadow-indigo-500/20"
             >
               {submitting

@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
       return setCorsHeaders(res);
     }
 
-    // Fetch active assigned ride if any
-    const activeBooking = await prisma.booking.findFirst({
+    // Fetch all active and upcoming assigned rides for this driver
+    const assignedBookings = await prisma.booking.findMany({
       where: {
         assignedDriverId: session.driverId,
         deletedAt: null,
@@ -42,7 +42,51 @@ export async function GET(req: NextRequest) {
         },
         vehicle: true,
       },
+      orderBy: { scheduledAt: 'asc' },
     });
+
+    // Auto-release customer phone if within 5 hours
+    const idsToRelease: string[] = [];
+    for (let i = 0; i < assignedBookings.length; i++) {
+      const b = assignedBookings[i];
+      const scheduledMs = new Date(b.scheduledAt).getTime();
+      const isWithin5Hours = scheduledMs - Date.now() <= 5 * 60 * 60 * 1000;
+      if (isWithin5Hours && !b.customerPhoneReleased) {
+        idsToRelease.push(b.id);
+        assignedBookings[i] = {
+          ...b,
+          customerPhoneReleased: true,
+        };
+      }
+    }
+    if (idsToRelease.length > 0) {
+      await prisma.booking.updateMany({
+        where: { id: { in: idsToRelease } },
+        data: { customerPhoneReleased: true },
+      });
+    }
+
+    // Determine primary active booking:
+    // 1. Prioritize live trip in progress (TRIP_STARTED / DRIVER_EN_ROUTE)
+    const liveTrip = assignedBookings.find(
+      (b) => b.status === BookingStatus.TRIP_STARTED || b.status === BookingStatus.DRIVER_EN_ROUTE
+    );
+
+    // 2. Prioritize trip with vehicle inspection completed or odometer entered
+    const inPrepTrip = !liveTrip
+      ? assignedBookings.find(
+          (b) =>
+            b.startingOdometer != null ||
+            (Array.isArray(b.vehicleInspectionPhotos) &&
+              b.vehicleInspectionPhotos.filter((p: string) => p && !p.includes('placehold.co') && p.trim().length > 0).length >= 4)
+        )
+      : null;
+
+    // 3. Fallback to the first assigned booking
+    const activeBooking = liveTrip || inPrepTrip || assignedBookings[0] || null;
+    const upcomingBookings = activeBooking
+      ? assignedBookings.filter((b) => b.id !== activeBooking.id)
+      : [];
 
     const response = NextResponse.json(
       {
@@ -56,7 +100,6 @@ export async function GET(req: NextRequest) {
           licenseDocUrl: session.driver.licenseDocUrl,
           rcDocUrl: session.driver.rcDocUrl,
           insuranceDocUrl: session.driver.insuranceDocUrl,
-          vehiclePhotos: session.driver.vehiclePhotos || [],
           verificationStatus: session.driver.verificationStatus,
           onlineStatus: session.driver.onlineStatus,
           currentLat: session.driver.currentLat,
@@ -65,6 +108,7 @@ export async function GET(req: NextRequest) {
           vehicle: session.driver.vehicles[0] || null,
         },
         activeBooking: activeBooking || null,
+        upcomingBookings: upcomingBookings || [],
       },
       { status: 200 }
     );

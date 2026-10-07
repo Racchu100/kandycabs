@@ -119,15 +119,29 @@ export function TaxInvoiceModal({
               <View style={styles.sectionCard}>
                 <Text style={styles.sectionTitle}>TRIP ROUTE & DETAILS</Text>
                 <Text style={styles.routeItem}>
-                  <Text style={styles.bold}>Pickup: </Text>
-                  {invoice.booking.pickupAddress}
+                  <Text style={styles.bold}>Pickup (Verified OTP): </Text>
+                  {invoice.booking.actualPickupAddress || invoice.booking.pickupAddress}
                 </Text>
+                {invoice.booking.actualPickupAddress && invoice.booking.actualPickupAddress !== invoice.booking.pickupAddress ? (
+                  <Text style={[styles.metaSmall, { marginBottom: 4, marginLeft: 2 }]}>
+                    Booked: {invoice.booking.pickupAddress}
+                  </Text>
+                ) : null}
+
                 <Text style={styles.routeItem}>
-                  <Text style={styles.bold}>Drop: </Text>
-                  {invoice.booking.dropAddress}
+                  <Text style={styles.bold}>Drop (Final Reached): </Text>
+                  {invoice.booking.actualDropAddress || invoice.booking.dropAddress}
                 </Text>
+                {invoice.booking.actualDropAddress && invoice.booking.actualDropAddress !== invoice.booking.dropAddress ? (
+                  <Text style={[styles.metaSmall, { marginBottom: 4, marginLeft: 2 }]}>
+                    Booked: {invoice.booking.dropAddress}
+                  </Text>
+                ) : null}
+
                 <View style={styles.routeMetaRow}>
-                  <Text style={styles.metaSmall}>Distance: {invoice.booking.distanceKm} km</Text>
+                  <Text style={styles.metaSmall}>
+                    Distance: {invoice.booking.actualDistanceKm ?? invoice.booking.distanceKm} km
+                  </Text>
                   <Text style={styles.metaSmall}>Type: {invoice.booking.tripType}</Text>
                 </View>
               </View>

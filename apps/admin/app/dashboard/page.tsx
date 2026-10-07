@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { AdminNavbar } from '@/components/AdminNavbar';
 import { BookingStatus, DriverVerificationStatus, getSupabaseClient } from '@kandy-cabs/shared';
+import { parseIntermediateStops } from '@/lib/bookingHelpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,26 +40,27 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  // Initial fetch and Realtime subscription with adaptive fallback polling
   useEffect(() => {
     fetchDashboardStats();
 
-    // Auto-refresh stats every 30 seconds
-    const interval = setInterval(() => {
-      fetchDashboardStats(true);
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [fetchDashboardStats]);
-
-  // Realtime listener for immediate stats update on new bookings or changes
-  useEffect(() => {
     const supabase = getSupabaseClient();
     let channel: any = null;
+    let fallbackPollInterval: NodeJS.Timeout | null = null;
+
+    const startFallbackPolling = (intervalMs = 30000) => {
+      if (fallbackPollInterval) clearInterval(fallbackPollInterval);
+      fallbackPollInterval = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          fetchDashboardStats(true);
+        }
+      }, intervalMs);
+    };
 
     if (supabase) {
       try {
         channel = supabase
-          .channel('admin-dashboard-stats-realtime')
+          .channel(`admin-dashboard-stats-${Date.now()}`)
           .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'Booking' },
@@ -74,15 +76,35 @@ export default function AdminDashboardPage() {
               fetchDashboardStats(true);
             }
           )
-          .subscribe();
+          .subscribe((status: string) => {
+            if (status === 'SUBSCRIBED') {
+              setRealtimeActive(true);
+              // Relax polling to 60s when Realtime is active
+              startFallbackPolling(60000);
+            } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+              setRealtimeActive(false);
+              // Fallback to 30s polling when Realtime is disconnected
+              startFallbackPolling(30000);
+            }
+          });
       } catch (err) {
         console.warn('Realtime subscription error:', err);
+        setRealtimeActive(false);
+        startFallbackPolling(30000);
       }
+    } else {
+      setRealtimeActive(false);
+      startFallbackPolling(30000);
     }
 
     return () => {
       if (channel && supabase) {
         supabase.removeChannel(channel);
+      } else if (channel) {
+        channel.unsubscribe();
+      }
+      if (fallbackPollInterval) {
+        clearInterval(fallbackPollInterval);
       }
     };
   }, [fetchDashboardStats]);
@@ -104,10 +126,10 @@ export default function AdminDashboardPage() {
       case BookingStatus.DISPATCHED:
         return 'bg-blue-100 text-blue-800 border-blue-300';
       case BookingStatus.DRIVER_ACCEPTED:
+        return 'bg-indigo-100 text-indigo-800 border-indigo-300';
       case BookingStatus.DRIVER_EN_ROUTE:
-        return 'bg-purple-100 text-purple-800 border-purple-300';
       case BookingStatus.TRIP_STARTED:
-        return 'bg-emerald-100 text-emerald-800 border-emerald-300 animate-pulse';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
       case BookingStatus.TRIP_COMPLETED:
         return 'bg-slate-100 text-slate-700 border-slate-300';
       case BookingStatus.CANCELLED:
@@ -115,6 +137,18 @@ export default function AdminDashboardPage() {
       default:
         return 'bg-slate-100 text-slate-600 border-slate-200';
     }
+  };
+
+  const getStatusLabel = (status: string) => {
+    if (
+      status === BookingStatus.DRIVER_EN_ROUTE ||
+      status === BookingStatus.TRIP_STARTED ||
+      status === 'ON_TRIP' ||
+      status === 'ON TRIP'
+    ) {
+      return 'ON TRIP';
+    }
+    return String(status).replace(/_/g, ' ');
   };
 
   return (
@@ -321,26 +355,7 @@ export default function AdminDashboardPage() {
               </p>
             </Link>
 
-            {/* 4. Odometer Audit */}
-            <Link
-              href="/odometer-evidence"
-              className="bg-white border border-slate-200 hover:border-rose-400 hover:bg-rose-50/20 p-4 rounded-xl transition duration-150 group shadow-xs hover:shadow-md"
-            >
-              <div className="flex items-center space-x-3 mb-2">
-                <span className="text-2xl p-2 rounded-lg bg-rose-50 border border-rose-200 group-hover:bg-rose-100 transition-colors">
-                  🔍
-                </span>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-rose-600 transition-colors">Odometer Evidence Audit</h4>
-                  <p className="text-[11px] text-slate-500">Photo Proof & GPS Verification</p>
-                </div>
-              </div>
-              <p className="text-xs text-slate-500 line-clamp-2">
-                Audit start/end trip odometer photos with GPS geocoding and automated discrepancy alerts.
-              </p>
-            </Link>
-
-            {/* 5. Vehicle KYC */}
+            {/* 4. Vehicle KYC */}
             <Link
               href="/vehicle-evidence"
               className="bg-white border border-slate-200 hover:border-purple-400 hover:bg-purple-50/20 p-4 rounded-xl transition duration-150 group shadow-xs hover:shadow-md"
@@ -453,8 +468,14 @@ export default function AdminDashboardPage() {
                             {b.category || 'CAB'}
                           </span>
                         </div>
-                        <p className="text-slate-800 truncate font-medium">
-                          <span className="text-emerald-600">📍</span> {b.pickupAddress} ➔ {b.dropAddress}
+                        <p className="text-slate-800 truncate font-medium" title={`${b.pickupAddress} ${parseIntermediateStops(b).length > 0 ? `➔ Via: ${parseIntermediateStops(b).join(' ➔ ')}` : ''} ➔ ${b.dropAddress}`}>
+                          <span className="text-emerald-600">📍</span> {b.pickupAddress}
+                          {parseIntermediateStops(b).length > 0 && (
+                            <span className="text-amber-800 font-bold">
+                              {' '}➔ 🟡 Via: {parseIntermediateStops(b).join(' ➔ ')}
+                            </span>
+                          )}
+                          {' '}➔ <span className="text-rose-600">🏁</span> {b.dropAddress}
                         </p>
                         <p className="text-[10px] text-slate-500">
                           Customer: {b.customer?.user?.fullName || b.customer?.user?.phone || 'Guest'}
@@ -467,7 +488,7 @@ export default function AdminDashboardPage() {
                             b.status
                           )}`}
                         >
-                          {b.status}
+                          {getStatusLabel(b.status)}
                         </span>
                         <div className="font-bold text-slate-900">₹{b.totalFare?.toLocaleString('en-IN') || 0}</div>
                       </div>

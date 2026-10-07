@@ -8,11 +8,10 @@ const dbUrl =
   process.env.DIRECT_URL;
 
 const prismaClientSingleton = () => {
-  // Append connection_limit to avoid exhausting Supabase pooler connections
   let url = dbUrl;
   if (url && !url.includes('connection_limit')) {
     const separator = url.includes('?') ? '&' : '?';
-    url = `${url}${separator}connection_limit=5&pool_timeout=20`;
+    url = `${url}${separator}connection_limit=15&pool_timeout=30`;
   }
   return new PrismaClient({
     datasources: url ? { db: { url } } : undefined,
@@ -20,12 +19,13 @@ const prismaClientSingleton = () => {
   });
 };
 
-declare const globalThis: {
-  prismaGlobal: ReturnType<typeof prismaClientSingleton> | undefined;
-} & typeof global;
+const globalForPrisma = globalThis as unknown as {
+  prisma: ReturnType<typeof prismaClientSingleton> | undefined;
+};
 
-export const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
 
-globalThis.prismaGlobal = prisma;
+globalForPrisma.prisma = prisma;
 
 export default prisma;
+

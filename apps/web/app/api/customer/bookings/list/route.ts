@@ -37,25 +37,52 @@ export async function GET(req: NextRequest) {
       return setCorsHeaders(res);
     }
 
-    const customer = await prisma.customer.findUnique({
-      where: { userId: payload.userId },
+    let user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      include: { customer: true },
     });
 
-    if (!customer) {
+    if (!user) {
       const res = NextResponse.json(
-        { success: true, bookings: [], customerId: null },
-        { status: 200 }
+        { error: 'Unauthorized', message: 'User not found' },
+        { status: 401 }
       );
       return setCorsHeaders(res);
     }
 
+    let customer = user.customer;
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: { userId: payload.userId },
+      });
+    }
+
     const { searchParams } = new URL(req.url);
-    const category = searchParams.get('category')?.toUpperCase() || 'ALL';
+    const filterKey = searchParams.get('category') || searchParams.get('status') || 'ALL';
+    const category = filterKey.toUpperCase().trim();
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '25', 10)));
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)));
+
+    // Collect all customer IDs associated with this user's phone number
+    const customerIds = [customer.id];
+    if (user.phone) {
+      const allUsersWithPhone = await prisma.user.findMany({
+        where: { phone: user.phone },
+        select: {
+          customer: {
+            select: { id: true },
+          },
+        },
+      });
+      for (const u of allUsersWithPhone) {
+        if (u.customer && !customerIds.includes(u.customer.id)) {
+          customerIds.push(u.customer.id);
+        }
+      }
+    }
 
     const where: any = {
-      customerId: customer.id,
+      customerId: { in: customerIds },
       deletedAt: null,
     };
 
@@ -96,8 +123,8 @@ export async function GET(req: NextRequest) {
             orderBy: { verifiedAt: 'desc' },
           },
           tripEvents: {
-            where: { type: 'BOOKING_CREATED' },
-            take: 1,
+            orderBy: { createdAt: 'desc' },
+            take: 5,
           },
         },
       }),

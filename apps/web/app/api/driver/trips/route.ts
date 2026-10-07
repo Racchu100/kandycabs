@@ -136,7 +136,11 @@ export async function GET(req: NextRequest) {
         id: b.id,
         humanReadableRef: b.humanReadableRef,
         customerName: b.customer?.user?.fullName || 'Customer',
-        customerPhone: b.customerPhoneReleased ? b.customer?.user?.phone : null,
+        customerPhone:
+          b.customerPhoneReleased ||
+          (b.scheduledAt && new Date(b.scheduledAt).getTime() - Date.now() <= 5 * 60 * 60 * 1000)
+            ? b.customer?.user?.phone
+            : null,
         tripType: b.tripType,
         pickupAddress: b.pickupAddress,
         dropAddress: b.dropAddress,

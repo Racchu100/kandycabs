@@ -230,10 +230,10 @@ export default function DriverOnboardingScreen() {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>3. Required KYC Documents</Text>
+          <Text style={styles.docItem}>✅ Driver Profile Photo (Portrait / Selfie)</Text>
           <Text style={styles.docItem}>✅ Driving License Document</Text>
           <Text style={styles.docItem}>✅ RC Book Certificate</Text>
           <Text style={styles.docItem}>✅ Commercial Insurance</Text>
-          <Text style={styles.docItem}>✅ 5-Angle Vehicle Photos (Front, Rear, Left, Right, Interior)</Text>
         </View>
 
         <TouchableOpacity
@@ -255,7 +255,7 @@ export default function DriverOnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   scroll: {
     padding: 20,
@@ -266,42 +266,49 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#ffffff',
+    color: '#0f172a',
   },
   subtitle: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#64748b',
     marginTop: 4,
+    fontWeight: '500',
   },
   card: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#f59e0b',
+    color: '#ea580c',
     marginBottom: 12,
   },
   label: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#94a3b8',
+    color: '#475569',
     marginBottom: 6,
     textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#475569',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
     padding: 12,
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 14,
+    fontWeight: '600',
     marginBottom: 14,
   },
   pillRow: {
@@ -317,12 +324,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   pillActive: {
-    backgroundColor: '#f59e0b',
-    borderColor: '#f59e0b',
+    backgroundColor: '#ea580c',
+    borderColor: '#ea580c',
   },
   pillInactive: {
-    backgroundColor: '#0f172a',
-    borderColor: '#475569',
+    backgroundColor: '#f1f5f9',
+    borderColor: '#cbd5e1',
   },
   pillText: {
     fontSize: 11,
@@ -332,20 +339,26 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   pillTextInactive: {
-    color: '#94a3b8',
+    color: '#475569',
   },
   docItem: {
-    color: '#cbd5e1',
-    fontSize: 12,
+    color: '#334155',
+    fontSize: 12.5,
     marginVertical: 4,
+    fontWeight: '500',
   },
   submitButton: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: '#ea580c',
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 32,
+    shadowColor: '#ea580c',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
   },
   submitButtonText: {
     color: '#ffffff',
@@ -353,12 +366,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   errorText: {
-    color: '#f87171',
-    backgroundColor: '#450a0a',
+    color: '#dc2626',
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
     padding: 10,
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 12,
+    fontWeight: '600',
   },
   statusBox: {
     flex: 1,
@@ -373,33 +389,38 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#ffffff',
+    color: '#0f172a',
     textAlign: 'center',
   },
   statusDesc: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#64748b',
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
     maxWidth: 300,
   },
   detailsCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
     width: '100%',
     marginVertical: 24,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   detailRow: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 13,
     marginVertical: 4,
   },
   detailVal: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontWeight: '700',
   },
   primaryDashboardBtn: {
@@ -411,10 +432,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
     shadowColor: '#ea580c',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
   },
   primaryDashboardBtnText: {
     color: '#ffffff',
@@ -422,8 +443,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   secondaryDocBtn: {
-    backgroundColor: '#1e293b',
-    borderWidth: 1,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
     borderColor: '#ea580c',
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -438,7 +459,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   refreshBtn: {
-    backgroundColor: '#334155',
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -446,7 +469,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   refreshBtnText: {
-    color: '#ffffff',
+    color: '#334155',
     fontWeight: '700',
     fontSize: 13,
   },

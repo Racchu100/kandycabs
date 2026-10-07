@@ -3,10 +3,26 @@ import type { NextRequest } from 'next/server';
 import { verifyAuthToken, UserRole } from '@kandy-cabs/shared';
 
 // Public paths that do not require ADMIN authentication
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/health', '/_next', '/favicon.ico', '/static'];
+const PUBLIC_PATHS = ['/login', '/api/auth', '/api/health', '/_next', '/favicon.ico', '/static', '/images'];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // 0. Handle CORS preflight for all /api routes
+  if (pathname.startsWith('/api')) {
+    const origin = req.headers.get('origin') || '*';
+    if (req.method === 'OPTIONS') {
+      const res = new NextResponse(null, { status: 200 });
+      res.headers.set('Access-Control-Allow-Origin', origin);
+      res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.headers.set(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version'
+      );
+      res.headers.set('Access-Control-Allow-Credentials', 'true');
+      return res;
+    }
+  }
 
   // Allow public static assets, health check, and auth endpoints
   if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {

@@ -18,7 +18,7 @@ export async function OPTIONS() {
   return handleOptions();
 }
 
-// In-Memory Database Cache for Pricing Rules & Fleet (60s TTL)
+// In-Memory Database Cache for Pricing Rules & Fleet (2s TTL for real-time responsiveness)
 interface DbPricingCache {
   rules: any[];
   fleet: any[];
@@ -26,7 +26,7 @@ interface DbPricingCache {
 }
 
 let dbPricingCache: DbPricingCache | null = null;
-const DB_PRICING_CACHE_TTL_MS = 60 * 1000; // 60s
+const DB_PRICING_CACHE_TTL_MS = 2 * 1000; // 2s
 
 async function getCachedPricingData() {
   const now = Date.now();
@@ -129,22 +129,26 @@ export async function POST(req: NextRequest) {
       const config = VEHICLE_RATES[cat] || VEHICLE_RATES[VehicleCategory.SEDAN];
       const dbFleet = fleetMap.get(cat);
 
-      // Determine available & enabled fuels for this category
+      // Determine strictly enabled fuels for this category configured in Admin Panel
+      const isCngOn = dbFleet ? Boolean(dbFleet.cngEnabled) : (cat === VehicleCategory.HATCHBACK || cat === VehicleCategory.SEDAN || cat === VehicleCategory.SUV);
+      const isPetrolOn = dbFleet ? Boolean(dbFleet.petrolEnabled) : (cat !== VehicleCategory.TEMPO_TRAVELER);
+      const isDieselOn = dbFleet ? Boolean(dbFleet.dieselEnabled) : (cat !== VehicleCategory.HATCHBACK);
+
       const candidateFuels = [
         {
           fuelType: FuelType.CNG,
-          isEnabled: dbFleet ? dbFleet.cngEnabled !== false && Number(dbFleet.cngRate) > 0 : true,
-          rate: dbFleet ? Number(dbFleet.cngRate) : config.perKmRate[FuelType.CNG] || 11.0,
+          isEnabled: isCngOn,
+          rate: config.perKmRate[FuelType.CNG] || 11.0,
         },
         {
           fuelType: FuelType.PETROL,
-          isEnabled: dbFleet ? dbFleet.petrolEnabled !== false && Number(dbFleet.petrolRate) > 0 : true,
-          rate: dbFleet ? Number(dbFleet.petrolRate) : config.perKmRate[FuelType.PETROL] || 12.0,
+          isEnabled: isPetrolOn,
+          rate: config.perKmRate[FuelType.PETROL] || 12.0,
         },
         {
           fuelType: FuelType.DIESEL,
-          isEnabled: dbFleet ? dbFleet.dieselEnabled !== false && Number(dbFleet.dieselRate) > 0 : true,
-          rate: dbFleet ? Number(dbFleet.dieselRate) : config.perKmRate[FuelType.DIESEL] || 13.0,
+          isEnabled: isDieselOn,
+          rate: config.perKmRate[FuelType.DIESEL] || 13.0,
         },
       ];
 
@@ -158,14 +162,23 @@ export async function POST(req: NextRequest) {
           const overrides: any = {
             ratePerKm: dbRule ? Number(dbRule.baseRatePerKm) : f.rate,
             extraKmRate: dbRule ? Number(dbRule.extraKmRate) : dbFleet ? Number(dbFleet.extraKmRate) : undefined,
+            extraKmThreshold: dbRule?.extraKmThreshold ? Number(dbRule.extraKmThreshold) : dbFleet?.extraKmThreshold ? Number(dbFleet.extraKmThreshold) : undefined,
             driverAllowance: dbRule ? Number(dbRule.driverAllowance) : dbFleet ? Number(dbFleet.driverAllowance) : undefined,
             nightCharge: dbRule ? Number(dbRule.nightCharge) : dbFleet ? Number(dbFleet.nightCharge) : undefined,
             gstRatePercent: dbRule ? Number(dbRule.gstRatePercent) : undefined,
             nightWindowStartHour: dbRule ? dbRule.nightWindowStartHour : undefined,
             nightWindowEndHour: dbRule ? dbRule.nightWindowEndHour : undefined,
             minRoundTripKmPerDay: dbFleet ? Number(dbFleet.minRoundTripKmPerDay) : undefined,
-            localPackage4hrBase: dbFleet?.localPackage4hrBase ? Number(dbFleet.localPackage4hrBase) : undefined,
-            localPackage8hrBase: dbFleet?.localPackage8hrBase ? Number(dbFleet.localPackage8hrBase) : undefined,
+            localPackage4hrBase: dbRule?.localPackage4hrBase ? Number(dbRule.localPackage4hrBase) : dbFleet?.localPackage4hrBase ? Number(dbFleet.localPackage4hrBase) : undefined,
+            localPackage4hrKm: dbRule?.localPackage4hrKm ? Number(dbRule.localPackage4hrKm) : dbFleet?.localPackage4hrKm ? Number(dbFleet.localPackage4hrKm) : 40,
+            localPackage4hrExtraKmRate: dbRule?.localPackage4hrExtraKmRate ? Number(dbRule.localPackage4hrExtraKmRate) : undefined,
+            localPackage8hrBase: dbRule?.localPackage8hrBase ? Number(dbRule.localPackage8hrBase) : dbFleet?.localPackage8hrBase ? Number(dbFleet.localPackage8hrBase) : undefined,
+            localPackage8hrKm: dbRule?.localPackage8hrKm ? Number(dbRule.localPackage8hrKm) : dbFleet?.localPackage8hrKm ? Number(dbFleet.localPackage8hrKm) : 80,
+            localPackage8hrExtraKmRate: dbRule?.localPackage8hrExtraKmRate ? Number(dbRule.localPackage8hrExtraKmRate) : undefined,
+            localPackage12hrBase: dbRule?.localPackage12hrBase ? Number(dbRule.localPackage12hrBase) : dbFleet?.localPackage12hrBase ? Number(dbFleet.localPackage12hrBase) : undefined,
+            localPackage12hrKm: dbRule?.localPackage12hrKm ? Number(dbRule.localPackage12hrKm) : dbFleet?.localPackage12hrKm ? Number(dbFleet.localPackage12hrKm) : 120,
+            localPackage12hrExtraKmRate: dbRule?.localPackage12hrExtraKmRate ? Number(dbRule.localPackage12hrExtraKmRate) : undefined,
+            extraHourRate: dbRule?.extraHourRate ? Number(dbRule.extraHourRate) : dbFleet?.extraHourRate ? Number(dbFleet.extraHourRate) : undefined,
           };
 
           const pricing = calculateFare({

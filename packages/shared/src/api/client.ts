@@ -39,12 +39,12 @@ export class DefaultTokenStorage implements TokenStorage {
 }
 
 export interface KandyApiClientOptions {
-  baseUrl?: string;
+  baseUrl?: string | (() => string);
   tokenStorage?: TokenStorage;
 }
 
 export class KandyApiClient {
-  private baseUrl: string;
+  private baseUrl: string | (() => string);
   public tokenStorage: TokenStorage;
 
   constructor(options: KandyApiClientOptions = {}) {
@@ -52,12 +52,12 @@ export class KandyApiClient {
     this.tokenStorage = options.tokenStorage || new DefaultTokenStorage();
   }
 
-  public setBaseUrl(url: string) {
+  public setBaseUrl(url: string | (() => string)) {
     this.baseUrl = url;
   }
 
   public getBaseUrl(): string {
-    return this.baseUrl;
+    return typeof this.baseUrl === 'function' ? this.baseUrl() : this.baseUrl;
   }
 
   public getToken(): Promise<string | null> | string | null {
@@ -73,38 +73,73 @@ export class KandyApiClient {
   }
 
   public async fetch<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const currentBaseUrl = this.getBaseUrl();
     const url = endpoint.startsWith('http')
       ? endpoint
-      : `${this.baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+      : `${currentBaseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
-    const headers = new Headers(options.headers || {});
+    const headers: Record<string, string> = {
+      ...(typeof options.headers === 'object' && !(options.headers instanceof Headers)
+        ? (options.headers as Record<string, string>)
+        : {}),
+    };
+
+    if (options.body && typeof options.body === 'string' && !headers['Content-Type'] && !headers['content-type']) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     // Automatically attach Bearer token if available
     const token = await this.tokenStorage.getToken();
-    if (token && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${token}`);
+    if (token && !headers['Authorization'] && !headers['authorization']) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
-    if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
-      headers.set('Content-Type', 'application/json');
-    }
+    let response: Response;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), (options as any).timeoutMs || 25000);
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include', // send cookies across origins (admin on :3001, web on :3000)
-    });
+    try {
+      response = await fetch(url, {
+        ...options,
+        signal: options.signal || controller.signal,
+        headers,
+        credentials: 'include', // send cookies across origins (admin on :3001, web on :3000)
+      });
+    } catch (netErr: any) {
+      if (netErr?.name === 'AbortError') {
+        const error: any = new Error('Request timed out. Please check your network connection.');
+        error.status = 408;
+        throw error;
+      }
+      const error: any = new Error(
+        netErr?.message?.includes('Network') || netErr?.name === 'TypeError'
+          ? 'Network request failed. Please check your internet connection.'
+          : netErr?.message || 'Network error'
+      );
+      error.status = 0;
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       let errorMessage = `Request failed with status ${response.status}`;
       try {
         const text = await response.text();
         if (text) {
-          try {
-            const errorBody = JSON.parse(text);
-            errorMessage = errorBody.message || errorBody.error || errorMessage;
-          } catch {
-            errorMessage = text;
+          if (text.trim().startsWith('<') || text.includes('<!DOCTYPE') || text.includes('<html')) {
+            errorMessage = response.status === 404
+              ? 'API route not found (HTTP 404). Please ensure the backend is up to date.'
+              : response.status === 413
+              ? 'Request payload too large (HTTP 413). Please try with smaller photos.'
+              : `Server returned error page (HTTP ${response.status})`;
+          } else {
+            try {
+              const errorBody = JSON.parse(text);
+              errorMessage = errorBody.message || errorBody.error || errorMessage;
+            } catch {
+              errorMessage = text.length > 200 ? `${text.substring(0, 200)}...` : text;
+            }
           }
         }
       } catch (_) {
@@ -127,10 +162,10 @@ export class KandyApiClient {
       });
     },
 
-    verifyOtp: async (phone: string, otp: string, fullName?: string): Promise<VerifyOtpResponse> => {
+    verifyOtp: async (phone: string, otp: string, fullName?: string, role?: string): Promise<VerifyOtpResponse> => {
       const result = await this.fetch<VerifyOtpResponse>('/api/auth/verify-otp', {
         method: 'POST',
-        body: JSON.stringify({ phone, otp, fullName }),
+        body: JSON.stringify({ phone, otp, fullName, role }),
       });
       if (result?.token) {
         await this.tokenStorage.setToken(result.token);

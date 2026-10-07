@@ -1,6 +1,6 @@
 import 'fast-text-encoding';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator, Image, TouchableOpacity, StatusBar, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { driverApiClient } from '../lib/api';
 
@@ -9,7 +9,17 @@ export default function DriverAppIndex() {
   const [networkError, setNetworkError] = useState(false);
 
   useEffect(() => {
-    checkDriverStatus();
+    let isMounted = true;
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        checkDriverStatus();
+      }
+    }, 120);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   const checkDriverStatus = async () => {
@@ -19,7 +29,7 @@ export default function DriverAppIndex() {
       // 1. Check if an authentication token exists (Case 1: No token)
       const token = await driverApiClient.getToken();
       if (!token) {
-        // Immediately navigate to login with zero network overhead
+        // Navigate to login safely
         router.replace('/login');
         return;
       }
@@ -47,99 +57,131 @@ export default function DriverAppIndex() {
   };
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require('../assets/images/logo-white.png')}
-        style={styles.logoImage}
-        resizeMode="contain"
-      />
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>Driver Partner Network</Text>
-      </View>
-      {networkError ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Connection Issue</Text>
-          <Text style={styles.errorSubtitle}>
-            Unable to connect to server. Please check your internet connection.
-          </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={checkDriverStatus}>
-            <Text style={styles.retryButtonText}>Retry Connection</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.loginFallbackButton}
-            onPress={async () => {
-              await driverApiClient.removeToken();
-              router.replace('/login');
-            }}
-          >
-            <Text style={styles.loginFallbackText}>Go to Login Screen</Text>
-          </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
+
+      <View style={styles.centerBox}>
+        <Image
+          source={require('../assets/images/logo.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>DRIVER PARTNER NETWORK</Text>
         </View>
-      ) : (
-        <ActivityIndicator size="large" color="#ea580c" style={{ marginTop: 28 }} />
-      )}
-    </View>
+
+        {networkError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorTitle}>Connection Issue</Text>
+            <Text style={styles.errorSubtitle}>
+              Unable to connect to server. Please check your internet connection.
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={checkDriverStatus} activeOpacity={0.85}>
+              <Text style={styles.retryButtonText}>Retry Connection</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.loginFallbackButton}
+              onPress={async () => {
+                await driverApiClient.removeToken();
+                router.replace('/login');
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.loginFallbackText}>Go to Login Screen</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.spinnerWrapper}>
+            <ActivityIndicator size="large" color="#ea580c" />
+            <Text style={styles.loadingText}>Starting Driver App...</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Safe • Reliable • 24/7 Outstation & City Cabs</Text>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0f1d',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+  },
+  centerBox: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    width: '100%',
   },
   logoImage: {
-    width: 240,
-    height: 75,
-    marginBottom: 10,
+    width: 260,
+    height: 90,
+    marginBottom: 12,
   },
   badge: {
-    backgroundColor: 'rgba(234, 88, 12, 0.15)',
-    borderColor: 'rgba(234, 88, 12, 0.4)',
+    backgroundColor: 'rgba(234, 88, 12, 0.09)',
+    borderColor: 'rgba(234, 88, 12, 0.35)',
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 24,
     marginTop: 4,
   },
   badgeText: {
-    fontSize: 12,
-    color: '#fb923c',
+    fontSize: 11.5,
+    color: '#ea580c',
     fontWeight: '800',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  spinnerWrapper: {
+    marginTop: 36,
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 12.5,
+    color: '#64748b',
+    fontWeight: '600',
   },
   errorContainer: {
-    marginTop: 28,
+    marginTop: 32,
     alignItems: 'center',
     paddingHorizontal: 16,
     width: '100%',
+    maxWidth: 320,
   },
   errorTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#f87171',
+    color: '#ef4444',
     marginBottom: 6,
   },
   errorSubtitle: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#64748b',
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 18,
   },
   retryButton: {
     backgroundColor: '#ea580c',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
     borderRadius: 10,
     marginBottom: 10,
+    width: '100%',
+    alignItems: 'center',
   },
   retryButtonText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '700',
   },
   loginFallbackButton: {
@@ -150,5 +192,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  footer: {
+    paddingBottom: 8,
+  },
+  footerText: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontWeight: '500',
   },
 });

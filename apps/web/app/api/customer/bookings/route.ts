@@ -208,18 +208,31 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      const passengerCount = Number(body.passengers) || Number(body.passengerCount) || 4;
+      const luggageDetails = String(body.luggage || body.luggageDetails || 'Normal Luggage');
+      const specialReqs = String(body.specialRequirements || body.notes || notes || '').trim();
+      const requestCarrier = Boolean(body.requestCarrier || body.hasCarrier || body.roofCarrier);
+
       // 3. Create initial TripEvent
       await tx.tripEvent.create({
         data: {
           bookingId: booking.id,
           type: 'BOOKING_CREATED',
           payloadJson: {
-            source: 'web',
+            source: 'customer-app',
             category,
             tripType,
+            passengers: passengerCount,
+            luggage: luggageDetails,
+            requestCarrier,
+            hasCarrier: requestCarrier,
+            specialRequirements: specialReqs,
+            notes: specialReqs,
             advancePaid: pricing.advanceAmount,
             balanceDue: pricing.balanceAmount,
             razorpayOrderId: orderRef,
+            passengerName: passengerName ? String(passengerName).trim() : undefined,
+            passengerPhone: passengerPhone ? String(passengerPhone).trim() : undefined,
           },
         },
       });
@@ -231,7 +244,7 @@ export async function POST(req: NextRequest) {
           action: 'CREATE_BOOKING',
           entityType: 'Booking',
           entityId: booking.id,
-          reason: `Customer booked ${category} (${tripType}) with ₹${pricing.advanceAmount} advance paid.`,
+          reason: `Customer booked ${category} (${tripType}) for ${passengerCount} passengers (${luggageDetails}) with ₹${pricing.advanceAmount} advance paid.`,
         },
       });
 

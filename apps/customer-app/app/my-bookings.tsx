@@ -17,10 +17,12 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { customerApiClient, customerTokenStorage } from '../lib/api';
+import { customerApiClient, customerTokenStorage, formatDisplayPhone } from '../lib/api';
 import { customerRealtimeTracker } from '../lib/realtime-client';
 import { BookingStatus, TripType } from '@kandy-cabs/shared';
 import { TaxInvoiceModal } from '../components/TaxInvoiceModal';
+import { CustomerBottomDock } from '../components/CustomerBottomDock';
+import { AuthModal } from '../components/AuthModal';
 
 const STATUS_FILTERS = ['ALL', 'ACTIVE', 'COMPLETED', 'CANCELLED'] as const;
 
@@ -29,16 +31,29 @@ export default function MyBookingsScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0);
 
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<any | null>(customerTokenStorage.getUser());
   const [bookings, setBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => Boolean(customerTokenStorage.getToken()));
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'>('ALL');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [proximityAlerts, setProximityAlerts] = useState<
+    Record<string, { isNear?: boolean; isArrived?: boolean; message?: string; distanceMeters?: number; pickupOtp?: string }>
+  >({});
 
   // Load User & Bookings
   const loadData = useCallback(async (isSilent = false) => {
+    const token = customerTokenStorage.getToken();
+    if (!token) {
+      setUser(null);
+      setBookings([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     if (!isSilent) setLoading(true);
     try {
       // 1. User Profile
@@ -46,42 +61,135 @@ export default function MyBookingsScreen() {
         const meRes = await customerApiClient.fetch('/api/auth/me');
         if (meRes?.user) {
           setUser(meRes.user);
+          customerTokenStorage.setUser(meRes.user);
+        } else {
+          setUser(null);
         }
       } catch {
-        // guest
+        setUser(customerTokenStorage.getUser());
       }
 
       // 2. Bookings
       const res = await customerApiClient.fetch(`/api/customer/bookings/list?category=${activeFilter}`);
       if (res && res.bookings) {
         setBookings(res.bookings);
+
+        // Pre-hydrate proximity status from server tripEvents if available
+        const alertsUpdate: Record<string, any> = {};
+        res.bookings.forEach((b: any) => {
+          if (b.tripEvents && Array.isArray(b.tripEvents)) {
+            const hasArrived = b.tripEvents.some((e: any) => e.type === 'DRIVER_ARRIVED');
+            const hasNear = b.tripEvents.some((e: any) => e.type === 'DRIVER_NEAR_PICKUP');
+            if (hasArrived || hasNear) {
+              alertsUpdate[b.id] = {
+                isNear: hasNear || hasArrived,
+                isArrived: hasArrived,
+                pickupOtp: b.pickupOtp,
+                message: hasArrived
+                  ? `🔐 Your pickup OTP is ${b.pickupOtp}. Share with your driver.`
+                  : '🚕 Your driver is approaching your pickup point.',
+              };
+            }
+          }
+        });
+        if (Object.keys(alertsUpdate).length > 0) {
+          setProximityAlerts((prev) => ({ ...prev, ...alertsUpdate }));
+        }
+
+        // Check if there is an active ride to track live via SSE
+        const activeRide = res.bookings.find(
+          (b: any) =>
+            b.status === BookingStatus.DRIVER_ACCEPTED ||
+            b.status === BookingStatus.DRIVER_EN_ROUTE ||
+            b.status === BookingStatus.TRIP_STARTED
+        );
+        if (activeRide) {
+          customerRealtimeTracker.trackBooking(activeRide.id);
+        }
+      } else {
+        setBookings([]);
       }
     } catch (err: any) {
       if (err.status === 401) {
         customerTokenStorage.removeToken();
-        router.replace('/login');
+        setUser(null);
+        setBookings([]);
       }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeFilter, router]);
+  }, [activeFilter]);
 
   useEffect(() => {
     loadData();
 
+    // Subscribe to token & user state changes across the app
+    const unsubAuth = customerTokenStorage.subscribe(() => {
+      const u = customerTokenStorage.getUser();
+      setUser(u);
+      if (!u) {
+        setBookings([]);
+        setLoading(false);
+      } else {
+        loadData(true);
+      }
+    });
+
     // Listen for live booking status transitions
-    const unsubStatus = customerRealtimeTracker.on('BOOKING_STATUS', (eventData: any) => {
+    const unsubStatus = customerRealtimeTracker.on('BOOKING_STATUS', () => {
       loadData(true);
     });
 
-    // Gentle 60s background safety sync (reduced from 6s polling)
+    // Listen for proximity stage 1: Driver Near Pickup (~100m)
+    const unsubNear = customerRealtimeTracker.on('DRIVER_NEAR_PICKUP', (data: any) => {
+      if (data?.bookingId) {
+        setProximityAlerts((prev) => ({
+          ...prev,
+          [data.bookingId]: {
+            ...prev[data.bookingId],
+            isNear: true,
+            message: data.message || '🚕 Your driver is nearby. Please be ready.',
+            distanceMeters: data.distanceMeters,
+          },
+        }));
+      }
+    });
+
+    // Listen for proximity stage 2: Driver Arrived (~30-50m) & Reveal OTP
+    const unsubArrived = customerRealtimeTracker.on('DRIVER_ARRIVED', (data: any) => {
+      if (data?.bookingId) {
+        setProximityAlerts((prev) => ({
+          ...prev,
+          [data.bookingId]: {
+            ...prev[data.bookingId],
+            isNear: true,
+            isArrived: true,
+            message: data.message || `🔐 Your pickup OTP is ${data.pickupOtp}. Give this to your driver.`,
+            pickupOtp: data.pickupOtp,
+            distanceMeters: data.distanceMeters,
+          },
+        }));
+        Alert.alert(
+          '🚕 Driver Has Arrived!',
+          `Your driver has reached the pickup location.\n\n🔐 Your Pickup OTP is: ${data.pickupOtp || '----'}\n\nPlease share this OTP with your driver to begin your journey.`,
+          [{ text: 'Got It', style: 'default' }]
+        );
+      }
+    });
+
+    // Gentle 60s background sync
     const interval = setInterval(() => {
-      loadData(true);
+      if (customerTokenStorage.getToken()) {
+        loadData(true);
+      }
     }, 60000);
 
     return () => {
+      unsubAuth();
       unsubStatus();
+      unsubNear();
+      unsubArrived();
       clearInterval(interval);
       customerRealtimeTracker.stop();
     };
@@ -151,22 +259,26 @@ export default function MyBookingsScreen() {
           <Ionicons name="arrow-back" size={22} color="#0f172a" />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>My Profile & Bookings</Text>
+          <Text style={styles.headerTitle}>My Bookings</Text>
           <Text style={styles.headerSub}>
-            {user ? `${user.fullName || 'Customer'} • +91 ${user.phone}` : 'View your ride history'}
+            {user ? `${user.fullName || 'Customer'} • ${formatDisplayPhone(user.phone)}` : 'Sign in to view your rides'}
           </Text>
         </View>
         <TouchableOpacity
           style={styles.newRideBtn}
-          onPress={() => router.push('/')}
+          onPress={() => router.push('/select-trip-type')}
         >
           <Text style={styles.newRideBtnText}>+ New</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Customer Profile Summary Card */}
+      {/* Customer Profile Summary Card (Only if logged in) */}
       {user && (
-        <View style={styles.profileCard}>
+        <TouchableOpacity
+          style={styles.profileCard}
+          activeOpacity={0.8}
+          onPress={() => router.push('/profile')}
+        >
           <View style={styles.profileAvatar}>
             <Text style={styles.profileAvatarText}>
               {user.fullName ? user.fullName[0].toUpperCase() : 'U'}
@@ -179,52 +291,74 @@ export default function MyBookingsScreen() {
                 <Text style={styles.verifiedBadgeText}>✓ Verified</Text>
               </View>
             </View>
-            <Text style={styles.profilePhone}>📞 +91 {user.phone}</Text>
+            <Text style={styles.profilePhone}>📞 {formatDisplayPhone(user.phone)}</Text>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+        </TouchableOpacity>
       )}
 
-      {/* Filter Tabs */}
-      <View style={styles.filterTabsContainer}>
-        {STATUS_FILTERS.map((cat, idx) => (
-          <React.Fragment key={cat}>
-            {idx > 0 && <View style={styles.filterDivider} />}
-            <TouchableOpacity
-              style={[
-                styles.filterTab,
-                activeFilter === cat && styles.filterTabActive,
-              ]}
-              onPress={() => setActiveFilter(cat)}
-            >
-              <Text
-                style={[
-                  styles.filterTabText,
-                  activeFilter === cat && styles.filterTabTextActive,
-                ]}
-              >
-                {cat === 'ALL' ? 'All Rides' : cat}
-              </Text>
-            </TouchableOpacity>
-          </React.Fragment>
-        ))}
-      </View>
+      {/* If logged out: Show clean Sign In state */}
+      {!user && !loading ? (
+        <View style={styles.guestContainer}>
+          <View style={styles.guestAvatar}>
+            <Ionicons name="receipt-outline" size={44} color="#ea580c" />
+          </View>
+          <Text style={styles.guestTitle}>Sign In to View Your Bookings</Text>
+          <Text style={styles.guestSubtitle}>
+            Log in with your mobile number to view active rides, driver assignments, trip history, and download tax invoices.
+          </Text>
+          <TouchableOpacity
+            style={styles.signInButton}
+            onPress={() => setIsAuthModalOpen(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="log-in-outline" size={20} color="#ffffff" style={{ marginRight: 8 }} />
+            <Text style={styles.signInButtonText}>Sign In / Register</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          {/* Filter Tabs */}
+          <View style={styles.filterTabsContainer}>
+            {STATUS_FILTERS.map((cat, idx) => (
+              <React.Fragment key={cat}>
+                {idx > 0 && <View style={styles.filterDivider} />}
+                <TouchableOpacity
+                  style={[
+                    styles.filterTab,
+                    activeFilter === cat && styles.filterTabActive,
+                  ]}
+                  onPress={() => setActiveFilter(cat)}
+                >
+                  <Text
+                    style={[
+                      styles.filterTabText,
+                      activeFilter === cat && styles.filterTabTextActive,
+                    ]}
+                  >
+                    {cat === 'ALL' ? 'All Rides' : cat}
+                  </Text>
+                </TouchableOpacity>
+              </React.Fragment>
+            ))}
+          </View>
 
-      {/* Bookings List */}
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              loadData();
-            }}
-            tintColor="#ea580c"
-          />
-        }
-      >
+          {/* Bookings List */}
+          <ScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  loadData();
+                }}
+                tintColor="#ea580c"
+              />
+            }
+          >
         {loading && bookings.length === 0 ? (
           <View style={styles.centerBox}>
             <ActivityIndicator size="large" color="#ea580c" />
@@ -261,7 +395,7 @@ export default function MyBookingsScreen() {
               <View key={booking.id} style={styles.card}>
                 {/* 1. Header: Ref, Status, Scheduled Date */}
                 <View style={styles.cardHeader}>
-                  <View>
+                  <View style={styles.cardHeaderLeft}>
                     <View style={styles.refRow}>
                       <Text style={styles.refText}>{booking.humanReadableRef}</Text>
                       <View
@@ -275,7 +409,7 @@ export default function MyBookingsScreen() {
                         </Text>
                       </View>
                     </View>
-                    <Text style={styles.scheduledText}>
+                    <Text style={styles.scheduledText} numberOfLines={1}>
                       Scheduled: <Text style={styles.scheduledBold}>
                         {new Date(booking.scheduledAt).toLocaleString([], {
                           month: 'short',
@@ -289,9 +423,11 @@ export default function MyBookingsScreen() {
                   </View>
 
                   <View style={styles.fareHeaderBlock}>
-                    <Text style={styles.fareTotalAmount}>₹{totalFare.toFixed(2)}</Text>
-                    <Text style={styles.advancePaidTag}>
-                      Advance Paid: ₹{advancePaid.toFixed(2)} (25%)
+                    <Text style={styles.fareTotalAmount} numberOfLines={1} adjustsFontSizeToFit>
+                      ₹{totalFare.toFixed(2)}
+                    </Text>
+                    <Text style={styles.advancePaidTag} numberOfLines={1}>
+                      Adv: ₹{advancePaid.toFixed(2)} ({Math.round((advancePaid / (totalFare || 1)) * 100)}%)
                     </Text>
                   </View>
                 </View>
@@ -310,22 +446,78 @@ export default function MyBookingsScreen() {
                   <View style={styles.routePointRow}>
                     <Text style={styles.routeIcon}>📍</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.pointLabel}>Pickup Location:</Text>
-                      <Text style={styles.pointText}>{booking.pickupAddress}</Text>
+                      <Text style={styles.pointLabel}>
+                        {booking.status === BookingStatus.TRIP_STARTED || booking.status === BookingStatus.TRIP_COMPLETED
+                          ? 'Pickup Location (OTP Verified):'
+                          : 'Pickup Location:'}
+                      </Text>
+                      <Text style={styles.pointText}>
+                        {booking.status === BookingStatus.TRIP_STARTED || booking.status === BookingStatus.TRIP_COMPLETED
+                          ? (booking.actualPickupAddress || booking.pickupAddress)
+                          : booking.pickupAddress}
+                      </Text>
+                      {booking.actualPickupAddress && booking.actualPickupAddress !== booking.pickupAddress && (booking.status === BookingStatus.TRIP_STARTED || booking.status === BookingStatus.TRIP_COMPLETED) ? (
+                        <Text style={{ fontSize: 9.5, color: '#64748b', marginTop: 1 }}>
+                          Booked: {booking.pickupAddress}
+                        </Text>
+                      ) : null}
                     </View>
                   </View>
 
                   <View style={styles.routePointRow}>
                     <Text style={styles.routeIcon}>🏁</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.pointLabel}>Drop Destination:</Text>
-                      <Text style={styles.pointText}>{booking.dropAddress}</Text>
+                      <Text style={styles.pointLabel}>
+                        {booking.status === BookingStatus.TRIP_COMPLETED
+                          ? 'Drop Destination (Final Reached):'
+                          : 'Drop Destination:'}
+                      </Text>
+                      <Text style={styles.pointText}>
+                        {booking.status === BookingStatus.TRIP_COMPLETED
+                          ? (booking.actualDropAddress || booking.dropAddress)
+                          : booking.dropAddress}
+                      </Text>
+                      {booking.actualDropAddress && booking.actualDropAddress !== booking.dropAddress && booking.status === BookingStatus.TRIP_COMPLETED ? (
+                        <Text style={{ fontSize: 9.5, color: '#64748b', marginTop: 1 }}>
+                          Booked: {booking.dropAddress}
+                        </Text>
+                      ) : null}
                     </View>
                   </View>
                 </View>
 
-                {/* 3. Pickup OTP Box (If active ride) */}
-                {booking.pickupOtp &&
+                {/* 3. Geofenced Proximity & Arrival OTP Banner */}
+                {proximityAlerts[booking.id]?.isArrived ? (
+                  <View style={styles.arrivedAlertBanner}>
+                    <View style={styles.arrivedHeaderRow}>
+                      <View style={styles.pulseDotGreen} />
+                      <Text style={styles.arrivedBadgeText}>🚕 DRIVER HAS ARRIVED AT PICKUP</Text>
+                    </View>
+                    <Text style={styles.arrivedAlertMessage}>
+                      Your driver has reached your pickup location. Give the OTP below to start the ride.
+                    </Text>
+                    <View style={styles.revealedOtpCard}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.revealedOtpLabel}>🔐 YOUR PICKUP OTP</Text>
+                        <Text style={styles.revealedOtpSub}>Share this 4-digit code with your driver</Text>
+                      </View>
+                      <View style={styles.revealedOtpPill}>
+                        <Text style={styles.revealedOtpCode}>
+                          {proximityAlerts[booking.id]?.pickupOtp || booking.pickupOtp}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ) : proximityAlerts[booking.id]?.isNear ? (
+                  <View style={styles.nearAlertBanner}>
+                    <Text style={styles.nearAlertEmoji}>🚕</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.nearAlertTitle}>Your driver is nearby (~100m)</Text>
+                      <Text style={styles.nearAlertSub}>Please be ready at your pickup location. Ride starting soon.</Text>
+                    </View>
+                  </View>
+                ) : (
+                  booking.pickupOtp &&
                   booking.status !== BookingStatus.TRIP_COMPLETED &&
                   booking.status !== BookingStatus.CANCELLED && (
                     <View style={styles.otpBox}>
@@ -339,7 +531,8 @@ export default function MyBookingsScreen() {
                         <Text style={styles.otpPillText}>{booking.pickupOtp}</Text>
                       </View>
                     </View>
-                  )}
+                  )
+                )}
 
                 {/* 4. Driver & Vehicle Card */}
                 <View style={styles.driverBox}>
@@ -419,6 +612,20 @@ export default function MyBookingsScreen() {
           })
         )}
       </ScrollView>
+      </>
+      )}
+
+      {/* Persistent Bottom Navigation Dock */}
+      <CustomerBottomDock
+        activeTab="BOOKINGS"
+        onPressProfile={() => {
+          if (user) {
+            router.push('/profile');
+          } else {
+            setIsAuthModalOpen(true);
+          }
+        }}
+      />
 
       {/* Tax Invoice Modal */}
       {selectedInvoiceId && (
@@ -428,6 +635,17 @@ export default function MyBookingsScreen() {
           onClose={() => setSelectedInvoiceId(null)}
         />
       )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        visible={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(u) => {
+          setUser(u);
+          setIsAuthModalOpen(false);
+          loadData(false);
+        }}
+      />
     </View>
   );
 }
@@ -574,8 +792,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: 12,
+    paddingBottom: 110,
   },
   centerBox: {
     paddingVertical: 60,
@@ -590,19 +808,19 @@ const styles = StyleSheet.create({
   },
   emptyBox: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 30,
+    borderRadius: 16,
+    padding: 24,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    marginTop: 20,
+    marginTop: 16,
   },
   emptyEmoji: {
-    fontSize: 40,
-    marginBottom: 10,
+    fontSize: 36,
+    marginBottom: 8,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: '#0f172a',
   },
@@ -611,27 +829,27 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     marginTop: 4,
-    marginBottom: 16,
+    marginBottom: 14,
     lineHeight: 18,
   },
   bookNowBtn: {
     backgroundColor: '#ea580c',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 10,
   },
   bookNowBtnText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '800',
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    padding: 16,
-    marginBottom: 16,
+    padding: 12,
+    marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -644,33 +862,39 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
-    paddingBottom: 12,
+    paddingBottom: 10,
+    gap: 6,
+  },
+  cardHeaderLeft: {
+    flex: 1,
+    paddingRight: 4,
   },
   refRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   refText: {
-    fontSize: 14,
+    fontSize: 12.5,
     fontWeight: '900',
     color: '#0f172a',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 10,
     borderWidth: 1,
   },
   statusPillText: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
   },
   scheduledText: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#64748b',
-    marginTop: 4,
+    marginTop: 3,
   },
   scheduledBold: {
     color: '#334155',
@@ -678,23 +902,28 @@ const styles = StyleSheet.create({
   },
   fareHeaderBlock: {
     alignItems: 'flex-end',
+    justifyContent: 'center',
+    flexShrink: 0,
+    maxWidth: 130,
   },
   fareTotalAmount: {
-    fontSize: 16,
+    fontSize: 14.5,
     fontWeight: '900',
     color: '#0f172a',
+    textAlign: 'right',
   },
   advancePaidTag: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
     color: '#16a34a',
     marginTop: 2,
+    textAlign: 'right',
   },
   routeBox: {
     backgroundColor: '#f8fafc',
-    borderRadius: 14,
-    padding: 12,
-    marginTop: 12,
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
@@ -742,76 +971,167 @@ const styles = StyleSheet.create({
     backgroundColor: '#fffbeb',
     borderWidth: 1,
     borderColor: '#fde68a',
-    borderRadius: 14,
-    padding: 12,
-    marginTop: 12,
+    borderRadius: 12,
+    padding: 9,
+    marginTop: 9,
   },
   otpLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '900',
     color: '#92400e',
   },
   otpSub: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: '#b45309',
-    marginTop: 2,
-    lineHeight: 14,
+    marginTop: 1,
+    lineHeight: 13,
   },
   otpPill: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#f59e0b',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    marginLeft: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 8,
   },
   otpPillText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
     color: '#92400e',
     letterSpacing: 2,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
-  driverBox: {
-    backgroundColor: '#f8fafc',
+  nearAlertBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    borderWidth: 1.5,
+    borderColor: '#f59e0b',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 9,
+    gap: 8,
+  },
+  nearAlertEmoji: {
+    fontSize: 22,
+  },
+  nearAlertTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#b45309',
+  },
+  nearAlertSub: {
+    fontSize: 10.5,
+    color: '#92400e',
+    marginTop: 1,
+  },
+  arrivedAlertBanner: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1.5,
+    borderColor: '#10b981',
     borderRadius: 14,
     padding: 12,
-    marginTop: 12,
+    marginTop: 9,
+  },
+  arrivedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  pulseDotGreen: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+  },
+  arrivedBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#047857',
+    letterSpacing: 0.5,
+  },
+  arrivedAlertMessage: {
+    fontSize: 11,
+    color: '#065f46',
+    marginBottom: 8,
+  },
+  revealedOtpCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#059669',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  revealedOtpLabel: {
+    fontSize: 10.5,
+    fontWeight: '900',
+    color: '#065f46',
+  },
+  revealedOtpSub: {
+    fontSize: 9.5,
+    color: '#047857',
+    marginTop: 1,
+  },
+  revealedOtpPill: {
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#059669',
+  },
+  revealedOtpCode: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#065f46',
+    letterSpacing: 3,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  driverBox: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 9,
+    marginTop: 9,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
   driverBoxTitle: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
     color: '#64748b',
     letterSpacing: 0.5,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   driverInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   driverAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#ea580c',
     alignItems: 'center',
     justifyContent: 'center',
   },
   driverAvatarText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   driverName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: '#0f172a',
   },
   driverVehicle: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#64748b',
     marginTop: 1,
   },
@@ -819,27 +1139,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#16a34a',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 7,
+    gap: 3,
   },
   driverCallBtnText: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
   },
   unassignedRow: {
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   unassignedText: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#64748b',
     fontStyle: 'italic',
   },
   paymentBox: {
-    marginTop: 12,
-    paddingTop: 8,
+    marginTop: 9,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
   },
@@ -849,7 +1169,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   paymentLabel: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: '#475569',
   },
   paymentBold: {
@@ -857,7 +1177,7 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   paymentStatusTag: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
   },
   statusPending: {
@@ -870,8 +1190,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 8,
+    marginTop: 9,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
     gap: 8,
@@ -908,5 +1228,58 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#dc2626',
+  },
+  guestContainer: {
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
+    marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    marginTop: 20,
+    shadowColor: '#ea580c',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  guestAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#fff7ed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  guestTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  guestSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  signInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ea580c',
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    width: '100%',
+  },
+  signInButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

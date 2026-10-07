@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status') || 'ALL';
 
-    const whereClause: any = {};
+    const whereClause: any = {
+      deletedAt: null,
+    };
     if (status !== 'ALL') {
       whereClause.verificationStatus = status;
     }
@@ -82,9 +84,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { fullName, phone, licenseNumber, category, plateNumber, fuelType } = body;
 
-    if (!fullName || !phone || !licenseNumber) {
+    if (!fullName || !phone) {
       return NextResponse.json(
-        { error: 'Full name, phone, and license number are required' },
+        { error: 'Full name and mobile number are required' },
         { status: 400 }
       );
     }
@@ -105,54 +107,56 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 2. Create or update Driver
+    // 2. Create or update Driver in PENDING status for document upload
     const driver = await prisma.driver.upsert({
       where: { userId: user.id },
       update: {
-        licenseNumber,
-        verificationStatus: DriverVerificationStatus.APPROVED,
-        onlineStatus: true,
+        licenseNumber: licenseNumber?.trim() || 'PENDING',
+        verificationStatus: DriverVerificationStatus.PENDING,
+        onlineStatus: false,
       },
       create: {
         userId: user.id,
-        licenseNumber,
-        verificationStatus: DriverVerificationStatus.APPROVED,
-        onlineStatus: true,
+        licenseNumber: licenseNumber?.trim() || 'PENDING',
+        verificationStatus: DriverVerificationStatus.PENDING,
+        onlineStatus: false,
       },
     });
 
-    // 3. Create or attach Vehicle
-    const vehicleCat = (category as VehicleCategory) || VehicleCategory.SEDAN;
-    const vehicleFuel = (fuelType as FuelType) || FuelType.DIESEL;
+    // 3. Create or attach Vehicle only if category or plateNumber was provided by admin
+    if (category || plateNumber) {
+      const vehicleCat = (category as VehicleCategory) || VehicleCategory.SEDAN;
+      const vehicleFuel = (fuelType as FuelType) || FuelType.DIESEL;
 
-    const fleetConfig = await prisma.fleetCategory.findUnique({
-      where: { category: vehicleCat },
-    });
+      const fleetConfig = await prisma.fleetCategory.findUnique({
+        where: { category: vehicleCat },
+      });
 
-    const baseFare = fleetConfig
-      ? vehicleFuel === FuelType.CNG
-        ? fleetConfig.cngRate
-        : vehicleFuel === FuelType.PETROL
-        ? fleetConfig.petrolRate
-        : fleetConfig.dieselRate
-      : 13.0;
+      const baseFare = fleetConfig
+        ? vehicleFuel === FuelType.CNG
+          ? fleetConfig.cngRate
+          : vehicleFuel === FuelType.PETROL
+          ? fleetConfig.petrolRate
+          : fleetConfig.dieselRate
+        : 13.0;
 
-    await prisma.vehicle.create({
-      data: {
-        driverId: driver.id,
-        category: vehicleCat,
-        fuelType: vehicleFuel,
-        seatCount: fleetConfig?.seatCount || (vehicleCat === VehicleCategory.SUV_PREMIUM ? 7 : vehicleCat === VehicleCategory.SUV ? 6 : 4),
-        baseFarePerKm: baseFare,
-        extraKmRate: fleetConfig?.extraKmRate || 14.0,
-        driverAllowance: fleetConfig?.driverAllowance || 300.0,
-        plateNumber: plateNumber || 'KA 01 TR 0000',
-      },
-    });
+      await prisma.vehicle.create({
+        data: {
+          driverId: driver.id,
+          category: vehicleCat,
+          fuelType: vehicleFuel,
+          seatCount: fleetConfig?.seatCount || (vehicleCat === VehicleCategory.SUV_PREMIUM ? 7 : vehicleCat === VehicleCategory.SUV ? 6 : 4),
+          baseFarePerKm: baseFare || 14.0,
+          extraKmRate: fleetConfig?.extraKmRate || 14.0,
+          driverAllowance: fleetConfig?.driverAllowance || 300.0,
+          plateNumber: plateNumber?.trim() ? plateNumber.trim().toUpperCase() : null,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Driver added and approved successfully',
+      message: 'Driver account registered in Pending state. Driver can now log into the Driver App and upload documents.',
       driverId: driver.id,
     });
   } catch (error: any) {

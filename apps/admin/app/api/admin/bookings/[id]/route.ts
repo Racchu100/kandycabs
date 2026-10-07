@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@kandy-cabs/db';
 import { getAdminSession } from '@/lib/auth';
+import { resolveImageUrl } from '@/lib/resolveImageUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,10 +80,19 @@ export async function GET(
       },
     });
 
+    const formattedBooking = {
+      ...booking,
+      startingOdometerImagePath: resolveImageUrl(booking.startingOdometerImagePath) || null,
+      finalOdometerImagePath: resolveImageUrl(booking.finalOdometerImagePath) || null,
+      vehicleInspectionPhotos: Array.isArray(booking.vehicleInspectionPhotos)
+        ? booking.vehicleInspectionPhotos.map((p) => resolveImageUrl(p)).filter(Boolean)
+        : [],
+    };
+
     return NextResponse.json(
       {
         success: true,
-        booking,
+        booking: formattedBooking,
         auditLogs,
       },
       { status: 200 }

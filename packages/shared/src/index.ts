@@ -1,3 +1,5 @@
+import './utils/polyfill';
+
 export * from './types';
 export * from './utils/phone';
 export * from './utils/otp';
@@ -11,3 +13,6 @@ export * from './pricing/types';
 export * from './pricing/pricingEngine';
 export * from './supabase/client';
 export * from './utils/logger';
+export * from './utils/distance';
+export * from './utils/polyfill';
+

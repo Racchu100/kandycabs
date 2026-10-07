@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@kandy-cabs/db';
 import { BookingStatus } from '@kandy-cabs/shared';
 import { getAdminSession } from '@/lib/auth';
+import { resolveImageUrl } from '@/lib/resolveImageUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,50 +41,71 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const [totalCount, bookings] = await Promise.all([
-      prisma.booking.count({ where }),
-      prisma.booking.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-        select: {
-          id: true,
-          humanReadableRef: true,
-          tripType: true,
-          pickupAddress: true,
-          dropAddress: true,
-          distanceKm: true,
-          estimatedFare: true,
-          advanceAmount: true,
-          status: true,
-          customerPhoneReleased: true,
-          driverPaymentStatus: true,
-          createdAt: true,
-          customer: {
-            select: {
-              user: {
-                select: { id: true, fullName: true, phone: true },
-              },
+    const totalCount = await prisma.booking.count({ where });
+    const rawBookings = await prisma.booking.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        humanReadableRef: true,
+        tripType: true,
+        pickupAddress: true,
+        dropAddress: true,
+        actualPickupAddress: true,
+        actualPickupLat: true,
+        actualPickupLng: true,
+        actualStartedAt: true,
+        actualDropAddress: true,
+        actualDropLat: true,
+        actualDropLng: true,
+        actualCompletedAt: true,
+        distanceKm: true,
+        estimatedFare: true,
+        advanceAmount: true,
+        status: true,
+        customerPhoneReleased: true,
+        driverPaymentStatus: true,
+        startingOdometer: true,
+        startingOdometerImagePath: true,
+        finalOdometer: true,
+        finalOdometerImagePath: true,
+        vehicleInspectionPhotos: true,
+        createdAt: true,
+        customer: {
+          select: {
+            user: {
+              select: { id: true, fullName: true, phone: true },
             },
-          },
-          assignedDriver: {
-            select: {
-              user: {
-                select: { id: true, fullName: true, phone: true },
-              },
-            },
-          },
-          tripEvents: {
-            where: { type: 'OVERRIDE_REQUESTED' },
-            select: { id: true, type: true },
-          },
-          dispatches: {
-            select: { id: true },
           },
         },
-      }),
-    ]);
+        assignedDriver: {
+          select: {
+            user: {
+              select: { id: true, fullName: true, phone: true },
+            },
+          },
+        },
+        tripEvents: {
+          select: { id: true, type: true, payloadJson: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        dispatches: {
+          select: { id: true },
+        },
+      },
+    });
+
+    // Format lightweight image paths (Supabase Storage URLs / local paths)
+    const bookings = rawBookings.map((b) => ({
+      ...b,
+      startingOdometerImagePath: resolveImageUrl(b.startingOdometerImagePath) || null,
+      finalOdometerImagePath: resolveImageUrl(b.finalOdometerImagePath) || null,
+      vehicleInspectionPhotos: Array.isArray(b.vehicleInspectionPhotos)
+        ? b.vehicleInspectionPhotos.map((p) => resolveImageUrl(p)).filter(Boolean)
+        : [],
+    }));
 
     const totalPages = Math.ceil(totalCount / limit) || 1;
 

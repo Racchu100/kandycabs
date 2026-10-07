@@ -40,22 +40,29 @@ export async function POST(req: NextRequest) {
 
     // Check if phone number is already registered
     const existingUser = await prisma.user.findUnique({
-      where: { phone: normalizedPhone },
+      where: { phone: normalizedPhone, deletedAt: null },
       select: {
+        id: true,
         fullName: true,
         roles: true,
-        driver: { select: { id: true, verificationStatus: true } },
+        deletedAt: true,
+        driver: { select: { id: true, verificationStatus: true, deletedAt: true } },
       },
     });
 
-    const isDriver = !!(existingUser?.roles?.includes('DRIVER') || existingUser?.driver);
+    const isDriver = !!(
+      existingUser &&
+      !existingUser.deletedAt &&
+      existingUser.driver &&
+      !existingUser.driver.deletedAt
+    );
 
     // If request is from Driver App, reject unregistered numbers immediately
     if (body.role === 'DRIVER' && (!existingUser || !isDriver)) {
       const res = NextResponse.json(
         {
           success: false,
-          message: 'No driver registered with this number. Please contact admin to register as a driver partner.',
+          message: 'No active driver account found with this number. Please contact admin to register as a driver partner.',
           isRegistered: false,
           isDriver: false,
         },

@@ -8,7 +8,7 @@ import {
 export const VEHICLE_RATES: Record<VehicleCategory, VehicleRateConfig> = {
   [VehicleCategory.HATCHBACK]: {
     category: VehicleCategory.HATCHBACK,
-    name: 'Hatchback',
+    name: 'WagonR or equivalent',
     description: 'WagonR, Swift, Tiago or equivalent',
     seats: 4,
     luggage: 2,
@@ -28,7 +28,7 @@ export const VEHICLE_RATES: Record<VehicleCategory, VehicleRateConfig> = {
   },
   [VehicleCategory.SEDAN]: {
     category: VehicleCategory.SEDAN,
-    name: 'Sedan',
+    name: 'Dzire or equivalent',
     description: 'Dzire, Etios, Amaze or equivalent',
     seats: 4,
     luggage: 3,
@@ -48,8 +48,8 @@ export const VEHICLE_RATES: Record<VehicleCategory, VehicleRateConfig> = {
   },
   [VehicleCategory.SUV]: {
     category: VehicleCategory.SUV,
-    name: 'SUV (6+1)',
-    description: 'Ertiga, Triber, Marazzo or equivalent',
+    name: 'Ertiga or equivalent',
+    description: 'Ertiga, Triber, Carens or equivalent',
     seats: 6,
     luggage: 4,
     perKmRate: {
@@ -68,7 +68,7 @@ export const VEHICLE_RATES: Record<VehicleCategory, VehicleRateConfig> = {
   },
   [VehicleCategory.SUV_PREMIUM]: {
     category: VehicleCategory.SUV_PREMIUM,
-    name: 'SUV Premium (7+1)',
+    name: 'Innova Crysta or equivalent',
     description: 'Innova Crysta, Safari or equivalent',
     seats: 7,
     luggage: 5,
@@ -88,7 +88,7 @@ export const VEHICLE_RATES: Record<VehicleCategory, VehicleRateConfig> = {
   },
   [VehicleCategory.TEMPO_TRAVELER]: {
     category: VehicleCategory.TEMPO_TRAVELER,
-    name: 'Tempo Traveler (12+1)',
+    name: 'Tempo Traveller or equivalent',
     description: 'Force Traveller luxury group carrier',
     seats: 12,
     luggage: 10,
@@ -144,6 +144,7 @@ export function calculateFare(input: PricingCalculationInput): PricingBreakdown 
   
   const ratePerKm = overrides?.ratePerKm !== undefined ? overrides.ratePerKm : (config.perKmRate[fuelType] || config.perKmRate[FuelType.DIESEL] || 14.0);
   const extraKmRate = overrides?.extraKmRate !== undefined ? overrides.extraKmRate : config.extraKmRate;
+  const extraKmThreshold = overrides?.extraKmThreshold !== undefined && overrides.extraKmThreshold > 0 ? overrides.extraKmThreshold : undefined;
   const driverAllowancePerDay = overrides?.driverAllowance !== undefined ? overrides.driverAllowance : config.driverAllowancePerDay;
   const nightChargeAmount = overrides?.nightCharge !== undefined ? overrides.nightCharge : config.nightCharge;
   const minRoundTripKmPerDay = overrides?.minRoundTripKmPerDay !== undefined ? overrides.minRoundTripKmPerDay : config.minRoundTripKmPerDay;
@@ -165,18 +166,38 @@ export function calculateFare(input: PricingCalculationInput): PricingBreakdown 
 
   switch (tripType) {
     case TripType.ROUND: {
-      // Round trip: min km/day rule
-      const minRequiredKm = days * minRoundTripKmPerDay;
+      // Round trip: min km/day rule or custom admin extraKmThreshold
+      const dailyMin = extraKmThreshold || minRoundTripKmPerDay;
+      const minRequiredKm = days * dailyMin;
       const totalEstimatedKm = distanceKm * 2;
-      billableDistanceKm = Math.max(totalEstimatedKm, minRequiredKm);
-      baseFare = billableDistanceKm * ratePerKm;
+      
+      if (totalEstimatedKm > minRequiredKm) {
+        billableDistanceKm = totalEstimatedKm;
+        baseFare = minRequiredKm * ratePerKm;
+        extraKmCharge = (totalEstimatedKm - minRequiredKm) * extraKmRate;
+      } else {
+        billableDistanceKm = minRequiredKm;
+        baseFare = billableDistanceKm * ratePerKm;
+      }
       driverAllowance = days * driverAllowancePerDay;
       break;
     }
     case TripType.ONEWAY: {
-      // Minimum 50 km for oneway outstation/city rides
-      billableDistanceKm = Math.max(distanceKm, 50);
-      baseFare = billableDistanceKm * ratePerKm;
+      // If admin configured a custom extraKmThreshold (e.g. 50 km, 100 km)
+      if (extraKmThreshold) {
+        if (distanceKm > extraKmThreshold) {
+          billableDistanceKm = distanceKm;
+          baseFare = extraKmThreshold * ratePerKm;
+          extraKmCharge = (distanceKm - extraKmThreshold) * extraKmRate;
+        } else {
+          billableDistanceKm = extraKmThreshold;
+          baseFare = billableDistanceKm * ratePerKm;
+        }
+      } else {
+        // Default standard minimum 50 km for oneway outstation/city rides
+        billableDistanceKm = Math.max(distanceKm, 50);
+        baseFare = billableDistanceKm * ratePerKm;
+      }
       // Driver allowance for long oneway trips (> 200 km)
       if (billableDistanceKm > 200) {
         driverAllowance = driverAllowancePerDay;
@@ -184,26 +205,47 @@ export function calculateFare(input: PricingCalculationInput): PricingBreakdown 
       break;
     }
     case TripType.AIRPORT: {
-      // Minimum 35 km for airport transfers
-      billableDistanceKm = Math.max(distanceKm, 35);
-      baseFare = billableDistanceKm * ratePerKm;
+      // Minimum 35 km for airport transfers or custom admin threshold
+      const airportThreshold = extraKmThreshold || 35;
+      if (distanceKm > airportThreshold) {
+        billableDistanceKm = distanceKm;
+        baseFare = airportThreshold * ratePerKm;
+        extraKmCharge = (distanceKm - airportThreshold) * extraKmRate;
+      } else {
+        billableDistanceKm = airportThreshold;
+        baseFare = billableDistanceKm * ratePerKm;
+      }
       break;
     }
     case TripType.LOCAL:
     case TripType.PACKAGE: {
-      const is4Hr = (input.packageHours || 8) <= 4;
-      const pkgKm = is4Hr ? 40 : 80;
-      const defaultPkg = config.localPackages?.find((p) => p.hours === (input.packageHours || 8)) ||
-        (is4Hr ? { hours: 4, km: 40, basePrice: 1200 } : { hours: 8, km: 80, basePrice: 2200 });
+      const hours = input.packageHours || 8;
+      let pkgKm = 80;
+      let basePrice = 2200;
+      let pkgExtraKmRate = extraKmRate;
 
-      const basePrice = is4Hr
-        ? (overrides?.localPackage4hrBase !== undefined ? overrides.localPackage4hrBase : defaultPkg.basePrice)
-        : (overrides?.localPackage8hrBase !== undefined ? overrides.localPackage8hrBase : defaultPkg.basePrice);
+      if (hours <= 4) {
+        pkgKm = overrides?.localPackage4hrKm || extraKmThreshold || 40;
+        const default4hr = config.localPackages?.find((p) => p.hours === 4)?.basePrice || 1200;
+        basePrice = overrides?.localPackage4hrBase !== undefined ? overrides.localPackage4hrBase : default4hr;
+        pkgExtraKmRate = overrides?.localPackage4hrExtraKmRate !== undefined ? overrides.localPackage4hrExtraKmRate : extraKmRate;
+      } else if (hours <= 8) {
+        pkgKm = overrides?.localPackage8hrKm || extraKmThreshold || 80;
+        const default8hr = config.localPackages?.find((p) => p.hours === 8)?.basePrice || 2200;
+        basePrice = overrides?.localPackage8hrBase !== undefined ? overrides.localPackage8hrBase : default8hr;
+        pkgExtraKmRate = overrides?.localPackage8hrExtraKmRate !== undefined ? overrides.localPackage8hrExtraKmRate : extraKmRate;
+      } else {
+        // 12 Hours or custom extended local package
+        pkgKm = overrides?.localPackage12hrKm || (overrides?.localPackage8hrKm ? Math.round(overrides.localPackage8hrKm * 1.5) : 120);
+        const default12hr = overrides?.localPackage8hrBase ? Math.round(overrides.localPackage8hrBase * 1.45) : 3200;
+        basePrice = overrides?.localPackage12hrBase !== undefined ? overrides.localPackage12hrBase : default12hr;
+        pkgExtraKmRate = overrides?.localPackage12hrExtraKmRate !== undefined ? overrides.localPackage12hrExtraKmRate : extraKmRate;
+      }
 
       baseFare = basePrice;
       billableDistanceKm = Math.max(distanceKm, pkgKm);
       if (distanceKm > pkgKm) {
-        extraKmCharge = (distanceKm - pkgKm) * extraKmRate;
+        extraKmCharge = (distanceKm - pkgKm) * pkgExtraKmRate;
       }
       break;
     }
@@ -245,6 +287,7 @@ export function calculateFare(input: PricingCalculationInput): PricingBreakdown 
     actualDistanceKm: Math.round(distanceKm * 10) / 10,
     baseFare: Math.round(baseFare * 100) / 100,
     extraKmCharge: Math.round(extraKmCharge * 100) / 100,
+    extraKmThreshold,
     driverAllowance: Math.round(driverAllowance * 100) / 100,
     nightCharge: Math.round(nightCharge * 100) / 100,
     subtotal: Math.round(subtotal * 100) / 100,

@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { customerApiClient, customerTokenStorage } from '../lib/api';
@@ -22,15 +21,31 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
-  const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [step, setStep] = useState<'PHONE' | 'OTP' | 'NAME'>('PHONE');
   const [phone, setPhone] = useState('');
   const [fullName, setFullName] = useState('');
   const [otp, setOtp] = useState('');
   const [debugOtp, setDebugOtp] = useState<string | null>(null);
-  const [isRegistered, setIsRegistered] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [tempUser, setTempUser] = useState<any | null>(null);
 
+  const resetState = () => {
+    setStep('PHONE');
+    setPhone('');
+    setFullName('');
+    setOtp('');
+    setDebugOtp(null);
+    setErrorMsg(null);
+    setTempUser(null);
+  };
+
+  const handleClose = () => {
+    resetState();
+    onClose();
+  };
+
+  // Step 1: Request OTP
   const handleSendOtp = async () => {
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length !== 10) {
@@ -48,7 +63,6 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
       });
 
       if (res && res.success) {
-        setIsRegistered(res.isRegistered);
         if (res.debugOtp) {
           setDebugOtp(res.debugOtp);
           setOtp(res.debugOtp);
@@ -64,6 +78,7 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
     }
   };
 
+  // Step 2: Verify OTP
   const handleVerifyOtp = async () => {
     if (otp.length < 4) {
       setErrorMsg('Please enter the 4-digit OTP code');
@@ -79,7 +94,6 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
         body: JSON.stringify({
           phone: phone.replace(/\D/g, ''),
           otp: otp.trim(),
-          fullName: fullName.trim() || undefined,
         }),
       });
 
@@ -87,13 +101,25 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
         if (res.token) {
           customerTokenStorage.setToken(res.token);
         }
-        onSuccess(res.user);
-        onClose();
-        // Reset state
-        setStep('PHONE');
-        setPhone('');
-        setOtp('');
-        setDebugOtp(null);
+
+        const registeredName = res.user?.fullName;
+        const hasName = Boolean(
+          registeredName &&
+          registeredName !== 'Kandy Customer' &&
+          registeredName.trim().length > 0 &&
+          res.hasRegisteredName !== false
+        );
+
+        if (hasName) {
+          // Existing registered customer -> auto show profile and complete
+          customerTokenStorage.setUser(res.user);
+          onSuccess(res.user);
+          handleClose();
+        } else {
+          // New customer without registered name -> ask for name
+          setTempUser(res.user);
+          setStep('NAME');
+        }
       } else {
         setErrorMsg(res?.message || 'Invalid OTP. Please check and try again.');
       }
@@ -104,8 +130,39 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
     }
   };
 
+  // Step 3: Save Name for New Customer
+  const handleSaveName = async () => {
+    const trimmed = fullName.trim();
+    if (!trimmed) {
+      setErrorMsg('Please enter your full name to continue');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await customerApiClient.fetch('/api/auth/update-profile', {
+        method: 'POST',
+        body: JSON.stringify({ fullName: trimmed }),
+      });
+
+      const updatedUser = res?.user || { ...tempUser, fullName: trimmed };
+      customerTokenStorage.setUser(updatedUser);
+      onSuccess(updatedUser);
+      handleClose();
+    } catch {
+      const fallbackUser = { ...tempUser, fullName: trimmed };
+      customerTokenStorage.setUser(fallbackUser);
+      onSuccess(fallbackUser);
+      handleClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.overlay}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -114,9 +171,13 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
           <SafeAreaView style={styles.sheetContainer}>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>
-                {step === 'PHONE' ? 'Sign In / Register' : 'Enter Verification Code'}
+                {step === 'PHONE'
+                  ? 'Sign In / Register'
+                  : step === 'OTP'
+                  ? 'Enter Verification Code'
+                  : 'Welcome! Enter Your Name'}
               </Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
                 <Ionicons name="close" size={22} color="#1e293b" />
               </TouchableOpacity>
             </View>
@@ -129,7 +190,8 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
                 </View>
               )}
 
-              {step === 'PHONE' ? (
+              {/* STEP 1: MOBILE NUMBER */}
+              {step === 'PHONE' && (
                 <>
                   <Text style={styles.instruction}>
                     Enter your 10-digit mobile number to access your bookings and instant cab quotes.
@@ -172,7 +234,10 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
                     )}
                   </TouchableOpacity>
                 </>
-              ) : (
+              )}
+
+              {/* STEP 2: 4-DIGIT OTP ONLY (NO NAME) */}
+              {step === 'OTP' && (
                 <>
                   <View style={styles.otpHeaderRow}>
                     <Text style={styles.otpSentText}>
@@ -182,19 +247,6 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
                       <Text style={styles.changePhoneText}>Change</Text>
                     </TouchableOpacity>
                   </View>
-
-                  {!isRegistered && (
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>YOUR FULL NAME</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="e.g. Rachel Sharma"
-                        placeholderTextColor="#94a3b8"
-                        value={fullName}
-                        onChangeText={setFullName}
-                      />
-                    </View>
-                  )}
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>4-DIGIT OTP CODE</Text>
@@ -214,9 +266,12 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
                   </View>
 
                   {debugOtp && (
-                    <View style={styles.devCodeBadge}>
-                      <Text style={styles.devCodeText}>⚡ Dev Code: {debugOtp} (Auto-filled)</Text>
-                    </View>
+                    <TouchableOpacity
+                      style={styles.devCodeBadge}
+                      onPress={() => setOtp(debugOtp)}
+                    >
+                      <Text style={styles.devCodeText}>⚡ Tap to use Dev OTP: {debugOtp}</Text>
+                    </TouchableOpacity>
                   )}
 
                   <TouchableOpacity
@@ -227,7 +282,43 @@ export function AuthModal({ visible, onClose, onSuccess }: AuthModalProps) {
                     {loading ? (
                       <ActivityIndicator color="#ffffff" />
                     ) : (
-                      <Text style={styles.primaryBtnText}>Verify & Continue</Text>
+                      <Text style={styles.primaryBtnText}>Verify & Proceed</Text>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* STEP 3: NEW CUSTOMER NAME ENTRY (ONLY IF NOT REGISTERED) */}
+              {step === 'NAME' && (
+                <>
+                  <Text style={styles.instruction}>
+                    You're almost there! Please tell us your full name so our chauffeurs can identify you.
+                  </Text>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>FULL NAME</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="e.g. Rachel Sharma"
+                      placeholderTextColor="#94a3b8"
+                      value={fullName}
+                      onChangeText={(t) => {
+                        setFullName(t);
+                        setErrorMsg(null);
+                      }}
+                      autoFocus
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, loading && styles.btnDisabled]}
+                    onPress={handleSaveName}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#ffffff" />
+                    ) : (
+                      <Text style={styles.primaryBtnText}>Complete Registration ➔</Text>
                     )}
                   </TouchableOpacity>
                 </>
@@ -260,18 +351,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingTop: 18,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 17,
+    fontWeight: '800',
     color: '#0f172a',
   },
   closeBtn: {
     padding: 6,
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: '#f1f5f9',
   },
   body: {
@@ -281,24 +373,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748b',
     lineHeight: 19,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fef2f2',
+    padding: 10,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#fecaca',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 14,
     gap: 8,
   },
   errorText: {
-    flex: 1,
-    fontSize: 12,
     color: '#dc2626',
+    fontSize: 12,
     fontWeight: '600',
+    flex: 1,
   },
   inputGroup: {
     marginBottom: 16,
@@ -306,30 +398,30 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#475569',
-    letterSpacing: 0.8,
+    color: '#64748b',
     marginBottom: 6,
+    letterSpacing: 0.5,
   },
   phoneInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
     backgroundColor: '#f8fafc',
     overflow: 'hidden',
   },
   countryCodeBadge: {
     backgroundColor: '#f1f5f9',
     paddingHorizontal: 12,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRightWidth: 1,
-    borderRightColor: '#e2e8f0',
+    borderRightColor: '#cbd5e1',
   },
   countryCodeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#334155',
+    color: '#0f172a',
   },
   phoneInput: {
     flex: 1,
@@ -339,22 +431,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0f172a',
   },
-  textInput: {
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
   otpHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   otpSentText: {
     fontSize: 13,
@@ -362,50 +443,55 @@ const styles = StyleSheet.create({
   },
   changePhoneText: {
     fontSize: 13,
+    fontWeight: '700',
     color: '#ea580c',
-    fontWeight: '800',
-    textDecorationLine: 'underline',
   },
   otpInput: {
+    backgroundColor: '#fff7ed',
     borderWidth: 1.5,
     borderColor: '#ea580c',
-    borderRadius: 14,
-    backgroundColor: '#fff7ed',
+    borderRadius: 12,
     paddingVertical: 12,
-    fontSize: 26,
+    paddingHorizontal: 16,
+    fontSize: 22,
     fontWeight: '900',
     color: '#0f172a',
     textAlign: 'center',
     letterSpacing: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  textInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0f172a',
   },
   devCodeBadge: {
-    backgroundColor: '#ffedd5',
+    backgroundColor: '#fef3c7',
     borderWidth: 1,
-    borderColor: '#fed7aa',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    borderColor: '#fde68a',
     borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
     marginBottom: 16,
   },
   devCodeText: {
+    color: '#92400e',
     fontSize: 12,
-    fontWeight: '700',
-    color: '#c2410c',
+    fontWeight: '800',
   },
   primaryBtn: {
-    backgroundColor: '#ea580c',
-    paddingVertical: 15,
-    borderRadius: 16,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    shadowColor: '#ea580c',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: '#ea580c',
+    paddingVertical: 14,
+    borderRadius: 12,
     marginTop: 6,
   },
   btnDisabled: {
@@ -414,7 +500,6 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     color: '#ffffff',
     fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: 0.3,
+    fontWeight: '800',
   },
 });

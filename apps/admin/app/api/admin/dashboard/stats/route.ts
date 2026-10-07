@@ -82,6 +82,9 @@ export async function GET(req: NextRequest) {
               user: { select: { fullName: true, phone: true } },
             },
           },
+          tripEvents: {
+            select: { id: true, type: true, payloadJson: true },
+          },
         },
       }),
 

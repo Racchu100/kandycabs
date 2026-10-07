@@ -27,9 +27,9 @@ export const FleetCardItem = memo(function FleetCardItem({
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
-        <View style={[styles.choiceBadge, { backgroundColor: item.badgeBg }]}>
-          <Ionicons name="shield-checkmark" size={12} color={item.badgeColor} />
-          <Text style={[styles.choiceBadgeText, { color: item.badgeColor }]}>
+        <View style={styles.choiceBadge}>
+          <Ionicons name="shield-checkmark" size={12} color="#1e293b" />
+          <Text style={styles.choiceBadgeText}>
             {item.badge}
           </Text>
         </View>
@@ -51,7 +51,7 @@ export const FleetCardItem = memo(function FleetCardItem({
 
       <View style={styles.vehicleTitleRow}>
         <View style={styles.vehicleIconBox}>
-          <Ionicons name="car-outline" size={20} color="#059669" />
+          <Ionicons name="car-outline" size={20} color="#ea580c" />
         </View>
         <View style={styles.vehicleTitleTextContainer}>
           <Text style={styles.vehicleName}>{item.name}</Text>
@@ -66,7 +66,7 @@ export const FleetCardItem = memo(function FleetCardItem({
       <View style={styles.featureList}>
         {item.features.map((feature, idx) => (
           <View key={idx} style={styles.featureItem}>
-            <Ionicons name="checkmark" size={16} color="#059669" />
+            <Ionicons name="checkmark" size={16} color="#ea580c" />
             <Text style={styles.featureItemText}>{feature}</Text>
           </View>
         ))}
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 24,
     borderWidth: 1.5,
-    borderColor: '#a7f3d0',
+    borderColor: '#e2e8f0',
     padding: 16,
     shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 4 },
@@ -105,6 +105,9 @@ const styles = StyleSheet.create({
   choiceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
@@ -113,6 +116,7 @@ const styles = StyleSheet.create({
   choiceBadgeText: {
     fontSize: 10,
     fontWeight: '900',
+    color: '#1e293b',
     letterSpacing: 0.6,
   },
   rateContainer: {
@@ -124,7 +128,7 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   rateTag: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: '#fff7ed',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -133,7 +137,7 @@ const styles = StyleSheet.create({
   rateTagText: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#065f46',
+    color: '#c2410c',
     letterSpacing: 0.4,
   },
   carImageContainer: {
@@ -156,7 +160,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#d1fae5',
+    backgroundColor: '#fff7ed',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -175,7 +179,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   purposePill: {
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#fff7ed',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -184,7 +188,7 @@ const styles = StyleSheet.create({
   purposePillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#15803d',
+    color: '#c2410c',
   },
   featureList: {
     gap: 6,

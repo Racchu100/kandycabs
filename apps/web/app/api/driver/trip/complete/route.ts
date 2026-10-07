@@ -4,6 +4,7 @@ import { getDriverSession } from '@/lib/driver-auth';
 import { BookingStatus, PaymentStatus, PaymentType } from '@kandy-cabs/shared';
 import { setCorsHeaders, handleOptions } from '@/lib/cors';
 import { RealtimeEvents } from '@/lib/realtime-events';
+import { uploadTripPhoto } from '@/lib/supabase-storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,11 +31,14 @@ export async function POST(req: NextRequest) {
       tollAmount = 0,
       parkingAmount = 0,
       paymentMethod = 'CASH', // CASH or UPI_QR
+      actualDropLat,
+      actualDropLng,
+      actualDropAddress,
     } = body;
 
-    if (!bookingId || finalOdometer === undefined) {
+    if (!bookingId || finalOdometer === undefined || !finalOdometerImagePath) {
       const res = NextResponse.json(
-        { success: false, message: 'Booking ID and final odometer reading are required' },
+        { success: false, message: 'Final odometer reading and photo evidence are mandatory to complete trip' },
         { status: 400 }
       );
       return setCorsHeaders(res);
@@ -57,6 +61,22 @@ export async function POST(req: NextRequest) {
 
     const startOdo = Number(booking.startingOdometer || 0);
     const endOdo = parseFloat(String(finalOdometer));
+    const now = new Date();
+
+    const resolvedDropLat = typeof actualDropLat === 'number' ? actualDropLat : null;
+    const resolvedDropLng = typeof actualDropLng === 'number' ? actualDropLng : null;
+    const resolvedDropAddress = actualDropAddress ? String(actualDropAddress).trim() : null;
+
+    // Upload final odometer photo to Supabase Storage (offloads Base64 from PostgreSQL)
+    let storedFinalOdometerPath: string | null = null;
+    if (finalOdometerImagePath) {
+      storedFinalOdometerPath = await uploadTripPhoto({
+        bookingId,
+        category: 'complete',
+        imageBase64OrUri: finalOdometerImagePath,
+        customName: 'final_odometer',
+      });
+    }
 
     // Calculate actual distance from start/end odometer readings
     const actualDistanceKm = Math.max(0, Math.round((endOdo - startOdo) * 10) / 10);
@@ -66,7 +86,7 @@ export async function POST(req: NextRequest) {
     const baseBalance = Number(booking.balanceAmount);
     const totalBalanceCollected = baseBalance + parsedToll + parsedParking;
 
-    // Atomic Transaction: complete trip, record odometer reconciliation, tolls/parking, and balance Payment
+    // Atomic Transaction: complete trip, record odometer reconciliation, tolls/parking, actual drop location and balance Payment
     const updated = await prisma.$transaction(
       async (tx) => {
         // 1. Update Booking
@@ -75,11 +95,15 @@ export async function POST(req: NextRequest) {
           data: {
             status: BookingStatus.TRIP_COMPLETED,
             finalOdometer: endOdo,
-            finalOdometerImagePath: finalOdometerImagePath || null,
+            finalOdometerImagePath: storedFinalOdometerPath || null,
             actualDistanceKm,
             tollAmount: parsedToll,
             parkingAmount: parsedParking,
             balancePaymentStatus: PaymentStatus.PAID,
+            actualDropAddress: resolvedDropAddress || booking.dropAddress,
+            actualDropLat: resolvedDropLat ?? booking.dropLat,
+            actualDropLng: resolvedDropLng ?? booking.dropLng,
+            actualCompletedAt: now,
           },
         });
 
@@ -91,7 +115,7 @@ export async function POST(req: NextRequest) {
             amount: totalBalanceCollected,
             razorpayPaymentId: `${paymentMethod.toLowerCase()}_pay_${Date.now()}`,
             status: PaymentStatus.PAID,
-            verifiedAt: new Date(),
+            verifiedAt: now,
           },
         });
 
@@ -109,8 +133,11 @@ export async function POST(req: NextRequest) {
               parkingAmount: parsedParking,
               totalBalanceCollected,
               paymentMethod,
-              hasFinalImage: !!finalOdometerImagePath,
-              timestamp: new Date().toISOString(),
+              hasFinalImage: !!storedFinalOdometerPath,
+              actualDropAddress: resolvedDropAddress || booking.dropAddress,
+              actualDropLat: resolvedDropLat ?? booking.dropLat,
+              actualDropLng: resolvedDropLng ?? booking.dropLng,
+              timestamp: now.toISOString(),
             },
           },
         });
@@ -122,7 +149,7 @@ export async function POST(req: NextRequest) {
             action: 'DRIVER_COMPLETE_TRIP',
             entityType: 'Booking',
             entityId: bookingId,
-            reason: `Trip completed by driver. Odometer: ${startOdo} -> ${endOdo} (${actualDistanceKm} km). Balance collected: ₹${totalBalanceCollected} via ${paymentMethod}`,
+            reason: `Trip completed by driver at [${resolvedDropAddress || 'driver final reached GPS location'}]. Odometer: ${startOdo} -> ${endOdo} (${actualDistanceKm} km). Balance collected: ₹${totalBalanceCollected} via ${paymentMethod}`,
           },
         });
 
@@ -140,6 +167,10 @@ export async function POST(req: NextRequest) {
       status: BookingStatus.TRIP_COMPLETED,
       actualDistanceKm,
       totalBalanceCollected,
+      actualDropAddress: updated.actualDropAddress,
+      actualDropLat: updated.actualDropLat,
+      actualDropLng: updated.actualDropLng,
+      actualCompletedAt: updated.actualCompletedAt,
     });
 
     RealtimeEvents.emitToDriver(session.driverId, 'TRIP_STATUS', {
