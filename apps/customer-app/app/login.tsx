@@ -19,8 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { customerApiClient, customerTokenStorage } from '../lib/api';
 
-const { width } = Dimensions.get('window');
-const HERO_HEIGHT = Math.round(width * (580 / 780));
+const { width, height } = Dimensions.get('window');
+const HERO_HEIGHT = Math.min(Math.round(width * (580 / 780)), 300);
 
 export default function CustomerLoginScreen() {
   const router = useRouter();
@@ -219,23 +219,24 @@ export default function CustomerLoginScreen() {
           </View>
 
           {/* Elevated Rounded White Card */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>
-                {step === 'PHONE'
-                  ? 'Customer Login'
-                  : step === 'OTP'
-                  ? 'Verify Code'
-                  : 'Complete Profile'}
-              </Text>
-              <Text style={styles.cardSubtitle}>
-                {step === 'PHONE'
-                  ? 'Login to book your cab, manage bookings and get the best travel experience.'
-                  : step === 'OTP'
-                  ? `Enter the 4-digit code sent to +91 ${phone}`
-                  : 'Please enter your full name to complete your registration.'}
-              </Text>
-            </View>
+          <View style={[styles.card, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
+            <View style={styles.cardMain}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>
+                  {step === 'PHONE'
+                    ? 'Customer Login'
+                    : step === 'OTP'
+                    ? 'Verify Code'
+                    : 'Complete Profile'}
+                </Text>
+                <Text style={styles.cardSubtitle}>
+                  {step === 'PHONE'
+                    ? 'Login to book your cab, manage bookings and get the best travel experience.'
+                    : step === 'OTP'
+                    ? `Enter the 4-digit code sent to +91 ${phone}`
+                    : 'Please enter your full name to complete your registration.'}
+                </Text>
+              </View>
 
             {/* STEP 1: Phone Number Input */}
             {step === 'PHONE' && (
@@ -397,6 +398,7 @@ export default function CustomerLoginScreen() {
                 </TouchableOpacity>
               </View>
             )}
+            </View>
 
             {/* Trust Footer Badges */}
             <View style={styles.trustFooter}>
@@ -442,6 +444,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    backgroundColor: '#ffffff',
   },
   heroContainer: {
     width: width,
@@ -455,18 +458,23 @@ const styles = StyleSheet.create({
     height: HERO_HEIGHT,
   },
   card: {
+    flex: 1,
+    minHeight: Math.max(height - HERO_HEIGHT + 24, 420),
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.1,
     shadowRadius: 18,
     elevation: 12,
     marginTop: -22,
+    justifyContent: 'space-between',
+  },
+  cardMain: {
+    width: '100%',
   },
   cardHeader: {
     marginBottom: 20,
