@@ -34,14 +34,14 @@ export function TaxInvoiceModal({
       setError('');
       customerApiClient
         .fetch(`/api/customer/bookings/${bookingId}/invoice`)
-        .then((data) => {
+        .then((data: any) => {
           if (data && data.success && data.invoice) {
             setInvoice(data.invoice);
           } else {
             setError(data?.message || 'Failed to generate tax invoice');
           }
         })
-        .catch((err) => {
+        .catch((err: any) => {
           setError(err.message || 'Failed to load invoice');
         })
         .finally(() => setLoading(false));

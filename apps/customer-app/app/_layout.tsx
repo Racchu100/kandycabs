@@ -12,12 +12,13 @@ export default function RootLayout() {
     <>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <Stack
-        initialRouteName="index"
+        initialRouteName="login"
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: '#ffffff' },
         }}
       >
+        <Stack.Screen name="login" />
         <Stack.Screen name="index" />
         <Stack.Screen name="select-trip-type" />
         <Stack.Screen name="trip-details" />

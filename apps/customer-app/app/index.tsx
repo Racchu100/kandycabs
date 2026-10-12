@@ -355,6 +355,15 @@ export default function HomeScreen() {
 
   // Sync auth state & load user profile
   const syncAuth = useCallback(async () => {
+    let token = customerTokenStorage.getToken();
+    if (!token) {
+      token = await customerTokenStorage.getTokenAsync();
+    }
+    if (!token) {
+      router.replace('/login');
+      return;
+    }
+
     const cached = customerTokenStorage.getUser();
     if (cached) {
       setCurrentUser(cached);
@@ -362,24 +371,17 @@ export default function HomeScreen() {
       setUserPhone(cached.phone || '');
     }
 
-    const token = customerTokenStorage.getToken();
-    if (token) {
-      try {
-        const res = await customerApiClient.fetch('/api/auth/me');
-        const cleanName = (res.user.fullName === 'Kandy Customer' ? '' : (res.user.fullName || '')).trim();
-        customerTokenStorage.setUser({ ...res.user, fullName: cleanName });
-        setCurrentUser({ ...res.user, fullName: cleanName });
-        setUserName(cleanName);
-        setUserPhone(res.user.phone || '');
-      } catch {
-        // ignore network error
-      }
-    } else if (!cached) {
-      setCurrentUser(null);
-      setUserName('');
-      setUserPhone('');
+    try {
+      const res = await customerApiClient.fetch('/api/auth/me');
+      const cleanName = (res.user.fullName === 'Kandy Customer' ? '' : (res.user.fullName || '')).trim();
+      customerTokenStorage.setUser({ ...res.user, fullName: cleanName });
+      setCurrentUser({ ...res.user, fullName: cleanName });
+      setUserName(cleanName);
+      setUserPhone(res.user.phone || '');
+    } catch {
+      // ignore network error
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     syncAuth();
