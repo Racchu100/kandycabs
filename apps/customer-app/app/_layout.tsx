@@ -27,7 +27,6 @@ export default function RootLayout() {
         <Stack.Screen name="booking/index" />
         <Stack.Screen name="my-bookings" />
         <Stack.Screen name="profile" />
-        <Stack.Screen name="login" />
         <Stack.Screen name="dashboard" />
         <Stack.Screen name="+not-found" />
       </Stack>
